@@ -165,7 +165,7 @@ public class EndlessTerrain : MonoBehaviour
                         {
                             previousLODIndex = lodIndex;
                             meshFilter.mesh = lodMesh.mesh;
-                            print(string.Format("SetMesh {0}", this.position));
+                            // print(string.Format("SetMesh {0}", this.position));
                         }
                         else if (!lodMesh.hasReqMesh)
                         {
@@ -203,7 +203,7 @@ public class EndlessTerrain : MonoBehaviour
 
         void OnMeshDataReceived(MeshData meshData)
         {
-            print("Mesh data received");
+            // print("Mesh data received");
             mesh = meshData.CreateMesh();
             hasMesh = true;
 
