@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,22 +7,19 @@ public class WorldGenerator
 {
     public class WorldGeneratorConfig
     {
-        public float MeshHeightMultiplier { get; set; }
-        // public AnimationCurve meshHeightCurve;
         public float NoiseScale { get; set; }
-        public int Octaves { get; set; }
-        public float Persistence { get; set; }
-        public float Lacunarity { get; set; }
-        public int Seed { get; set; }
+        public int NoiseOctaves { get; set; }
+        public float NoisePersistence { get; set; }
+        public float NoiseLacunarity { get; set; }
+        public int NoiseSeed { get; set; }
 
         public WorldGeneratorConfig()
         {
-            MeshHeightMultiplier = 20f;
             NoiseScale = 20f;
-            Octaves = 4;
-            Persistence = 0.5f;
-            Lacunarity = 2f;
-            Seed = 0;
+            NoiseOctaves = 4;
+            NoisePersistence = 0.5f;
+            NoiseLacunarity = 2f;
+            NoiseSeed = 0;
         }
     }
 
@@ -31,4 +29,13 @@ public class WorldGenerator
     }
 
     public WorldGeneratorConfig Config { get; private set; }
+
+    public WorldChunk GetChunk(Vector3Int pos)
+    {
+        float[,] heightNoise = HeightNoise.Generate(WorldChunk.ChunkWidth, WorldChunk.ChunkDepth,
+            Config.NoiseSeed, Config.NoiseScale, Config.NoiseOctaves, Config.NoisePersistence,
+            Config.NoiseLacunarity, Vector2.zero);
+
+        return WorldChunk.CreateFilled(KlotzType.Plate1x1, 40);
+    }
 }

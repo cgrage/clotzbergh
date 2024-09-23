@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -23,11 +24,11 @@ public class WorldChunk
         _world = new Klotz[ChunkWidth, ChunkHeight, ChunkDepth];
     }
 
-    private void Fill(KlotzType t)
+    private void Fill(KlotzType t, int toHeight = ChunkHeight)
     {
         for (int z = 0; z < ChunkDepth; z++)
         {
-            for (int y = 0; y < ChunkHeight; y++)
+            for (int y = 0; y < toHeight; y++)
             {
                 for (int x = 0; x < ChunkWidth; x++)
                 {
@@ -37,8 +38,25 @@ public class WorldChunk
         }
     }
 
-    private static WorldChunk CreateEmpty()
+    public static WorldChunk CreateEmpty()
     {
         return new WorldChunk();
+    }
+
+    public static WorldChunk CreateFilled(KlotzType t, int toHeight = ChunkHeight)
+    {
+        WorldChunk chunk = new();
+        chunk.Fill(t, toHeight);
+        return chunk;
+    }
+
+    public string ToBase64String()
+    {
+        throw new NotImplementedException();
+    }
+
+    public static WorldChunk FromBase64String(string value)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -6,7 +6,6 @@ using WebSocketSharp.Server;
 
 public class WorldServer : MonoBehaviour
 {
-    private readonly WorldGenerator _generator = new();
     private readonly WebSocketServer _wss;
 
     public int ServerPort = 3000;
@@ -34,10 +33,20 @@ public class WorldServer : MonoBehaviour
 
     public class Terrain : WebSocketBehavior
     {
+        private readonly WorldGenerator _generator = new();
+
         protected override void OnMessage(MessageEventArgs e)
         {
-            Debug.LogFormat("Received from client: {0}", e.Data);
-            Send("Echo: " + e.Data);
+            Debug.LogFormat("Received: {0}", e.Data);
+
+            var cmd = TerrainProto.ParseMessage(e.Data);
+
+            if (cmd is TerrainProto.GetChunkCommand)
+            {
+                var getch = cmd as TerrainProto.GetChunkCommand;
+                var chunk = _generator.GetChunk(getch.coord);
+                Send(TerrainProto.BuildChunkDataCommand(chunk));
+            }
         }
     }
 }
