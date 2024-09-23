@@ -11,17 +11,23 @@ public class TerrainClient : MonoBehaviour
     public string Hostname = "localhost";
     public int Port = 3000;
 
-    private Thread newThread;
+    private Thread _thread;
     private volatile bool _requestToStop = false;
 
+    /// <summary>
+    /// Called by Unity
+    /// </summary>
     void Start()
     {
         // Create a new thread and start it
-        newThread = new Thread(DoWork);
-        newThread.Start();
+        _thread = new Thread(ThreadMain);
+        _thread.Start();
     }
 
-    void DoWork()
+    /// <summary>
+    /// Started on the connection thread
+    /// </summary>
+    void ThreadMain()
     {
         string url = string.Format("ws://{0}:{1}/terrain", Hostname, Port);
         using (var ws = new WebSocket(url))
@@ -54,8 +60,8 @@ public class TerrainClient : MonoBehaviour
 
     void RunConnection(WebSocket ws, string url)
     {
-        string request = string.Format("getch {0},{1},{2}", 0, 0, 0);
-        ws.Send(request);
+        var command = TerrainProto.BuildGetChunkCommand(new Vector3Int(0, 0, 0));
+        ws.Send(command);
 
         while (!_requestToStop)
         {
@@ -68,16 +74,19 @@ public class TerrainClient : MonoBehaviour
         Debug.LogFormat("Received: {0}", e.Data);
     }
 
+    /// <summary>
+    /// Called by Unity
+    /// </summary>
     void OnDestroy()
     {
         _requestToStop = true;
 
-        if (newThread != null && newThread.IsAlive)
+        if (_thread != null && _thread.IsAlive)
         {
-            if (!newThread.Join(TimeSpan.FromSeconds(3)))
+            if (!_thread.Join(TimeSpan.FromSeconds(3)))
             {
                 Debug.LogFormat("Failed to join WS thread");
-                newThread.Abort();
+                _thread.Abort();
             }
         }
     }
