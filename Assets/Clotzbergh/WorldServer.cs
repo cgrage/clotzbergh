@@ -37,15 +37,15 @@ public class WorldServer : MonoBehaviour
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            Debug.LogFormat("Received: {0}", e.Data);
-
-            var cmd = TerrainProto.ParseMessage(e.Data);
+            var cmd = TerrainProto.Command.FromBytes(e.RawData);
+            Debug.LogFormat("Server received command '{0}'", cmd.Code);
 
             if (cmd is TerrainProto.GetChunkCommand)
             {
                 var getch = cmd as TerrainProto.GetChunkCommand;
-                var chunk = _generator.GetChunk(getch.coord);
-                Send(TerrainProto.BuildChunkDataCommand(chunk));
+                var chunk = _generator.GetChunk(getch.Coord);
+                var resp = new TerrainProto.ChunkDataCommand(getch.Coord, chunk);
+                Send(resp.ToBytes());
             }
         }
     }

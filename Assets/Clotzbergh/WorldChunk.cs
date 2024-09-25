@@ -1,6 +1,9 @@
 using System;
+using System.Buffers.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -50,13 +53,35 @@ public class WorldChunk
         return chunk;
     }
 
-    public string ToBase64String()
+    public void Serialize(BinaryWriter w)
     {
-        throw new NotImplementedException();
+        for (int z = 0; z < ChunkDepth; z++)
+        {
+            for (int y = 0; y < ChunkHeight; y++)
+            {
+                for (int x = 0; x < ChunkWidth; x++)
+                {
+                    ushort u = (ushort)_world[x, y, z].Type;
+                    w.Write((ushort)_world[x, y, z].Type);
+                }
+            }
+        }
     }
 
-    public static WorldChunk FromBase64String(string value)
+    public static WorldChunk Deserialize(BinaryReader r)
     {
-        throw new NotImplementedException();
+        WorldChunk chunk = new();
+        for (int z = 0; z < ChunkDepth; z++)
+        {
+            for (int y = 0; y < ChunkHeight; y++)
+            {
+                for (int x = 0; x < ChunkWidth; x++)
+                {
+                    chunk._world[x, y, z].Type = (KlotzType)r.ReadUInt16();
+                }
+            }
+        }
+
+        return chunk;
     }
 }
