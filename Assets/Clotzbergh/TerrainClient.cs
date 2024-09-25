@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,12 @@ using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
 
-public class TerrainClient : MonoBehaviour
+public interface ITerrainDataRequester
+{
+    void RequestWorldData(Vector3Int coords);
+}
+
+public class TerrainClient : MonoBehaviour, ITerrainDataRequester
 {
     public string Hostname = "localhost";
     public int Port = 3000;
@@ -19,19 +25,13 @@ public class TerrainClient : MonoBehaviour
 
     public float MoveThreshold = 25;
 
-    public LevelOfDetailSetting[] DetailLevels =
-    {
-         new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 2, },
-         new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 4, },
-         new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 6, },
-         new() { SetLevelOfDetail = 3, UsedBelowThisThreshold = 10, },
-    };
-
     public Transform Viewer;
     private Vector3 _viewerPos = Vector3.positiveInfinity;
     public Material MapMaterial;
 
     private readonly TerrainChunkStore _terrainChunkStore = new();
+
+    private readonly BlockingCollection<Action<WebSocket>> _requestQueue = new();
 
     /// <summary>
     /// Called by Unity
@@ -39,11 +39,12 @@ public class TerrainClient : MonoBehaviour
     void Start()
     {
         _terrainChunkStore.ParentObject = transform;
+        _terrainChunkStore.TerrainDataRequester = this;
 
-        _connectionThread = new Thread(ConnectionThreadMain);
+        _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
 
-        _meshBuiderThread = new Thread(MeshBuiderThreadMain);
+        _meshBuiderThread = new Thread(MeshBuiderThreadMain) { Name = "MeshBuiderThread" };
         _meshBuiderThread.Start();
     }
 
@@ -55,7 +56,7 @@ public class TerrainClient : MonoBehaviour
         if ((_viewerPos - newViewerPos).sqrMagnitude > MoveThreshold * MoveThreshold)
         {
             _viewerPos = newViewerPos;
-            UpdateView();
+            _terrainChunkStore.OnViewerMoved(_viewerPos);
         }
     }
 
@@ -65,42 +66,30 @@ public class TerrainClient : MonoBehaviour
     void ConnectionThreadMain()
     {
         string url = string.Format("ws://{0}:{1}/terrain", Hostname, Port);
-        using (var ws = new WebSocket(url))
-        {
-            ws.OnMessage += OnDataReceived;
 
-            while (!_requestToStop)
+        using var ws = new WebSocket(url);
+        ws.OnMessage += OnDataReceived;
+
+        try
+        {
+            Debug.LogFormat("Connect to {0}", url);
+            ws.Connect();
+            Debug.LogFormat("Connected");
+
+            while (true)
             {
-                try
-                {
-                    Debug.LogFormat("Connect to {0}", url);
-                    ws.Connect();
-                    Debug.LogFormat("Connected");
-                    RunConnection(ws);
-                    Debug.LogFormat("Connection Closed");
-                }
-                catch (IOException ex)
-                {
-                    Debug.LogException(ex);
-                    // no break here
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogException(ex);
-                    break;
-                }
+                var action = _requestQueue.Take();
+                action(ws);
             }
         }
-    }
-
-    void RunConnection(WebSocket ws)
-    {
-        TerrainProto.GetChunkCommand cmd = new(new Vector3Int(0, 0, 0));
-        ws.Send(cmd.ToBytes());
-
-        while (!_requestToStop)
+        catch (InvalidOperationException)
         {
-            Thread.Sleep(500);
+            Debug.LogFormat("ConnectionThread stopped (InvalidOperationException).");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogException(ex);
+            Debug.LogFormat("ConnectionThread stopped on exception (see above).");
         }
     }
 
@@ -116,6 +105,14 @@ public class TerrainClient : MonoBehaviour
     {
         var cmd = TerrainProto.Command.FromBytes(e.RawData);
         Debug.LogFormat("Client received command '{0}'", cmd.Code);
+
+        switch (cmd.Code)
+        {
+            case TerrainProto.Command.CodeValue.ChuckData:
+                var realCmd = (TerrainProto.ChunkDataCommand)cmd;
+                _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerPos);
+                break;
+        }
     }
 
     /// <summary>
@@ -124,6 +121,7 @@ public class TerrainClient : MonoBehaviour
     void OnDestroy()
     {
         _requestToStop = true;
+        _requestQueue.CompleteAdding();
 
         if (_connectionThread != null && _connectionThread.IsAlive)
         {
@@ -144,42 +142,12 @@ public class TerrainClient : MonoBehaviour
         }
     }
 
-    void UpdateView()
+    void ITerrainDataRequester.RequestWorldData(Vector3Int coords)
     {
-        int currentChunkCoordX = (int)(_viewerPos.x / WorldChunk.Size.x);
-        int currentChunkCoordY = (int)(_viewerPos.y / WorldChunk.Size.y);
-        int currentChunkCoordZ = (int)(_viewerPos.z / WorldChunk.Size.z);
-
-        int chunksVisibleInViewDistX = Mathf.RoundToInt(MaxViewDist / WorldChunk.Size.x);
-        int chunksVisibleInViewDistY = Mathf.RoundToInt(MaxViewDist / WorldChunk.Size.y);
-        int chunksVisibleInViewDistZ = Mathf.RoundToInt(MaxViewDist / WorldChunk.Size.z);
-
-        for (int zOffset = -chunksVisibleInViewDistZ; zOffset <= chunksVisibleInViewDistY; zOffset++)
+        _requestQueue.Add((ws) =>
         {
-            for (int yOffset = -chunksVisibleInViewDistY; yOffset <= chunksVisibleInViewDistY; yOffset++)
-            {
-                for (int xOffset = -chunksVisibleInViewDistX; xOffset <= chunksVisibleInViewDistX; xOffset++)
-                {
-                    Vector3Int viewedChunkCoord = new(
-                        currentChunkCoordX + xOffset,
-                        currentChunkCoordY + yOffset,
-                        currentChunkCoordZ + zOffset);
-
-                    _terrainChunkStore.ConsiderLoading(viewedChunkCoord, _viewerPos);
-                }
-            }
-        }
-    }
-
-    private float MaxViewDist
-    {
-        get { return DetailLevels.Last().UsedBelowThisThreshold; }
-    }
-
-    [Serializable]
-    public struct LevelOfDetailSetting
-    {
-        public int SetLevelOfDetail;
-        public float UsedBelowThisThreshold;
+            TerrainProto.GetChunkCommand cmd = new(coords);
+            ws.Send(cmd.ToBytes());
+        });
     }
 }
