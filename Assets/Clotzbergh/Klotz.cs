@@ -18,9 +18,9 @@ public struct Klotz
 
     private const float P = 0.008f;
     private const float h = 0.0032f;
-    private const float InvScale = 45;
+    private const float ScaleInv = 45;
 
-    public static readonly Vector3 Size = new(P * InvScale, h * InvScale, P * InvScale);
+    public static readonly Vector3 Size = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
 
     public KlotzType Type { get; set; }
 

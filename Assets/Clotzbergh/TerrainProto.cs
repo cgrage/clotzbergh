@@ -2,65 +2,112 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Unity.CodeEditor;
 using UnityEngine;
 
 public static class TerrainProto
 {
-    public class Command
+    public abstract class Command
     {
+        public enum CodeValue : byte
+        {
+            GetChunk = 1,
+            ChuckData = 2,
+        }
 
+        public CodeValue Code { get; private set; }
+
+        protected Command(CodeValue code)
+        {
+            Code = code;
+        }
+
+        public byte[] ToBytes()
+        {
+            byte[] byteArray;
+
+            using (MemoryStream memoryStream = new())
+            {
+                using (BinaryWriter writer = new(memoryStream))
+                {
+                    writer.Write((byte)Code);
+                    Serialize(writer);
+                }
+
+                byteArray = memoryStream.ToArray();
+            }
+
+            return byteArray;
+        }
+
+        protected abstract void Serialize(BinaryWriter w);
+
+        public static Command FromBytes(byte[] data)
+        {
+            using MemoryStream memoryStream = new(data);
+            using BinaryReader reader = new(memoryStream);
+
+            CodeValue code = (CodeValue)reader.ReadByte();
+            return code switch
+            {
+                CodeValue.GetChunk => new GetChunkCommand(reader),
+                CodeValue.ChuckData => new ChunkDataCommand(reader),
+                _ => throw new IOException("Invalid command"),
+            };
+        }
     }
 
     public class GetChunkCommand : Command
     {
-        public Vector3Int coord;
+        public Vector3Int Coord { get; private set; }
+
+        public GetChunkCommand(Vector3Int coord) : base(CodeValue.GetChunk)
+        {
+            Coord = coord;
+        }
+
+        public GetChunkCommand(BinaryReader reader) : base(CodeValue.GetChunk)
+        {
+            Coord = new Vector3Int(
+                reader.ReadInt32(),
+                reader.ReadInt32(),
+                reader.ReadInt32());
+        }
+
+        protected override void Serialize(BinaryWriter w)
+        {
+            w.Write(Coord.x);
+            w.Write(Coord.y);
+            w.Write(Coord.z);
+        }
     }
 
     public class ChunkDataCommand : Command
     {
-        public WorldChunk chunk;
-    }
+        public Vector3Int Coord;
+        public WorldChunk Chunk;
 
-    public static Command ParseMessage(string message)
-    {
-        int eofw = message.IndexOf(' ');
-        if (eofw < 0)
-            throw new ArgumentException("Failed to parse message");
-
-        string cmd = message[..eofw];
-        string arg = message[(eofw + 1)..];
-
-        if (cmd == "getch")
+        public ChunkDataCommand(Vector3Int coord, WorldChunk chunk) : base(CodeValue.ChuckData)
         {
-            var parts = arg.Split(',');
-            return new GetChunkCommand()
-            {
-                coord = new Vector3Int(
-                    x: int.Parse(parts[0]),
-                    y: int.Parse(parts[1]),
-                    z: int.Parse(parts[2]))
-            };
+            Coord = coord;
+            Chunk = chunk;
         }
-        else if (cmd == "chunk")
-        {
-            return new ChunkDataCommand()
-            {
-                chunk = WorldChunk.FromBase64String(arg)
-            };
-        }
-        else
-        {
-            return null;
-        }
-    }
 
-    public static string BuildGetChunkCommand(Vector3Int coord)
-    {
-        return string.Format("getch {0},{1},{2}", coord.x, coord.y, coord.z);
-    }
+        public ChunkDataCommand(BinaryReader r) : base(CodeValue.ChuckData)
+        {
+            Coord = new Vector3Int(
+                r.ReadInt32(),
+                r.ReadInt32(),
+                r.ReadInt32());
+            Chunk = WorldChunk.Deserialize(r);
+        }
 
-    public static string BuildChunkDataCommand(WorldChunk chunk)
-    {
-        return string.Format("chunk {0}", chunk.ToBase64String());
+        protected override void Serialize(BinaryWriter w)
+        {
+            w.Write(Coord.x);
+            w.Write(Coord.y);
+            w.Write(Coord.z);
+            Chunk.Serialize(w);
+        }
     }
 }

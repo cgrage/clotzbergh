@@ -68,6 +68,8 @@
     <Compile Include="Assets\Scripts\Noise.cs" />
     <Compile Include="Assets\Clotzbergh\HeightNoise.cs" />
     <Compile Include="Assets\Clotzbergh\Klotz.cs" />
+    <Compile Include="Assets\Clotzbergh\TerrainChunk.cs" />
+    <Compile Include="Assets\Clotzbergh\TerrainChunkStore.cs" />
     <Compile Include="Assets\Clotzbergh\TerrainProto.cs" />
     <Compile Include="Assets\Scripts\MeshGenerator.cs" />
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
