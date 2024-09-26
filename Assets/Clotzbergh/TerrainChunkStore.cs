@@ -6,7 +6,7 @@ using UnityEngine;
 public class TerrainChunkStore
 {
     public Transform ParentObject { get; set; }
-    public ITerrainDataRequester TerrainDataRequester { get; set; }
+    public IWorldDataRequester WorldDataRequester { get; set; }
     private readonly Dictionary<Vector3Int, TerrainChunk> _dict = new();
 
     public void OnViewerMoved(Vector3 viewerPos)
@@ -55,7 +55,7 @@ public class TerrainChunkStore
         if (_dict.TryGetValue(coord, out TerrainChunk entry))
             return entry;
 
-        entry = new TerrainChunk(coord, ParentObject, TerrainDataRequester);
+        entry = new TerrainChunk(coord, ParentObject, WorldDataRequester);
         _dict.Add(coord, entry);
 
         return entry;

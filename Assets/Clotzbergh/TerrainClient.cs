@@ -5,33 +5,33 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using WebSocketSharp;
 
-public interface ITerrainDataRequester
+public interface IWorldDataRequester
 {
     void RequestWorldData(Vector3Int coords);
 }
 
-public class TerrainClient : MonoBehaviour, ITerrainDataRequester
+public class TerrainClient : MonoBehaviour, IWorldDataRequester
 {
     public string Hostname = "localhost";
     public int Port = 3000;
-
-    private Thread _connectionThread;
-    private Thread _meshBuiderThread;
-
-    private volatile bool _requestToStop = false;
-
     public float MoveThreshold = 25;
-
     public Transform Viewer;
-    private Vector3 _viewerPos = Vector3.positiveInfinity;
     public Material MapMaterial;
 
-    private readonly TerrainChunkStore _terrainChunkStore = new();
+    private Thread _connectionThread;
+    private Vector3 _viewerPos = Vector3.positiveInfinity;
+    private bool _isConnected = false;
+    private bool _wasConnected = false;
 
-    private readonly BlockingCollection<Action<WebSocket>> _requestQueue = new();
+    private readonly CancellationTokenSource _connectionThreadCts = new();
+    private readonly TerrainChunkStore _terrainChunkStore = new();
+    private readonly BlockingCollection<Action<WebSocket>> _worldRequestQueue = new();
+    private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
 
     /// <summary>
     /// Called by Unity
@@ -39,25 +39,47 @@ public class TerrainClient : MonoBehaviour, ITerrainDataRequester
     void Start()
     {
         _terrainChunkStore.ParentObject = transform;
-        _terrainChunkStore.TerrainDataRequester = this;
+        _terrainChunkStore.WorldDataRequester = this;
 
         _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
-
-        _meshBuiderThread = new Thread(MeshBuiderThreadMain) { Name = "MeshBuiderThread" };
-        _meshBuiderThread.Start();
     }
 
     void Update()
     {
-        const float scale = 1f;
-        var newViewerPos = Viewer.position / scale;
-
-        if ((_viewerPos - newViewerPos).sqrMagnitude > MoveThreshold * MoveThreshold)
+        if (_isConnected && !_wasConnected)
         {
-            _viewerPos = newViewerPos;
-            _terrainChunkStore.OnViewerMoved(_viewerPos);
+            _mainThreadActionQueue.Clear();
+            OnConnected();
         }
+
+        if (!_isConnected && _wasConnected)
+        {
+            OnDisconnected();
+        }
+
+        if (_isConnected)
+        {
+            while (_mainThreadActionQueue.TryDequeue(out Action action))
+            {
+                action();
+            }
+
+            const float scale = 1f;
+            var newViewerPos = Viewer.position / scale;
+
+            if ((_viewerPos - newViewerPos).sqrMagnitude > MoveThreshold * MoveThreshold)
+            {
+                _viewerPos = newViewerPos;
+                _terrainChunkStore.OnViewerMoved(_viewerPos);
+            }
+        }
+        else
+        {
+            _viewerPos = Vector3.positiveInfinity;
+        }
+
+        _wasConnected = _isConnected;
     }
 
     /// <summary>
@@ -66,42 +88,58 @@ public class TerrainClient : MonoBehaviour, ITerrainDataRequester
     void ConnectionThreadMain()
     {
         string url = string.Format("ws://{0}:{1}/terrain", Hostname, Port);
+        var token = _connectionThreadCts.Token;
 
         using var ws = new WebSocket(url);
-        ws.OnMessage += OnDataReceived;
+        ws.OnMessage += OnDataReceivedAsync;
 
         try
         {
-            Debug.LogFormat("Connect to {0}", url);
+            Debug.LogFormat("Connecting to {0}...", url);
             ws.Connect();
-            Debug.LogFormat("Connected");
 
-            while (true)
+            if (ws.ReadyState != WebSocketState.Open)
+                throw new Exception("Connect Failed");
+
+            _isConnected = true;
+
+            while (!token.IsCancellationRequested)
             {
-                var action = _requestQueue.Take();
+                var action = _worldRequestQueue.Take(token);
                 action(ws);
             }
         }
-        catch (InvalidOperationException)
+        catch (OperationCanceledException)
         {
-            Debug.LogFormat("ConnectionThread stopped (InvalidOperationException).");
+            _isConnected = false;
+
+            Debug.LogFormat("ConnectionThread stopped (OperationCanceledException).");
         }
         catch (Exception ex)
         {
+            _isConnected = false;
+
             Debug.LogException(ex);
             Debug.LogFormat("ConnectionThread stopped on exception (see above).");
         }
     }
 
-    void MeshBuiderThreadMain()
+    void OnConnected()
     {
-        while (!_requestToStop)
-        {
-            Thread.Sleep(100);
-        }
+        Debug.LogFormat("TerrainClient connected");
     }
 
-    void OnDataReceived(object sender, MessageEventArgs e)
+    void OnDisconnected()
+    {
+        Debug.LogFormat("TerrainClient disconnected");
+    }
+
+    private void ToMainThread(Action action)
+    {
+        _mainThreadActionQueue.Enqueue(action);
+    }
+
+    void OnDataReceivedAsync(object sender, MessageEventArgs e)
     {
         var cmd = TerrainProto.Command.FromBytes(e.RawData);
         Debug.LogFormat("Client received command '{0}'", cmd.Code);
@@ -110,7 +148,7 @@ public class TerrainClient : MonoBehaviour, ITerrainDataRequester
         {
             case TerrainProto.Command.CodeValue.ChuckData:
                 var realCmd = (TerrainProto.ChunkDataCommand)cmd;
-                _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerPos);
+                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerPos); });
                 break;
         }
     }
@@ -120,8 +158,8 @@ public class TerrainClient : MonoBehaviour, ITerrainDataRequester
     /// </summary>
     void OnDestroy()
     {
-        _requestToStop = true;
-        _requestQueue.CompleteAdding();
+        Debug.LogFormat("Closing client...");
+        _connectionThreadCts.Cancel();
 
         if (_connectionThread != null && _connectionThread.IsAlive)
         {
@@ -132,19 +170,12 @@ public class TerrainClient : MonoBehaviour, ITerrainDataRequester
             }
         }
 
-        if (_meshBuiderThread != null && _meshBuiderThread.IsAlive)
-        {
-            if (!_meshBuiderThread.Join(TimeSpan.FromSeconds(3)))
-            {
-                Debug.LogFormat("Failed to join mesh thread");
-                _meshBuiderThread.Abort();
-            }
-        }
+        Debug.LogFormat("Closed client");
     }
 
-    void ITerrainDataRequester.RequestWorldData(Vector3Int coords)
+    void IWorldDataRequester.RequestWorldData(Vector3Int coords)
     {
-        _requestQueue.Add((ws) =>
+        _worldRequestQueue.Add((ws) =>
         {
             TerrainProto.GetChunkCommand cmd = new(coords);
             ws.Send(cmd.ToBytes());
