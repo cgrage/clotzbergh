@@ -2,19 +2,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 
 public class TerrainChunk
 {
+    private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
-    private readonly ITerrainDataRequester _terrainReq;
+    private readonly IWorldDataRequester _worldReq;
     private readonly Vector3 _position;
     private readonly Bounds _bounds;
 
     private readonly MeshRenderer _meshRenderer;
     private readonly MeshFilter _meshFilter;
 
-    //LODMesh[] lodMeshes;
+    private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[DetailLevels.Length];
 
     private WorldChunk _world;
     private int _currendLodIndex = -1;
@@ -35,9 +37,12 @@ public class TerrainChunk
 
     public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
 
-    public TerrainChunk(Vector3Int coords, Transform parent, ITerrainDataRequester terrainReq /*, Material material*/)
+    public TerrainChunk(Vector3Int coords, Transform parent, IWorldDataRequester worldReq /*, Material material*/)
     {
-        _terrainReq = terrainReq;
+        // Debug.LogFormat("TerrainChunk {0} created by thread {1}", coords, Thread.CurrentThread.ManagedThreadId);
+        _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
+
+        _worldReq = worldReq;
 
         _position.x = coords.x * WorldChunk.Size.x;
         _position.y = coords.y * WorldChunk.Size.y;
@@ -53,13 +58,12 @@ public class TerrainChunk
         _gameObject.transform.parent = parent;
         IsActive = false;
 
-        // lodMeshes = new LODMesh[detailLevels.Length];
-        //for (int i = 0; i < lodMeshes.Length; i++)
-        //{
-        //    lodMeshes[i] = new LODMesh(detailLevels[i].lod, UpdateTerrainChunk);
-        //}
+        for (int i = 0; i < DetailLevels.Length; i++)
+        {
+            _lodSpecificData[i] = new LevelOfDetailSpecificData();
+        }
 
-        _terrainReq.RequestWorldData(coords);
+        _worldReq.RequestWorldData(coords);
     }
 
     internal void OnWorldChunkReceived(WorldChunk chunk, Vector3 viewerPos)
@@ -88,10 +92,14 @@ public class TerrainChunk
 
     public void UpdateLevelOfDetail(Vector3 viewerPos)
     {
+        if (!IsOwnerThread())
+        {
+            Debug.LogErrorFormat("TerrainChunk updated by wrong thread!");
+            return;
+        }
+
         if (!IsWorldChunkReceived)
             return;
-
-        // print(string.Format("UpdateTerrainChunk {0}", this.position));
 
         float viewerDistFromNearestEdge = Mathf.Sqrt(_bounds.SqrDistance(viewerPos));
         int? lodIndex = GetLodIndexFromDistance(viewerDistFromNearestEdge);
@@ -104,17 +112,17 @@ public class TerrainChunk
 
         if (lodIndex != _currendLodIndex)
         {
-            // LODMesh lodMesh = lodMeshes[lodIndex];
-            //if (lodMesh.hasMesh)
-            //{
-            //    previousLODIndex = lodIndex;
-            //    meshFilter.mesh = lodMesh.mesh;
-            // print(string.Format("SetMesh {0}", this.position));
-            //}
-            //else if (!lodMesh.hasReqMesh)
-            //{
-            //    lodMesh.RequestMesh(mapData);
-            //}
+            LevelOfDetailSpecificData lod = _lodSpecificData[lodIndex.Value];
+            if (lod.HasMesh)
+            {
+                //    previousLODIndex = lodIndex;
+                //    meshFilter.mesh = lodMesh.mesh;
+                // print(string.Format("SetMesh {0}", this.position));
+            }
+            else if (!lod.HasRequestedMesh)
+            {
+                // lodMesh.RequestMesh(mapData);
+            }
         }
 
         IsActive = true;
@@ -125,35 +133,34 @@ public class TerrainChunk
         get { return _gameObject.activeSelf; }
         private set { _gameObject.SetActive(value); }
     }
-}
 
-/*
-class LODMesh
-{
-    public Mesh mesh;
-    public bool hasReqMesh;
-    public bool hasMesh;
-    int lod;
-    Action updateCallback;
-
-    public LODMesh(int lod, Action updateCallback)
+    private bool IsOwnerThread()
     {
-        this.lod = lod;
-        this.updateCallback = updateCallback;
+        return Thread.CurrentThread.ManagedThreadId == _ownerThreadId;
     }
 
-    void OnMeshDataReceived(MeshData meshData)
+    class LevelOfDetailSpecificData
     {
-        // print("Mesh data received");
-        mesh = meshData.CreateMesh();
-        hasMesh = true;
+        public Mesh Mesh { get; private set; }
+        public bool HasRequestedMesh { get; private set; }
 
-        updateCallback();
-    }
+        public bool HasMesh { get { return Mesh != null; } }
 
-    public void RequestMesh(MapData mapData)
-    {
-        hasReqMesh = true;
-        mapGenerator.RequestMeshData(mapData, lod, OnMeshDataReceived);
-    }
+        /*
+        void OnMeshDataReceived(MeshData meshData)
+        {
+            // print("Mesh data received");
+            mesh = meshData.CreateMesh();
+            hasMesh = true;
+
+            updateCallback();
+        }
+
+        public void RequestMesh(MapData mapData)
+        {
+            hasReqMesh = true;
+            mapGenerator.RequestMeshData(mapData, lod, OnMeshDataReceived);
+        }
         */
+    }
+}
