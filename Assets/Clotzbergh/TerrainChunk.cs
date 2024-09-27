@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
@@ -9,7 +6,7 @@ public class TerrainChunk
 {
     private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
-    private readonly IWorldDataRequester _worldReq;
+    private readonly IAsyncTerrainOps _asyncOps;
     private readonly Vector3 _position;
     private readonly Bounds _bounds;
 
@@ -37,12 +34,10 @@ public class TerrainChunk
 
     public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
 
-    public TerrainChunk(Vector3Int coords, Transform parent, IWorldDataRequester worldReq /*, Material material*/)
+    public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps /*, Material material*/)
     {
-        // Debug.LogFormat("TerrainChunk {0} created by thread {1}", coords, Thread.CurrentThread.ManagedThreadId);
         _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
-
-        _worldReq = worldReq;
+        _asyncOps = asyncOps;
 
         _position.x = coords.x * WorldChunk.Size.x;
         _position.y = coords.y * WorldChunk.Size.y;
@@ -63,7 +58,7 @@ public class TerrainChunk
             _lodSpecificData[i] = new LevelOfDetailSpecificData();
         }
 
-        _worldReq.RequestWorldData(coords);
+        _asyncOps.RequestWorldData(coords);
     }
 
     internal void OnWorldChunkReceived(WorldChunk chunk, Vector3 viewerPos)
@@ -72,6 +67,16 @@ public class TerrainChunk
 
         // Texture2D texture = TextureGenerator.TextureFromColorMap(mapData.colorMap, MapGenerator.mapChunkSize, MapGenerator.mapChunkSize);
         // _meshRenderer.material.mainTexture = texture;
+
+        UpdateLevelOfDetail(viewerPos);
+    }
+
+    internal void OnMeshDataReceived(MeshBuilder meshData, int lodIndex, Vector3 viewerPos)
+    {
+        // print("Mesh data received");
+
+        var lodData = _lodSpecificData[lodIndex];
+        lodData.Mesh = meshData.ToMesh();
 
         UpdateLevelOfDetail(viewerPos);
     }
@@ -110,18 +115,20 @@ public class TerrainChunk
             return;
         }
 
+        int lodValue = DetailLevels[lodIndex.Value].SetLevelOfDetail;
         if (lodIndex != _currendLodIndex)
         {
-            LevelOfDetailSpecificData lod = _lodSpecificData[lodIndex.Value];
-            if (lod.HasMesh)
+            var lodData = _lodSpecificData[lodIndex.Value];
+            if (lodData.HasMesh)
             {
-                //    previousLODIndex = lodIndex;
-                //    meshFilter.mesh = lodMesh.mesh;
                 // print(string.Format("SetMesh {0}", this.position));
+                _meshFilter.mesh = lodData.Mesh;
+                _currendLodIndex = lodIndex.Value;
             }
-            else if (!lod.HasRequestedMesh)
+            else if (!lodData.IsMeshRequested)
             {
-                // lodMesh.RequestMesh(mapData);
+                _asyncOps.RequestMeshCalc(this, _world, lodValue, lodIndex.Value);
+                lodData.IsMeshRequested = true;
             }
         }
 
@@ -141,26 +148,9 @@ public class TerrainChunk
 
     class LevelOfDetailSpecificData
     {
-        public Mesh Mesh { get; private set; }
-        public bool HasRequestedMesh { get; private set; }
+        public Mesh Mesh { get; set; }
+        public bool IsMeshRequested { get; set; }
 
         public bool HasMesh { get { return Mesh != null; } }
-
-        /*
-        void OnMeshDataReceived(MeshData meshData)
-        {
-            // print("Mesh data received");
-            mesh = meshData.CreateMesh();
-            hasMesh = true;
-
-            updateCallback();
-        }
-
-        public void RequestMesh(MapData mapData)
-        {
-            hasReqMesh = true;
-            mapGenerator.RequestMeshData(mapData, lod, OnMeshDataReceived);
-        }
-        */
     }
 }

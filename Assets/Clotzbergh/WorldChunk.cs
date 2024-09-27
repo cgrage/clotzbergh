@@ -1,12 +1,5 @@
-using System;
-using System.Buffers.Text;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class WorldChunk
 {
@@ -16,26 +9,34 @@ public class WorldChunk
 
     public const int ChunkDepth = 32;
 
+    public const int BorderSize = 1;
+
+    private const int ChunkWidthWithBorder = ChunkWidth + 2 * BorderSize;
+    private const int ChunkHeightWithBorder = ChunkHeight + 2 * BorderSize;
+    private const int ChunkDepthWithBorder = ChunkDepth + 2 * BorderSize;
+
     public static readonly Vector3Int ChunkSizeInt = new(ChunkWidth, ChunkHeight, ChunkDepth);
     public static readonly Vector3 ChunkSize = new(ChunkWidth, ChunkHeight, ChunkDepth);
     public static readonly Vector3 Size = new(Klotz.Size.x * ChunkWidth, Klotz.Size.y * ChunkHeight, Klotz.Size.z * ChunkDepth);
 
-    private readonly Klotz[,,] _world;
+    private readonly Klotz[,,] _dataWithBorder;
 
     private WorldChunk()
     {
-        _world = new Klotz[ChunkWidth, ChunkHeight, ChunkDepth];
+        _dataWithBorder = new Klotz[ChunkWidthWithBorder, ChunkHeightWithBorder, ChunkDepthWithBorder];
     }
 
     private void Fill(KlotzType t, int toHeight = ChunkHeight)
     {
-        for (int z = 0; z < ChunkDepth; z++)
+        toHeight += BorderSize;
+
+        for (int z = 0; z < ChunkDepthWithBorder; z++)
         {
             for (int y = 0; y < toHeight; y++)
             {
-                for (int x = 0; x < ChunkWidth; x++)
+                for (int x = 0; x < ChunkWidthWithBorder; x++)
                 {
-                    _world[x, y, z].Type = t;
+                    _dataWithBorder[x, y, z].Type = t;
                 }
             }
         }
@@ -55,14 +56,14 @@ public class WorldChunk
 
     public void Serialize(BinaryWriter w)
     {
-        for (int z = 0; z < ChunkDepth; z++)
+        for (int z = 0; z < ChunkDepthWithBorder; z++)
         {
-            for (int y = 0; y < ChunkHeight; y++)
+            for (int y = 0; y < ChunkHeightWithBorder; y++)
             {
-                for (int x = 0; x < ChunkWidth; x++)
+                for (int x = 0; x < ChunkWidthWithBorder; x++)
                 {
-                    ushort u = (ushort)_world[x, y, z].Type;
-                    w.Write((ushort)_world[x, y, z].Type);
+                    ushort u = (ushort)_dataWithBorder[x, y, z].Type;
+                    w.Write((ushort)_dataWithBorder[x, y, z].Type);
                 }
             }
         }
@@ -71,13 +72,13 @@ public class WorldChunk
     public static WorldChunk Deserialize(BinaryReader r)
     {
         WorldChunk chunk = new();
-        for (int z = 0; z < ChunkDepth; z++)
+        for (int z = 0; z < ChunkDepthWithBorder; z++)
         {
-            for (int y = 0; y < ChunkHeight; y++)
+            for (int y = 0; y < ChunkHeightWithBorder; y++)
             {
-                for (int x = 0; x < ChunkWidth; x++)
+                for (int x = 0; x < ChunkWidthWithBorder; x++)
                 {
-                    chunk._world[x, y, z].Type = (KlotzType)r.ReadUInt16();
+                    chunk._dataWithBorder[x, y, z].Type = (KlotzType)r.ReadUInt16();
                 }
             }
         }
