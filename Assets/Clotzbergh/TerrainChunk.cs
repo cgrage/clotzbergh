@@ -34,7 +34,7 @@ public class TerrainChunk
 
     public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
 
-    public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps /*, Material material*/)
+    public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
         _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
         _asyncOps = asyncOps;
@@ -47,7 +47,7 @@ public class TerrainChunk
         _gameObject = new GameObject("Terrain Chunk");
         _meshRenderer = _gameObject.AddComponent<MeshRenderer>();
         _meshFilter = _gameObject.AddComponent<MeshFilter>();
-        // _meshRenderer.material = material;
+        _meshRenderer.material = material;
 
         _gameObject.transform.position = _position;
         _gameObject.transform.parent = parent;
