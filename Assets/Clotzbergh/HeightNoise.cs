@@ -5,21 +5,23 @@ using UnityEngine;
 
 public static class HeightNoise
 {
-    public static float[,] Generate(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, Vector2 offset)
-    {
-        if (width < 1) width = 1;
-        if (height < 1) height = 1;
-        if (scale <= 0) scale = 0.001f;
-        if (octaves < 0) octaves = 0;
+    public static readonly AnimationCurve HeightCurve = new(new Keyframe[] { new(0, 0, 0, 0, 0, 0), new(1, 1, 2, 2, 0, 0) });
+    public const float HeightMultiplier = 20f;
+    public const float NoiseScale = 20f;
+    public const int NoiseOctaves = 4;
+    public const float NoisePersistence = 0.5f;
+    public const float NoiseLacunarity = 2f;
+    public const int NoiseSeed = 0;
 
-        System.Random rnd = new System.Random(seed);
+    public static float[,] Generate(int width, int height, Vector2 offset)
+    {
+        System.Random rnd = new System.Random(NoiseSeed);
 
         float maxPossibleHeight = 0;
         float amplitude = 1;
-        float frequency = 1;
 
-        Vector2[] octaveOffsets = new Vector2[octaves];
-        for (int i = 0; i < octaves; i++)
+        Vector2[] octaveOffsets = new Vector2[NoiseOctaves];
+        for (int i = 0; i < NoiseOctaves; i++)
         {
             octaveOffsets[i] = new Vector2(
                 rnd.Next(-100000, 100000) + offset.x,
@@ -27,7 +29,7 @@ public static class HeightNoise
             );
 
             maxPossibleHeight += amplitude;
-            amplitude *= persistence;
+            amplitude *= NoisePersistence;
         }
 
         float[,] noiseMap = new float[width, height];
@@ -39,19 +41,19 @@ public static class HeightNoise
             for (int x = 0; x < width; x++)
             {
                 amplitude = 1;
-                frequency = 1;
+                float frequency = 1;
                 float noiseHeight = 0;
 
-                for (int i = 0; i < octaves; i++)
+                for (int i = 0; i < NoiseOctaves; i++)
                 {
-                    float sampleX = (x - width / 2f + octaveOffsets[i].x) / scale * frequency;
-                    float sampleY = (y - height / 2f + octaveOffsets[i].y) / scale * frequency;
+                    float sampleX = (x + octaveOffsets[i].x) / NoiseScale * frequency;
+                    float sampleY = (y + octaveOffsets[i].y) / NoiseScale * frequency;
 
                     float pVal = Mathf.PerlinNoise(sampleX, sampleY) * 2f - 1f;
                     noiseHeight += pVal * amplitude;
 
-                    amplitude *= persistence;
-                    frequency *= lacunarity;
+                    amplitude *= NoisePersistence;
+                    frequency *= NoiseLacunarity;
                 }
 
                 if (noiseHeight > maxLocalNoiseHeight) maxLocalNoiseHeight = noiseHeight;
@@ -66,7 +68,8 @@ public static class HeightNoise
             for (int x = 0; x < width; x++)
             {
                 float normalizedHeight = (noiseMap[x, y] + 1f) / (2f * maxPossibleHeight / 2f);
-                noiseMap[x, y] = Mathf.Clamp(normalizedHeight, 0, float.MaxValue);
+                normalizedHeight = Mathf.Clamp(normalizedHeight, 0, float.MaxValue);
+                noiseMap[x, y] = HeightCurve.Evaluate(normalizedHeight) * HeightMultiplier;
             }
         }
 
