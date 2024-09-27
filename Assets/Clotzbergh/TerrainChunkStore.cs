@@ -5,6 +5,7 @@ public class TerrainChunkStore
 {
     public Transform ParentObject { get; set; }
     public IAsyncTerrainOps AsyncTerrainOps { get; set; }
+    public Material KlotzMat { get; set; }
     private readonly Dictionary<Vector3Int, TerrainChunk> _dict = new();
 
     public void OnViewerMoved(Vector3 viewerPos)
@@ -53,7 +54,7 @@ public class TerrainChunkStore
         if (_dict.TryGetValue(coord, out TerrainChunk entry))
             return entry;
 
-        entry = new TerrainChunk(coord, ParentObject, AsyncTerrainOps);
+        entry = new TerrainChunk(coord, ParentObject, AsyncTerrainOps, KlotzMat);
         _dict.Add(coord, entry);
 
         return entry;

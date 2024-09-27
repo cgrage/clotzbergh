@@ -16,7 +16,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     public int Port = 3000;
     public float MoveThreshold = 25;
     public Transform Viewer;
-    public Material MapMaterial;
+    public Material Material;
 
     private Thread _connectionThread;
     private Vector3 _viewerPos = Vector3.positiveInfinity;
@@ -36,6 +36,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     {
         _terrainChunkStore.ParentObject = transform;
         _terrainChunkStore.AsyncTerrainOps = this;
+        _terrainChunkStore.KlotzMat = Material;
 
         _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
