@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class MeshGenerator2
 {
-    // AnimationCurve heightCurve = new(new Keyframe[] { new(0, 0, 0, 0, 0, 0), new(1, 1, 2, 2, 0, 0) });
-    // float heightMultiplier = 20f;
-
     public MeshGenerator2()
     {
         // 
@@ -14,10 +11,12 @@ public class MeshGenerator2
 
     public MeshBuilder GenerateTerrainMesh(WorldChunk worldChunk, int lod)
     {
-        const float w = WorldChunk.ChunkWidth - 1;
-        const float h = WorldChunk.ChunkHeight - 1;
-        const float d = WorldChunk.ChunkDepth - 1;
+        return GenerateCuboid(WorldChunk.Size);
+    }
 
+    private MeshBuilder GenerateCuboid(Vector3 size)
+    {
+        float w = size.x, h = size.y, d = size.z;
         Vector3[] vertices = {
             new(0, 0, 0), new(w, 0, 0), new(w, h, 0), new(0, h, 0), // Front face
             new(0, 0, d), new(w, 0, d), new(w, h, d), new(0, h, d)  // Back face
@@ -32,7 +31,17 @@ public class MeshGenerator2
             0, 1, 5,   0, 5, 4    // Bottom face
         };
 
-        return new MeshBuilder(vertices, triangles);
+
+        Vector2[] uvs = {
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Front face
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Back face
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Left face
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Right face
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Top face
+            new(0, 0), new(1, 0), new(1, 1), new(0, 1)  // Bottom face
+        };
+
+        return new MeshBuilder(vertices, triangles, uvs);
     }
 
 
@@ -75,15 +84,15 @@ public class MeshBuilder
 {
     public Vector3[] vertices;
     public int[] triangles;
-    //public Vector2[] uvs;
+    public Vector2[] uvs;
 
     //int triangleIndex;
 
-    public MeshBuilder(Vector3[] vertices, int[] triangles)
+    public MeshBuilder(Vector3[] vertices, int[] triangles, Vector2[] uvs)
     {
         this.vertices = vertices;
         this.triangles = triangles;
-        // uvs = new Vector2[meshWidth * meshHeight];
+        this.uvs = uvs;
     }
 
 
@@ -111,7 +120,7 @@ public class MeshBuilder
         {
             vertices = vertices,
             triangles = triangles,
-            //uv = uvs,
+            uv = uvs,
         };
 
         mesh.RecalculateNormals();

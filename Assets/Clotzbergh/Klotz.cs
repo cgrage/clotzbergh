@@ -14,7 +14,7 @@ public struct Klotz
     // Reality:
     // - P = 8mm, h = 3.2mm
     // - Minifig height: 40mm
-    // - Scale: 1:45 --> Height = 1.8m
+    // - Scale: 1:45 ==> 40mm -> 1.8m
 
     private const float P = 0.008f;
     private const float h = 0.0032f;
