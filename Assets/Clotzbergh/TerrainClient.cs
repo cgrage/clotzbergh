@@ -1,21 +1,16 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
-using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
 using WebSocketSharp;
 
-public interface IWorldDataRequester
+public interface IAsyncTerrainOps
 {
     void RequestWorldData(Vector3Int coords);
+    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, int lodIndex);
 }
 
-public class TerrainClient : MonoBehaviour, IWorldDataRequester
+public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 {
     public string Hostname = "localhost";
     public int Port = 3000;
@@ -32,6 +27,7 @@ public class TerrainClient : MonoBehaviour, IWorldDataRequester
     private readonly TerrainChunkStore _terrainChunkStore = new();
     private readonly BlockingCollection<Action<WebSocket>> _worldRequestQueue = new();
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
+    private readonly MeshGenerator2 _meshGenerator = new();
 
     /// <summary>
     /// Called by Unity
@@ -39,7 +35,7 @@ public class TerrainClient : MonoBehaviour, IWorldDataRequester
     void Start()
     {
         _terrainChunkStore.ParentObject = transform;
-        _terrainChunkStore.WorldDataRequester = this;
+        _terrainChunkStore.AsyncTerrainOps = this;
 
         _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
@@ -173,12 +169,28 @@ public class TerrainClient : MonoBehaviour, IWorldDataRequester
         Debug.LogFormat("Closed client");
     }
 
-    void IWorldDataRequester.RequestWorldData(Vector3Int coords)
+    void IAsyncTerrainOps.RequestWorldData(Vector3Int coords)
     {
         _worldRequestQueue.Add((ws) =>
         {
             TerrainProto.GetChunkCommand cmd = new(coords);
             ws.Send(cmd.ToBytes());
+        });
+    }
+
+
+    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, int lodIndex)
+    {
+        // Queue the task to the thread pool
+        ThreadPool.QueueUserWorkItem(state =>
+        {
+            // int result = PerformTask();
+            MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(world, lod);
+
+            ToMainThread(() =>
+            {
+                owner.OnMeshDataReceived(meshData, lodIndex, _viewerPos);
+            });
         });
     }
 }

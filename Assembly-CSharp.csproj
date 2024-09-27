@@ -79,6 +79,7 @@
     <Compile Include="Assets\Scripts\EndlessTerrain.cs" />
     <Compile Include="Assets\Clotzbergh\WorldChunk.cs" />
     <Compile Include="Assets\Scripts\MapDisplay.cs" />
+    <Compile Include="Assets\Clotzbergh\MeshGenerator2.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
