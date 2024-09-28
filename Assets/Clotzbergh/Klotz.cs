@@ -23,6 +23,17 @@ public struct Klotz
     public static readonly Vector3 Size = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
 
     public KlotzType Type { get; set; }
+    public readonly bool IsSeeThrough
+    {
+        get
+        {
+            return Type switch
+            {
+                KlotzType.Air => true,
+                _ => false,
+            };
+        }
+    }
 
     public Klotz(KlotzType type)
     {

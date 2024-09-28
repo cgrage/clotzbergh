@@ -8,7 +8,7 @@ public class WorldGenerator
 {
     public WorldChunk GetChunk(Vector3Int chunkCoords)
     {
-        return WorldChunk.CreateFilled(KlotzType.Plate1x1, 40);
+        return WorldChunk.CreateCoreFilled(KlotzType.Plate1x1);
 
         /*
 
