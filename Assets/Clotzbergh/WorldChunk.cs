@@ -25,9 +25,10 @@ public class WorldChunk
         _dataRaw = new Klotz[KlotzCountRawX, KlotzCountRawY, KlotzCountRawZ];
     }
 
-    private void FloodFill(KlotzType t, int toHeight = KlotzCountY)
+    private void FloodFill(KlotzType t, int toHeight = KlotzCountY, bool inclNextUpper = true)
     {
         toHeight += BorderSize;
+        if (inclNextUpper) toHeight += BorderSize;
 
         for (int z = 0; z < KlotzCountRawZ; z++)
         {
@@ -89,10 +90,10 @@ public class WorldChunk
         return new WorldChunk();
     }
 
-    public static WorldChunk CreateFloodFilled(KlotzType t, int toHeight = KlotzCountY)
+    public static WorldChunk CreateFloodFilled(KlotzType t, int toHeight = KlotzCountY, bool inclNextUpper = true)
     {
         WorldChunk chunk = new();
-        chunk.FloodFill(t, toHeight);
+        chunk.FloodFill(t, toHeight, inclNextUpper);
         return chunk;
     }
 
