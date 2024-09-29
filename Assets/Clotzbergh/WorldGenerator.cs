@@ -7,7 +7,6 @@ public class WorldGenerator
     public WorldChunk GetChunk(Vector3Int chunkCoords)
     {
         // return WorldChunk.CreateCoreFilled(KlotzType.Plate1x1);
-        return WorldChunk.CreateFloodFilled(KlotzType.Plate1x1);
 
         var chunk = WorldChunk.CreateEmpty();
 
@@ -28,7 +27,7 @@ public class WorldGenerator
 
                     if (scaledY > height)
                     {
-                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Plate1x1));
+                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Air));
                     }
                     else
                     {
