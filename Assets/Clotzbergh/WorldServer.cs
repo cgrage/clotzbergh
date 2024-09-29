@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 
 public class WorldServer : MonoBehaviour
 {
+    private readonly WorldGenerator _generator = new();
+
     private WebSocketServer _wss;
 
     public int ServerPort = 3000;
@@ -19,7 +19,7 @@ public class WorldServer : MonoBehaviour
         try
         {
             _wss = new WebSocketServer(url);
-            _wss.AddWebSocketService<Terrain>("/terrain");
+            _wss.AddWebSocketService<Terrain>("/terrain", (terrain) => { terrain.Gen = _generator; });
             _wss.Start();
             Debug.LogFormat("Server started at {0}", url);
         }
@@ -40,9 +40,15 @@ public class WorldServer : MonoBehaviour
         }
     }
 
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawMesh(_generator.GeneratePreviewMesh(128));
+    }
+
     public class Terrain : WebSocketBehavior
     {
-        private readonly WorldGenerator _generator = new();
+        public WorldGenerator Gen { get; set; }
 
         protected override void OnMessage(MessageEventArgs e)
         {
@@ -52,7 +58,7 @@ public class WorldServer : MonoBehaviour
             if (cmd is TerrainProto.GetChunkCommand)
             {
                 var getch = cmd as TerrainProto.GetChunkCommand;
-                var chunk = _generator.GetChunk(getch.Coord);
+                var chunk = Gen.GetChunk(getch.Coord);
                 var resp = new TerrainProto.ChunkDataCommand(getch.Coord, chunk);
                 Send(resp.ToBytes());
             }
