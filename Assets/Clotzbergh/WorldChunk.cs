@@ -43,8 +43,6 @@ public class WorldChunk
 
     private void CoreFill(KlotzType t)
     {
-        Vector3Int center = new(KlotzCountRawX / 2, KlotzCountRawY / 2, KlotzCountRawZ / 2);
-
         for (int z = 0; z < KlotzCountRawZ; z++)
         {
             for (int y = 0; y < KlotzCountRawY; y++)
@@ -62,9 +60,9 @@ public class WorldChunk
         }
     }
 
-    public Klotz GetRaw(int x, int y, int z) { return _dataRaw[x, y, z]; }
+    public Klotz GetRaw(int rawx, int rawy, int rawz) { return _dataRaw[rawx, rawy, rawz]; }
 
-    public void SetRaw(int x, int y, int z, Klotz t) { _dataRaw[x, y, z] = t; }
+    public void SetRaw(int rawx, int rawy, int rawz, Klotz t) { _dataRaw[rawx, rawy, rawz] = t; }
 
     public Klotz Get(int x, int y, int z)
     {
