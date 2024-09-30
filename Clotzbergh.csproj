@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Clotzbergh\WorldServer.cs" />
+    <Compile Include="Assets\Clotzbergh\PlayerMovement.cs" />
     <Compile Include="Assets\Clotzbergh\Klotz.cs" />
     <Compile Include="Assets\Clotzbergh\TerrainChunk.cs" />
     <Compile Include="Assets\Clotzbergh\TerrainChunkStore.cs" />

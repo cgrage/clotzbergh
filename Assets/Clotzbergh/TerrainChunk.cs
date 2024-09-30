@@ -12,6 +12,7 @@ public class TerrainChunk
 
     private readonly MeshRenderer _meshRenderer;
     private readonly MeshFilter _meshFilter;
+    private readonly MeshCollider _meshCollider;
 
     private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[DetailLevels.Length];
 
@@ -26,10 +27,10 @@ public class TerrainChunk
 
     public static readonly LevelOfDetailSetting[] DetailLevels =
     {
-         new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 2, },
-         new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 4, },
-         new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 6, },
-         new() { SetLevelOfDetail = 3, UsedBelowThisThreshold = 10, },
+         //new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 4, },
+         //new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 8, },
+         //new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 12, },
+         new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 20, },
     };
 
     public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
@@ -47,10 +48,11 @@ public class TerrainChunk
         _gameObject = new GameObject("Terrain Chunk");
         _meshRenderer = _gameObject.AddComponent<MeshRenderer>();
         _meshFilter = _gameObject.AddComponent<MeshFilter>();
-        _meshRenderer.material = material;
+        _meshCollider = _gameObject.AddComponent<MeshCollider>();
 
         _gameObject.transform.position = _position;
         _gameObject.transform.parent = parent;
+        _meshRenderer.material = material;
         IsActive = false;
 
         for (int i = 0; i < DetailLevels.Length; i++)
@@ -123,6 +125,7 @@ public class TerrainChunk
             {
                 // print(string.Format("SetMesh {0}", this.position));
                 _meshFilter.mesh = lodData.Mesh;
+                _meshCollider.sharedMesh = lodData.Mesh;
                 _currendLodIndex = lodIndex.Value;
             }
             else if (!lodData.IsMeshRequested)

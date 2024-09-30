@@ -5,14 +5,15 @@ using UnityEngine;
 
 public class HeightMap
 {
-    public const float NoisePlaneScale = 0.03f;
-    public const float NoiseHeightScale = 5f;
+    public const float NoisePlaneScale = 0.003f;
+    public const float NoiseHeightScale = 20f;
     public const float NoisePersistence = 0.5f;
     public const float NoiseLacunarity = 2f;
+    public const int DefaultOctaves = 4;
 
     private readonly Vector2[] _octaveOffsets;
 
-    public HeightMap(int octaves = 4, int seed = 0)
+    public HeightMap(int octaves = DefaultOctaves, int seed = 0)
     {
         System.Random rnd = new(seed);
 
