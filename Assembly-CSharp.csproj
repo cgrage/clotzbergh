@@ -64,22 +64,12 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\2022.3.37f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Clotzbergh\WorldServer.cs" />
     <Compile Include="Assets\Scripts\Noise.cs" />
-    <Compile Include="Assets\Clotzbergh\Klotz.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainChunk.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainChunkStore.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainProto.cs" />
     <Compile Include="Assets\Scripts\MeshGenerator.cs" />
     <Compile Include="Assets\Scripts\MapGenerator.cs" />
-    <Compile Include="Assets\Clotzbergh\WorldGenerator.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainClient.cs" />
     <Compile Include="Assets\Scripts\TextureGenerator.cs" />
-    <Compile Include="Assets\Clotzbergh\HeightMap.cs" />
     <Compile Include="Assets\Scripts\EndlessTerrain.cs" />
-    <Compile Include="Assets\Clotzbergh\WorldChunk.cs" />
     <Compile Include="Assets\Scripts\MapDisplay.cs" />
-    <Compile Include="Assets\Clotzbergh\MeshGenerator2.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -1008,6 +998,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Clotzbergh.csproj" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
   <ItemGroup>
