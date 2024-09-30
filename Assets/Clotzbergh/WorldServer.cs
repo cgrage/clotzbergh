@@ -11,6 +11,8 @@ public class WorldServer : MonoBehaviour
 
     public int ServerPort = 3000;
 
+    public bool ShowPreview = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -42,8 +44,11 @@ public class WorldServer : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.green;
-        Gizmos.DrawMesh(_generator.GeneratePreviewMesh(128));
+        if (ShowPreview)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawMesh(_generator.GeneratePreviewMesh(128));
+        }
     }
 
     public class Terrain : WebSocketBehavior

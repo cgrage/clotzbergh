@@ -23,8 +23,6 @@ public class WorldGenerator
                     int y = chunkCoords.y * WorldChunk.KlotzCountY - WorldChunk.BorderSize + iy;
                     float scaledY = y * Klotz.Size.y;
 
-                    Debug.Log($"height at ({x}, {z}) = {height}");
-
                     if (scaledY > height)
                     {
                         chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Air));
