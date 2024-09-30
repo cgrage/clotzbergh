@@ -4,10 +4,14 @@ using UnityEngine;
 
 public class WorldChunk
 {
-    public const int KlotzCountX = 32; // factors: 1, 2, 4,    8,     16,     32
-    public const int KlotzCountY = 80; // factors: 1, 2, 4, 5, 8, 10, 16, 20,     40, 80
-    public const int KlotzCountZ = 32; // factors: 1, 2, 4,    8,     16,     32
-    //                             common factors: 1, 2, 4,    8,     16
+    public const int KlotzCountX = 32;
+    public const int KlotzCountY = 80;
+    public const int KlotzCountZ = 32;
+
+    // factors of 32:  1, 2, 4,    8,     16,     32
+    // factors of 80:  1, 2, 4, 5, 8, 10, 16, 20,     40, 80
+    // --------------  -------------------------------------
+    // common factors: 1, 2, 4,    8,     16
 
     public const int BorderSize = 1;
 
@@ -16,6 +20,10 @@ public class WorldChunk
     public const int KlotzCountRawZ = KlotzCountZ + 2 * BorderSize;
 
     public static readonly Vector3Int KlotzCount = new(KlotzCountX, KlotzCountY, KlotzCountZ);
+
+    /// <summary>
+    /// 32 * 0.36 = 80 * 0.144 = 11,52
+    /// </summary>
     public static readonly Vector3 Size = new(Klotz.Size.x * KlotzCountX, Klotz.Size.y * KlotzCountY, Klotz.Size.z * KlotzCountZ);
 
     private readonly Klotz[,,] _dataRaw;

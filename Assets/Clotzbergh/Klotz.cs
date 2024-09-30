@@ -20,6 +20,8 @@ public struct Klotz
     private const float h = 0.0032f;
     private const float ScaleInv = 45;
 
+    // P * ScaleInv = 0.008 * 45 = 0.36
+    // h * ScaleInv = 0.0032 * 45 = 0.144
     public static readonly Vector3 Size = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
 
     public KlotzType Type { get; set; }

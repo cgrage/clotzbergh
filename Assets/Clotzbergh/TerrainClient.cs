@@ -14,7 +14,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 {
     public string Hostname = "localhost";
     public int Port = 3000;
-    public float MoveThreshold = 25;
+    public float MoveThreshold = 2;
     public Transform Viewer;
     public Material Material;
 
