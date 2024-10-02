@@ -25,11 +25,11 @@ public class WorldGenerator
 
                     if (scaledY > height)
                     {
-                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Air));
+                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Plate1x1));
+                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }

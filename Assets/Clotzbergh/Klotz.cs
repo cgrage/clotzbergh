@@ -1,44 +1,141 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public enum KlotzType : ushort
+public enum KlotzType
 {
-    Air, Plate1x1
+    Air = 0,
+    Plate1x1,
+    Brick4x2,
 }
 
+public enum KlotzDirection
+{
+    ToPosX = 0,
+    ToPosZ = 1,
+    ToNegX = 2,
+    ToNegZ = 3,
+}
+
+public static class KlotzKB
+{
+    /// <summary>
+    /// Return the size of the Klotz when placed in <c>ToPosX</c> direction.
+    /// </summary>
+    public static Vector3Int KlotzSize(KlotzType t)
+    {
+        return t switch
+        {
+            KlotzType.Plate1x1 => new(1, 1, 1),
+            KlotzType.Brick4x2 => new(4, 6, 2),
+            _ => Vector3Int.zero,
+        };
+    }
+
+    /// <summary>
+    /// Return the size of the Klotz when placed in direction <c>d</c>.
+    /// </summary>
+    public static Vector3Int KlotzSize(KlotzType t, KlotzDirection d)
+    {
+        Vector3Int result = KlotzSize(t);
+        if (d == KlotzDirection.ToPosZ || d == KlotzDirection.ToNegZ)
+            (result.z, result.x) = (result.x, result.z);
+        return result;
+    }
+
+    public static bool IsSubKlotzSeeThrough(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
+    {
+        return t switch
+        {
+            KlotzType.Plate1x1 => false,
+            KlotzType.Brick4x2 => false,
+            _ => true,
+        };
+    }
+}
+
+/// <summary>
+/// 
+/// [Sizes and scale in real world]
+/// Reality:
+/// - P = 8mm, h = 3.2mm
+/// - Minifig height: 40mm
+/// - Scale: 1:45 ==> 40mm -> 1.8m
+/// 
+/// [Data]
+/// KlotzType              -> 10 bit
+/// Orientation (N/E/S/W)  ->  2 bit
+/// SubKlotzIndexX (0..15) ->  4 bit
+/// SubKlotzIndexY (0..15) ->  4 bit
+/// SubKlotzIndexZ (0..15) ->  4 bit
+/// --------------------------------
+/// Sum                       24 bit
+/// 
+/// </summary>
 public struct Klotz
 {
-    // [Notes]
-    //
-    // Reality:
-    // - P = 8mm, h = 3.2mm
-    // - Minifig height: 40mm
-    // - Scale: 1:45 ==> 40mm -> 1.8m
-
     private const float P = 0.008f;
     private const float h = 0.0032f;
     private const float ScaleInv = 45;
 
-    // P * ScaleInv = 0.008 * 45 = 0.36
-    // h * ScaleInv = 0.0032 * 45 = 0.144
+    /// <summary>
+    /// This is calculated from constants.
+    /// 
+    /// X/Z: P * ScaleInv = 0.0080 * 45 = 0.360
+    /// Y:   h * ScaleInv = 0.0032 * 45 = 0.144
+    /// 
+    /// So the result is { 0.36, 0.144, 0.36 }
+    /// </summary>
     public static readonly Vector3 Size = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
 
-    public KlotzType Type { get; set; }
-    public readonly bool IsSeeThrough
+    public readonly KlotzType Type
     {
-        get
-        {
-            return Type switch
-            {
-                KlotzType.Air => true,
-                _ => false,
-            };
-        }
+        get { return (KlotzType)(raw24bit >> 14); }
     }
 
-    public Klotz(KlotzType type)
+    public readonly KlotzDirection Direction
     {
-        Type = type;
+        get { return (KlotzDirection)((raw24bit >> 12) & 0x3); }
     }
+
+    public readonly int SubKlotzIndexX
+    {
+        get { return (int)((raw24bit >> 8) & 0xf); }
+    }
+
+    public readonly int SubKlotzIndexY
+    {
+        get { return (int)((raw24bit >> 4) & 0xf); }
+    }
+
+    public readonly int SubKlotzIndexZ
+    {
+        get { return (int)((raw24bit >> 0) & 0xf); }
+    }
+
+    private readonly uint raw24bit;
+
+    public readonly bool IsSeeThrough
+    {
+        get { return KlotzKB.IsSubKlotzSeeThrough(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+    }
+
+    public Klotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    {
+        raw24bit =
+            ((uint)type & 0x3ff) << 14 |
+            ((uint)dir & 0x3) << 12 |
+            ((uint)subIdxX & 0xf) << 8 |
+            ((uint)subIdxY & 0xf) << 4 |
+            ((uint)subIdxZ & 0xf) << 0;
+    }
+
+    public Klotz(byte b0, byte b1, byte b2)
+    {
+        raw24bit = (uint)b0 << 16 | (uint)b1 << 8 | b2;
+    }
+
+    public readonly byte RawByte0 { get { return (byte)(raw24bit >> 16); } }
+    public readonly byte RawByte1 { get { return (byte)(raw24bit >> 8); } }
+    public readonly byte RawByte2 { get { return (byte)(raw24bit >> 0); } }
+
+    public override readonly string ToString() { return $"0x{raw24bit:x}"; }
 }

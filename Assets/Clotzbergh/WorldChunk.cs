@@ -33,7 +33,7 @@ public class WorldChunk
         _dataRaw = new Klotz[KlotzCountRawX, KlotzCountRawY, KlotzCountRawZ];
     }
 
-    private void FloodFill(KlotzType t, int toHeight = KlotzCountY, bool inclNextUpper = true)
+    private void FloodFill(int toHeight = KlotzCountY, bool inclNextUpper = true)
     {
         toHeight += BorderSize;
         if (inclNextUpper) toHeight += BorderSize;
@@ -44,13 +44,14 @@ public class WorldChunk
             {
                 for (int x = 0; x < KlotzCountRawX; x++)
                 {
-                    _dataRaw[x, y, z].Type = t;
+                    _dataRaw[x, y, z] = new Klotz(
+                        KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
         }
     }
 
-    private void CoreFill(KlotzType t)
+    private void CoreFill()
     {
         for (int z = 0; z < KlotzCountRawZ; z++)
         {
@@ -63,7 +64,8 @@ public class WorldChunk
                          y > KlotzCountRawY / 4 && y < 3 * KlotzCountRawY / 4 &&
                          z > KlotzCountRawZ / 4 && z < 3 * KlotzCountRawZ / 4;
 
-                    if (inCore) _dataRaw[x, y, z].Type = t;
+                    if (inCore) _dataRaw[x, y, z] = new Klotz(
+                        KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
         }
@@ -98,17 +100,17 @@ public class WorldChunk
         return new WorldChunk();
     }
 
-    public static WorldChunk CreateFloodFilled(KlotzType t, int toHeight = KlotzCountY, bool inclNextUpper = true)
+    public static WorldChunk CreateFloodFilled(int toHeight = KlotzCountY, bool inclNextUpper = true)
     {
         WorldChunk chunk = new();
-        chunk.FloodFill(t, toHeight, inclNextUpper);
+        chunk.FloodFill(toHeight, inclNextUpper);
         return chunk;
     }
 
-    public static WorldChunk CreateCoreFilled(KlotzType t)
+    public static WorldChunk CreateCoreFilled()
     {
         WorldChunk chunk = new();
-        chunk.CoreFill(t);
+        chunk.CoreFill();
         return chunk;
     }
 
@@ -120,8 +122,9 @@ public class WorldChunk
             {
                 for (int x = 0; x < KlotzCountRawX; x++)
                 {
-                    ushort u = (ushort)_dataRaw[x, y, z].Type;
-                    w.Write((ushort)_dataRaw[x, y, z].Type);
+                    w.Write(_dataRaw[x, y, z].RawByte0);
+                    w.Write(_dataRaw[x, y, z].RawByte1);
+                    w.Write(_dataRaw[x, y, z].RawByte2);
                 }
             }
         }
@@ -136,7 +139,10 @@ public class WorldChunk
             {
                 for (int x = 0; x < KlotzCountRawX; x++)
                 {
-                    chunk._dataRaw[x, y, z].Type = (KlotzType)r.ReadUInt16();
+                    byte b0 = r.ReadByte();
+                    byte b1 = r.ReadByte();
+                    byte b2 = r.ReadByte();
+                    chunk._dataRaw[x, y, z] = new Klotz(b0, b1, b2);
                 }
             }
         }
