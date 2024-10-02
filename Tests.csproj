@@ -65,6 +65,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Tests\TerrainGenerationTests.cs" />
+    <Compile Include="Assets\Tests\SerializationTests.cs" />
+    <Compile Include="Assets\Tests\KlotzTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Tests\Tests.asmdef" />
