@@ -64,20 +64,20 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\2022.3.37f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Clotzbergh\WorldServer.cs" />
-    <Compile Include="Assets\Clotzbergh\PlayerMovement.cs" />
-    <Compile Include="Assets\Clotzbergh\Klotz.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainChunk.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainChunkStore.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainProto.cs" />
-    <Compile Include="Assets\Clotzbergh\WorldGenerator.cs" />
-    <Compile Include="Assets\Clotzbergh\TerrainClient.cs" />
-    <Compile Include="Assets\Clotzbergh\HeightMap.cs" />
-    <Compile Include="Assets\Clotzbergh\WorldChunk.cs" />
-    <Compile Include="Assets\Clotzbergh\MeshGenerator2.cs" />
+    <Compile Include="Assets\Scripts\Server\WorldServer.cs" />
+    <Compile Include="Assets\Scripts\WorldChunk.cs" />
+    <Compile Include="Assets\Scripts\Client\TerrainChunk.cs" />
+    <Compile Include="Assets\Scripts\TerrainProto.cs" />
+    <Compile Include="Assets\Scripts\Klotz.cs" />
+    <Compile Include="Assets\Scripts\Client\TerrainClient.cs" />
+    <Compile Include="Assets\Scripts\Client\TerrainChunkStore.cs" />
+    <Compile Include="Assets\Scripts\Server\HeightMap.cs" />
+    <Compile Include="Assets\Scripts\PlayerMovement.cs" />
+    <Compile Include="Assets\Scripts\Client\MeshGenerator.cs" />
+    <Compile Include="Assets\Scripts\Server\WorldGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\Clotzbergh\Clotzbergh.asmdef" />
+    <None Include="Assets\Scripts\Clotzbergh.asmdef" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

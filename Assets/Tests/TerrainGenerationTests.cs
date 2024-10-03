@@ -32,7 +32,7 @@ public class TerrainGenerationTests
         Vector2Int rangeZ = new(-10, 10);
 
         WorldGenerator world = new();
-        MeshGenerator2 mesh = new();
+        MeshGenerator mesh = new();
 
         for (int z = rangeZ.x; z < rangeZ.y; z++)
         {
