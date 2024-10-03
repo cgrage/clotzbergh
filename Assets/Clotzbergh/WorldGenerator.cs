@@ -21,15 +21,15 @@ public class WorldGenerator
                 for (int iy = 0; iy < WorldChunk.KlotzCountRawY; iy++)
                 {
                     int y = chunkCoords.y * WorldChunk.KlotzCountY - WorldChunk.BorderSize + iy;
-                    float scaledY = y * Klotz.Size.y;
+                    float scaledY = y * SubKlotz.Size.y;
 
                     if (scaledY > height)
                     {
-                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.SetRaw(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.SetRaw(ix, iy, iz, new Klotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.SetRaw(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }
@@ -51,9 +51,9 @@ public class WorldGenerator
             for (int x = -dist; x < dist; x++)
             {
                 vertices[vIndex++] = new Vector3(
-                    x * Klotz.Size.x,
+                    x * SubKlotz.Size.x,
                     _heightMap.At(x, y),
-                    y * Klotz.Size.z);
+                    y * SubKlotz.Size.z);
             }
         }
 

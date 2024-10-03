@@ -58,7 +58,7 @@ public class WorldServer : MonoBehaviour
         protected override void OnMessage(MessageEventArgs e)
         {
             var cmd = TerrainProto.Command.FromBytes(e.RawData);
-            Debug.LogFormat("Server received command '{0}'", cmd.Code);
+            // Debug.LogFormat("Server received command '{0}'", cmd.Code);
 
             if (cmd is TerrainProto.GetChunkCommand)
             {
