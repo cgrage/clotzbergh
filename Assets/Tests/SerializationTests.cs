@@ -35,8 +35,8 @@ public class SerializationTests
             {
                 for (int x = 0; x < WorldChunk.KlotzCountRawX; x++)
                 {
-                    Klotz k1 = orig.GetRaw(x, y, z);
-                    Klotz k2 = copy.GetRaw(x, y, z);
+                    SubKlotz k1 = orig.GetRaw(x, y, z);
+                    SubKlotz k2 = copy.GetRaw(x, y, z);
 
                     Assert.AreEqual(k1.Type, k2.Type);
                     Assert.AreEqual(k1.Direction, k2.Direction);

@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEngine;
 
 public enum KlotzType
@@ -70,7 +71,7 @@ public static class KlotzKB
 /// Sum                       24 bit
 /// 
 /// </summary>
-public struct Klotz
+public struct SubKlotz
 {
     private const float P = 0.008f;
     private const float h = 0.0032f;
@@ -118,7 +119,7 @@ public struct Klotz
         get { return KlotzKB.IsSubKlotzSeeThrough(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
     }
 
-    public Klotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
         raw24bit =
             ((uint)type & 0x3ff) << 14 |
@@ -128,14 +129,20 @@ public struct Klotz
             ((uint)subIdxZ & 0xf) << 0;
     }
 
-    public Klotz(byte b0, byte b1, byte b2)
+    public SubKlotz(byte b0, byte b1, byte b2)
     {
         raw24bit = (uint)b0 << 16 | (uint)b1 << 8 | b2;
     }
 
-    public readonly byte RawByte0 { get { return (byte)(raw24bit >> 16); } }
-    public readonly byte RawByte1 { get { return (byte)(raw24bit >> 8); } }
-    public readonly byte RawByte2 { get { return (byte)(raw24bit >> 0); } }
+    public static SubKlotz Deserialize(BinaryReader r)
+    {
+        return new SubKlotz(r.ReadByte(), r.ReadByte(), r.ReadByte());
+    }
 
-    public override readonly string ToString() { return $"0x{raw24bit:x}"; }
+    public readonly void Serialize(BinaryWriter w)
+    {
+        w.Write((byte)(raw24bit >> 16));
+        w.Write((byte)(raw24bit >> 8));
+        w.Write((byte)(raw24bit >> 0));
+    }
 }

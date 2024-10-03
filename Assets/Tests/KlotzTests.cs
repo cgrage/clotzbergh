@@ -8,7 +8,7 @@ public class KlotzTests
     [Test]
     public void KlotzCreation()
     {
-        Klotz klotz;
+        SubKlotz klotz;
 
         klotz = new(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.AreEqual(KlotzType.Air, klotz.Type);
@@ -27,7 +27,7 @@ public class KlotzTests
     [Test]
     public void KlotzBasics()
     {
-        Klotz klotz;
+        SubKlotz klotz;
 
         klotz = new(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.IsTrue(klotz.IsSeeThrough);

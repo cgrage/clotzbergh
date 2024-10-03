@@ -139,7 +139,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     void OnDataReceivedAsync(object sender, MessageEventArgs e)
     {
         var cmd = TerrainProto.Command.FromBytes(e.RawData);
-        Debug.LogFormat("Client received command '{0}'", cmd.Code);
+        // Debug.LogFormat("Client received command '{0}'", cmd.Code);
 
         switch (cmd.Code)
         {
