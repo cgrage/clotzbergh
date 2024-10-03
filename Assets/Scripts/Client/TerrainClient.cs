@@ -27,7 +27,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     private readonly TerrainChunkStore _terrainChunkStore = new();
     private readonly BlockingCollection<Action<WebSocket>> _worldRequestQueue = new();
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
-    private readonly MeshGenerator2 _meshGenerator = new();
+    private readonly MeshGenerator _meshGenerator = new();
 
     /// <summary>
     /// Called by Unity

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MeshGenerator2
+public class MeshGenerator
 {
-    public MeshGenerator2()
+    public MeshGenerator()
     {
         // 
     }
