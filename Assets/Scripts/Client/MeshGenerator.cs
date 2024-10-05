@@ -40,24 +40,24 @@ public class MeshGenerator
 public class MeshBuilder
 {
     public List<Vector3> Vertices { get; private set; }
-    public List<Vector2> UVs { get; private set; }
+    public List<Color32> Colors { get; private set; }
     public List<int> Triangles { get; private set; }
 
     public MeshBuilder(int estimatedVertexCount = 0, int estimatedTriangleCount = 0)
     {
         Vertices = new(estimatedVertexCount);
-        UVs = new(estimatedVertexCount);
+        Colors = new List<Color32>(estimatedVertexCount);
         Triangles = new List<int>(capacity: estimatedTriangleCount * 3);
     }
 
-    public MeshBuilder(Vector3[] vertices, Vector2[] uvs, int[] triangles)
+    public MeshBuilder(Vector3[] vertices, Color32[] colors, int[] triangles)
     {
         Vertices = new(vertices);
-        UVs = new(uvs);
+        Colors = new(colors);
         Triangles = new(triangles);
     }
 
-    public static MeshBuilder FromCuboid(Vector3 pos, Vector3 size)
+    public static MeshBuilder FromCuboid(Vector3 pos, Vector3 size, Color32 color)
     {
         float x1 = pos.x, y1 = pos.y, z1 = pos.z;
         float x2 = x1 + size.x, y2 = y1 + size.y, z2 = z1 + size.z;
@@ -71,13 +71,13 @@ public class MeshBuilder
             new(x1, y1, z2), new(x2, y1, z2), new(x2, y2, z2), new(x1, y2, z2), // Front face
         };
 
-        Vector2[] uvs = {
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Left face
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Right face
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Bottom face
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Top face
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Back face
-            new(0, 0), new(1, 0), new(1, 1), new(0, 1), // Front face
+        Color32[] colors = {
+            color, color, color, color,
+            color, color, color, color,
+            color, color, color, color,
+            color, color, color, color,
+            color, color, color, color,
+            color, color, color, color,
         };
 
         int[] triangles = {
@@ -89,7 +89,7 @@ public class MeshBuilder
             20+0, 20+1, 20+2,   20+0, 20+2, 20+3, // Front face
         };
 
-        return new MeshBuilder(vertices, uvs, triangles);
+        return new MeshBuilder(vertices, colors, triangles);
     }
 
     public void AddTriangle(int a, int b, int c)
@@ -104,7 +104,7 @@ public class MeshBuilder
         Mesh mesh = new()
         {
             vertices = Vertices.ToArray(),
-            uv = UVs.ToArray(),
+            colors32 = Colors.ToArray(),
             triangles = Triangles.ToArray(),
         };
 
@@ -164,7 +164,7 @@ public class CellWallBuilder : MeshBuilder
     {
         int v0 = Vertices.Count;
         Vertices.AddRange(new Vector3[] { corner1, corner2, corner3, corner4 });
-        UVs.AddRange(new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) });
+        Colors.AddRange(new Color32[] { Color.magenta, Color.magenta, Color.magenta, Color.magenta });
         if (direction) Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
         else Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
     }
