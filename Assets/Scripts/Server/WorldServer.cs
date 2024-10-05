@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
 using WebSocketSharp.Server;
@@ -53,20 +56,72 @@ public class WorldServer : MonoBehaviour
 
     public class Terrain : WebSocketBehavior
     {
+        private readonly BlockingCollection<Action> _requestQueue = new();
+
+        private readonly CancellationTokenSource _runCancelTS = new();
+
+        private readonly List<Thread> _terrainThreads = new();
+
+        private const int ThreadCount = 4;
+
         public WorldGenerator Gen { get; set; }
+
+        protected override void OnOpen()
+        {
+            Debug.LogFormat("Terrain server starting...");
+
+            for (int i = 0; i < ThreadCount; i++)
+            {
+                var thread = new Thread(TerrainThreadMain) { Name = $"TerrainThread{i}" };
+                _terrainThreads.Add(thread);
+                thread.Start();
+            }
+
+            Debug.LogFormat("Terrain server started");
+        }
+
+        void TerrainThreadMain()
+        {
+            try
+            {
+                while (!_runCancelTS.Token.IsCancellationRequested)
+                {
+                    Action action = _requestQueue.Take(_runCancelTS.Token);
+                    action();
+                }
+            }
+            catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
+        }
+
+        protected override void OnClose(CloseEventArgs e)
+        {
+            Debug.LogFormat("Terrain server closing...");
+            _runCancelTS.Cancel();
+
+            foreach (var thread in _terrainThreads)
+            {
+                if (!thread.Join(TimeSpan.FromSeconds(1)))
+                    thread.Abort();
+            }
+
+            Debug.LogFormat("Terrain server closed");
+        }
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var cmd = TerrainProto.Command.FromBytes(e.RawData);
-            // Debug.LogFormat("Server received command '{0}'", cmd.Code);
-
-            if (cmd is TerrainProto.GetChunkCommand)
+            _requestQueue.Add(() =>
             {
-                var getch = cmd as TerrainProto.GetChunkCommand;
-                var chunk = Gen.GetChunk(getch.Coord);
-                var resp = new TerrainProto.ChunkDataCommand(getch.Coord, chunk);
-                Send(resp.ToBytes());
-            }
+                var cmd = TerrainProto.Command.FromBytes(e.RawData);
+                // Debug.LogFormat("Server received command '{0}'", cmd.Code);
+
+                if (cmd is TerrainProto.GetChunkCommand)
+                {
+                    var getch = cmd as TerrainProto.GetChunkCommand;
+                    var chunk = Gen.GetChunk(getch.Coord);
+                    var resp = new TerrainProto.ChunkDataCommand(getch.Coord, chunk);
+                    Send(resp.ToBytes());
+                }
+            });
         }
     }
 }
