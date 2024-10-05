@@ -35,6 +35,8 @@ public class TerrainChunk
 
     public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
 
+    public WorldChunk World { get { return _world; } }
+
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
         _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
@@ -99,7 +101,7 @@ public class TerrainChunk
 
     public void UpdateLevelOfDetail(Vector3 viewerPos)
     {
-        if (!IsOwnerThread())
+        if (!IsRunningOnOwnerThread())
         {
             Debug.LogErrorFormat("TerrainChunk updated by wrong thread!");
             return;
@@ -144,7 +146,7 @@ public class TerrainChunk
         private set { _gameObject.SetActive(value); }
     }
 
-    private bool IsOwnerThread()
+    private bool IsRunningOnOwnerThread()
     {
         return Thread.CurrentThread.ManagedThreadId == _ownerThreadId;
     }

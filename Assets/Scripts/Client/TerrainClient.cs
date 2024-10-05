@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
@@ -19,15 +20,20 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     public Material Material;
 
     private Thread _connectionThread;
+
+    private readonly List<Thread> _meshThreads = new();
+    private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
     private Vector3 _viewerPos = Vector3.positiveInfinity;
     private bool _isConnected = false;
     private bool _wasConnected = false;
 
-    private readonly CancellationTokenSource _connectionThreadCts = new();
+    private readonly CancellationTokenSource _runCancelTS = new();
     private readonly TerrainChunkStore _terrainChunkStore = new();
     private readonly BlockingCollection<Action<WebSocket>> _worldRequestQueue = new();
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
     private readonly MeshGenerator _meshGenerator = new();
+
+    private const int MeshThreadCount = 4;
 
     /// <summary>
     /// Called by Unity
@@ -40,6 +46,13 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
         _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
+
+        for (int i = 0; i < MeshThreadCount; i++)
+        {
+            var thread = new Thread(MeshThreadMain) { Name = $"MeshTread{i}" };
+            _meshThreads.Add(thread);
+            thread.Start();
+        }
     }
 
     void Update()
@@ -85,8 +98,6 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     void ConnectionThreadMain()
     {
         string url = string.Format("ws://{0}:{1}/terrain", Hostname, Port);
-        var token = _connectionThreadCts.Token;
-
         using var ws = new WebSocket(url);
         ws.OnMessage += OnDataReceivedAsync;
 
@@ -100,25 +111,41 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
             _isConnected = true;
 
-            while (!token.IsCancellationRequested)
+            while (!_runCancelTS.Token.IsCancellationRequested)
             {
-                var action = _worldRequestQueue.Take(token);
+                var action = _worldRequestQueue.Take(_runCancelTS.Token);
                 action(ws);
             }
         }
         catch (OperationCanceledException)
         {
             _isConnected = false;
-
             Debug.LogFormat("ConnectionThread stopped (OperationCanceledException).");
         }
         catch (Exception ex)
         {
             _isConnected = false;
-
             Debug.LogException(ex);
             Debug.LogFormat("ConnectionThread stopped on exception (see above).");
         }
+    }
+
+    void MeshThreadMain()
+    {
+        try
+        {
+            while (!_runCancelTS.Token.IsCancellationRequested)
+            {
+                MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
+                MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner.World, request.Lod);
+
+                ToMainThread(() =>
+                {
+                    request.Owner.OnMeshDataReceived(meshData, request.LodIndex, _viewerPos);
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
     }
 
     void OnConnected()
@@ -156,15 +183,18 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     void OnDestroy()
     {
         Debug.LogFormat("Closing client...");
-        _connectionThreadCts.Cancel();
+        _runCancelTS.Cancel();
 
         if (_connectionThread != null && _connectionThread.IsAlive)
         {
             if (!_connectionThread.Join(TimeSpan.FromSeconds(3)))
-            {
-                Debug.LogFormat("Failed to join conn thread");
                 _connectionThread.Abort();
-            }
+        }
+
+        foreach (var thread in _meshThreads)
+        {
+            if (!thread.Join(TimeSpan.FromSeconds(1)))
+                thread.Abort();
         }
 
         Debug.LogFormat("Closed client");
@@ -179,19 +209,26 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         });
     }
 
+    private readonly struct MeshRequest
+    {
+        private readonly TerrainChunk owner;
+        private readonly int lod;
+        private readonly int lodIndex;
+
+        public MeshRequest(TerrainChunk owner, int lod, int lodIndex)
+        {
+            this.owner = owner;
+            this.lod = lod;
+            this.lodIndex = lodIndex;
+        }
+
+        public readonly TerrainChunk Owner { get { return owner; } }
+        public readonly int Lod { get { return lod; } }
+        public readonly int LodIndex { get { return lodIndex; } }
+    }
 
     void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, int lodIndex)
     {
-        // Queue the task to the thread pool
-        ThreadPool.QueueUserWorkItem(state =>
-        {
-            // int result = PerformTask();
-            MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(world, lod);
-
-            ToMainThread(() =>
-            {
-                owner.OnMeshDataReceived(meshData, lodIndex, _viewerPos);
-            });
-        });
+        _meshRequestQueue.Add(new MeshRequest(owner, lod, lodIndex));
     }
 }
