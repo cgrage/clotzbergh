@@ -439,7 +439,7 @@ MonoBehaviour:
   Port: 3003
   MoveThreshold: 2
   Viewer: {fileID: 539553190}
-  Material: {fileID: 2100000, guid: e5196f8c0d3124648866408ec9573548, type: 2}
+  Material: {fileID: 2100000, guid: 66be6cf389d75024890c562d78254fe7, type: 2}
 --- !u!4 &785459302
 Transform:
   m_ObjectHideFlags: 0
@@ -577,7 +577,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ServerPort: 3003
-  ShowPreview: 1
+  ShowPreview: 0
 --- !u!4 &1464593528
 Transform:
   m_ObjectHideFlags: 0
