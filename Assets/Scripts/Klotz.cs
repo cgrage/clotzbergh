@@ -42,13 +42,13 @@ public static class KlotzKB
         return result;
     }
 
-    public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
+    public static bool IsSubKlotzClear(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
     {
         return t switch
         {
-            KlotzType.Plate1x1 => true,
-            KlotzType.Brick4x2 => true,
-            _ => false,
+            KlotzType.Plate1x1 => false,
+            KlotzType.Brick4x2 => false,
+            _ => true,
         };
     }
 }
@@ -89,34 +89,44 @@ public struct SubKlotz
 
     public readonly KlotzType Type
     {
+        // bits: xxxxxxxxxx00000000000000
         get { return (KlotzType)(raw24bit >> 14); }
     }
 
     public readonly KlotzDirection Direction
     {
+        // bits: 0000000000xx000000000000
         get { return (KlotzDirection)((raw24bit >> 12) & 0x3); }
     }
 
     public readonly int SubKlotzIndexX
     {
+        // bits: 000000000000xxxx00000000
         get { return (int)((raw24bit >> 8) & 0xf); }
     }
 
     public readonly int SubKlotzIndexY
     {
+        // bits: 0000000000000000xxxx0000
         get { return (int)((raw24bit >> 4) & 0xf); }
     }
 
     public readonly int SubKlotzIndexZ
     {
+        // bits: 00000000000000000000xxxx
         get { return (int)((raw24bit >> 0) & 0xf); }
     }
 
     private readonly uint raw24bit;
 
-    public readonly bool IsOpaque
+    public readonly bool IsClear
     {
-        get { return KlotzKB.IsSubKlotzOpaque(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+        get { return KlotzKB.IsSubKlotzClear(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+    }
+
+    public readonly bool IsRootSubKlotz
+    {
+        get { return (raw24bit & 0xfff) == 0; }
     }
 
     public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)

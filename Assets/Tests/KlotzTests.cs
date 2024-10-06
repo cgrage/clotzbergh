@@ -30,9 +30,9 @@ public class KlotzTests
         SubKlotz klotz;
 
         klotz = new(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsFalse(klotz.IsOpaque);
+        Assert.IsTrue(klotz.IsClear);
 
         klotz = new(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsTrue(klotz.IsOpaque);
+        Assert.IsFalse(klotz.IsClear);
     }
 }
