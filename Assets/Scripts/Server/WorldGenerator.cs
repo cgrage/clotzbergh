@@ -33,7 +33,24 @@ public class WorldGenerator
             }
         }
 
+        PlaceBrick4x2(chunk, 10, 10, 10, KlotzDirection.ToPosX);
+
         return chunk;
+    }
+
+    private static void PlaceBrick4x2(WorldChunk chunk, int x, int y, int z, KlotzDirection dir)
+    {
+        for (int subZ = 0; subZ < 2; subZ++)
+        {
+            for (int subX = 0; subX < 4; subX++)
+            {
+                for (int subY = 0; subY < 3; subY++)
+                {
+                    chunk.Set(x + subX, y + subY, z + subZ,
+                        new SubKlotz(KlotzType.Brick4x2, dir, subX, subY, subZ));
+                }
+            }
+        }
     }
 
     public Mesh GeneratePreviewMesh(int dist)

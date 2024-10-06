@@ -1,21 +1,17 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Generates the meshes. When called on <c>GenerateTerrainMesh</c> it generates 
+/// the mesh for a <c>TerrainChunk</c> and its inner <c>WorldChunk</c>.
+/// Uses the neighbors of the <c>TerrainChunk</c> to find adjacent world 
+/// information to draw the mesh correctly.
+/// For overlapping Klotzes the general rule is that the chunk with the root
+/// <c>SubKlotz</c> owns the Klotz (that is the <c>SubKlotz</c> with the sub-
+/// coords {0,0,0}).
+/// </summary>
 public class MeshGenerator
 {
-    /// <summary>
-    /// Stupid little helper
-    /// </summary>
-    private static Color32 ColorFromHash(int hash)
-    {
-        System.Random random = new(hash);
-        byte r = (byte)random.Next(256);
-        byte g = (byte)random.Next(256);
-        byte b = (byte)random.Next(256);
-        return new Color32(r, g, b, 255);
-    }
-
     public MeshGenerator()
     {
         // 
@@ -31,9 +27,9 @@ public class MeshGenerator
             return null;
 
         CellWallBuilder builder = new(WorldChunk.Size, WorldChunk.KlotzCount);
-        builder.MeshColor = ColorFromHash(terrainChunk.Id.GetHashCode());
+        WorldStitcher stitcher = new(terrainChunk);
 
-        OpaquenessChecker checker = new(terrainChunk);
+        builder.SetColor(ColorFromHash(terrainChunk.Id.GetHashCode()));
 
         for (int z = 0; z < WorldChunk.KlotzCountZ; z++)
         {
@@ -41,26 +37,42 @@ public class MeshGenerator
             {
                 for (int x = 0; x < WorldChunk.KlotzCountX; x++)
                 {
-                    bool opaque = checker.IsOpaqueAt(x, y, z).GetValueOrDefault();
-                    if (!opaque)
+                    bool clear = worldChunk.Get(x, y, z).IsClear;
+                    if (clear)
                         continue; // later this will be more complex, I guess.
 
                     builder.MoveTo(x, y, z);
-                    if (!checker.IsOpaqueAt(x - 1, y, z).GetValueOrDefault()) builder.AddFaceXM1();
-                    if (!checker.IsOpaqueAt(x + 1, y, z).GetValueOrDefault()) builder.AddFaceXP1();
-                    if (!checker.IsOpaqueAt(x, y - 1, z).GetValueOrDefault()) builder.AddFaceYM1();
-                    if (!checker.IsOpaqueAt(x, y + 1, z).GetValueOrDefault()) builder.AddFaceYP1();
-                    if (!checker.IsOpaqueAt(x, y, z - 1).GetValueOrDefault()) builder.AddFaceZM1();
-                    if (!checker.IsOpaqueAt(x, y, z + 1).GetValueOrDefault()) builder.AddFaceZP1();
+                    if (stitcher.IsKnownClearAt(x - 1, y, z)) builder.AddFaceXM1();
+                    if (stitcher.IsKnownClearAt(x + 1, y, z)) builder.AddFaceXP1();
+                    if (stitcher.IsKnownClearAt(x, y - 1, z)) builder.AddFaceYM1();
+                    if (stitcher.IsKnownClearAt(x, y + 1, z)) builder.AddFaceYP1();
+                    if (stitcher.IsKnownClearAt(x, y, z - 1)) builder.AddFaceZM1();
+                    if (stitcher.IsKnownClearAt(x, y, z + 1)) builder.AddFaceZP1();
                 }
             }
         }
 
         return builder;
     }
+
+    /// <summary>
+    /// Stupid little helper
+    /// </summary>
+    private static Color32 ColorFromHash(int hash)
+    {
+        System.Random random = new(hash);
+        byte r = (byte)random.Next(256);
+        byte g = (byte)random.Next(256);
+        byte b = (byte)random.Next(256);
+        return new Color32(r, g, b, 255);
+    }
 }
 
-public class OpaquenessChecker
+/// <summary>
+/// Helper class to stitch multiple world chunks together.
+/// Always operates from the perspective of the chunk given to the constructor. 
+/// </summary>
+public class WorldStitcher
 {
     private readonly WorldChunk _worldChunk;
     private readonly WorldChunk _neighborXM1;
@@ -70,7 +82,7 @@ public class OpaquenessChecker
     private readonly WorldChunk _neighborZM1;
     private readonly WorldChunk _neighborZP1;
 
-    public OpaquenessChecker(TerrainChunk chunk)
+    public WorldStitcher(TerrainChunk chunk)
     {
         _worldChunk = chunk.World;
         _neighborXM1 = chunk.NeighborXM1?.World;
@@ -86,15 +98,24 @@ public class OpaquenessChecker
     const int MAX_Y = WorldChunk.KlotzCountY;
     const int MAX_Z = WorldChunk.KlotzCountZ;
 
-    public bool? IsOpaqueAt(int x, int y, int z)
+    public SubKlotz? At(int x, int y, int z)
     {
-        if (x < 0) { return _neighborXM1?.Get(x + MAX_X, y, z).IsOpaque; }
-        else if (x >= MAX_X) { return _neighborXP1?.Get(x - MAX_X, y, z).IsOpaque; }
-        else if (y < 0) { return _neighborYM1?.Get(x, y + MAX_Y, z).IsOpaque; }
-        else if (y >= MAX_Y) { return _neighborYP1?.Get(x, y - MAX_Y, z).IsOpaque; }
-        else if (z < 0) { return _neighborZM1?.Get(x, y, z + MAX_Z).IsOpaque; }
-        else if (z >= MAX_Z) { return _neighborZP1?.Get(x, y, z - MAX_Z).IsOpaque; }
-        else { return _worldChunk.Get(x, y, z).IsOpaque; }
+        if (x < 0) { return _neighborXM1?.Get(x + MAX_X, y, z); }
+        else if (x >= MAX_X) { return _neighborXP1?.Get(x - MAX_X, y, z); }
+        else if (y < 0) { return _neighborYM1?.Get(x, y + MAX_Y, z); }
+        else if (y >= MAX_Y) { return _neighborYP1?.Get(x, y - MAX_Y, z); }
+        else if (z < 0) { return _neighborZM1?.Get(x, y, z + MAX_Z); }
+        else if (z >= MAX_Z) { return _neighborZP1?.Get(x, y, z - MAX_Z); }
+        else { return _worldChunk.Get(x, y, z); }
+    }
+
+    public bool IsKnownClearAt(int x, int y, int z)
+    {
+        SubKlotz? subKlotz = At(x, y, z);
+        if (!subKlotz.HasValue)
+            return false;
+
+        return subKlotz.Value.IsClear;
     }
 }
 
@@ -190,14 +211,16 @@ public class CellWallBuilder : MeshBuilder
 {
     private readonly Vector3 _segmentSize;
 
-    public Color32 MeshColor { get; set; }
+    private Color32 _color;
 
-    float _x1, _x2, _y1, _y2, _z1, _z2;
+    private float _x1, _x2, _y1, _y2, _z1, _z2;
+
+    private readonly System.Random _todoRemove = new();
 
     public CellWallBuilder(Vector3 size, Vector3Int subDivs)
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
-        MeshColor = Color.magenta;
+        _color = Color.magenta;
     }
 
     public void MoveTo(int x, int y, int z)
@@ -210,16 +233,18 @@ public class CellWallBuilder : MeshBuilder
         _z2 = _z1 + _segmentSize.z;
     }
 
+    public void SetColor(Color32 color)
+    {
+        _color = color;
+    }
+
     /// <summary>
     /// A.K.A. the left face
     /// </summary>
     public void AddFaceXM1()
     {
-        int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x1, _y1, _z1), new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x1, _y1, _z2) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(-1, 0, 0), new(-1, 0, 0), new(-1, 0, 0), new(-1, 0, 0) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
+        AddFace(new(_x1, _y1, _z1), new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x1, _y1, _z2),
+            new(-1, 0, 0), false);
     }
 
     /// <summary>
@@ -227,11 +252,8 @@ public class CellWallBuilder : MeshBuilder
     /// </summary>
     public void AddFaceXP1()
     {
-        int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(1, 0, 0), new(1, 0, 0), new(1, 0, 0), new(1, 0, 0) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
+        AddFace(new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
+            new(1, 0, 0), true);
     }
 
     /// <summary>
@@ -239,11 +261,8 @@ public class CellWallBuilder : MeshBuilder
     /// </summary>
     public void AddFaceYM1()
     {
-        int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x1, _y1, _z1), new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y1, _z1) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(0, -1, 0), new(0, -1, 0), new(0, -1, 0), new(0, -1, 0) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
+        AddFace(new(_x1, _y1, _z1), new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y1, _z1),
+            new(0, -1, 0), false);
     }
 
     /// <summary>
@@ -251,11 +270,8 @@ public class CellWallBuilder : MeshBuilder
     /// </summary>
     public void AddFaceYP1()
     {
-        int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(0, 1, 0), new(0, 1, 0), new(0, 1, 0), new(0, 1, 0) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
+        AddFace(new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
+            new(0, 1, 0), true);
     }
 
     /// <summary>
@@ -263,11 +279,8 @@ public class CellWallBuilder : MeshBuilder
     /// </summary>
     public void AddFaceZM1()
     {
-        int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x1, _y1, _z1), new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x1, _y2, _z1) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(0, 0, -1), new(0, 0, -1), new(0, 0, -1), new(0, 0, -1) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
+        AddFace(new(_x1, _y1, _z1), new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x1, _y2, _z1),
+            new(0, 0, -1), false);
     }
 
     /// <summary>
@@ -275,10 +288,35 @@ public class CellWallBuilder : MeshBuilder
     /// </summary>
     public void AddFaceZP1()
     {
+        AddFace(new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
+            new(0, 0, 1), true);
+    }
+
+    /// <summary>
+    /// A.K.A. the front face
+    /// </summary>
+    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, Vector3 normal, bool clockwise)
+    {
+        Color32 color = AdjustColorBrightness(_color, 0.2f);
         int v0 = Vertices.Count;
-        Vertices.AddRange(new Vector3[] { new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2) });
-        Colors.AddRange(new Color32[] { MeshColor, MeshColor, MeshColor, MeshColor });
-        Normals.AddRange(new Vector3[] { new(0, 0, 1), new(0, 0, 1), new(0, 0, 1), new(0, 0, 1) });
-        Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
+
+        Vertices.AddRange(new Vector3[] { corner1, corner2, corner3, corner4 });
+        Colors.AddRange(new Color32[] { color, color, color, color });
+        Normals.AddRange(new Vector3[] { normal, normal, normal, normal });
+        if (clockwise) Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
+        else Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
+    }
+
+    public Color32 AdjustColorBrightness(Color32 color, float adjustmentRange = 0.1f)
+    {
+        // Generate random adjustment factor
+        float adjustmentFactor = (float)(_todoRemove.NextDouble() * 2 - 1) * adjustmentRange;
+
+        // Adjust color values
+        byte r = (byte)Mathf.Clamp(color.r + (color.r * adjustmentFactor), 0, 255);
+        byte g = (byte)Mathf.Clamp(color.g + (color.g * adjustmentFactor), 0, 255);
+        byte b = (byte)Mathf.Clamp(color.b + (color.b * adjustmentFactor), 0, 255);
+
+        return new Color32(r, g, b, color.a);
     }
 }

@@ -39,12 +39,12 @@ public class TerrainChunk
     public WorldChunk World { get { return _world; } }
     public string Id { get { return _id; } }
 
-    private TerrainChunk _neighborXM1;
-    private TerrainChunk _neighborXP1;
-    private TerrainChunk _neighborYM1;
-    private TerrainChunk _neighborYP1;
-    private TerrainChunk _neighborZM1;
-    private TerrainChunk _neighborZP1;
+    public TerrainChunk NeighborXM1 { get; set; }
+    public TerrainChunk NeighborXP1 { get; set; }
+    public TerrainChunk NeighborYM1 { get; set; }
+    public TerrainChunk NeighborYP1 { get; set; }
+    public TerrainChunk NeighborZM1 { get; set; }
+    public TerrainChunk NeighborZP1 { get; set; }
 
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
@@ -77,11 +77,25 @@ public class TerrainChunk
 
     public void OnWorldChunkReceived(WorldChunk worldChunk, Vector3 viewerPos)
     {
+        // store the data
         _world = worldChunk;
 
-        // Texture2D texture = TextureGenerator.TextureFromColorMap(mapData.colorMap, MapGenerator.mapChunkSize, MapGenerator.mapChunkSize);
-        // _meshRenderer.material.mainTexture = texture;
+        // update this. (TODO: what if this is an update?)
+        UpdateLevelOfDetail(viewerPos);
 
+        // update neighbors (TODO: Only if required?)
+        NeighborXM1?.ForceMeshFresh(viewerPos);
+        NeighborXP1?.ForceMeshFresh(viewerPos);
+        NeighborYM1?.ForceMeshFresh(viewerPos);
+        NeighborYP1?.ForceMeshFresh(viewerPos);
+        NeighborZM1?.ForceMeshFresh(viewerPos);
+        NeighborZP1?.ForceMeshFresh(viewerPos);
+    }
+
+    public void ForceMeshFresh(Vector3 viewerPos)
+    {
+        _currentLodIndex = -1;
+        ClearLodData();
         UpdateLevelOfDetail(viewerPos);
     }
 
@@ -149,99 +163,18 @@ public class TerrainChunk
         IsActive = true;
     }
 
-    /// <summary>
-    /// This method is expected to be run on main thread.
-    /// </summary>
-    private void OnNeighborChanged()
+    void ClearLodData()
     {
-        ExpectRunningOnOwnerThread();
-
-        // TODO: Here we need to request a new mesh.
-        // We need a mechanism for that which is more robust than the current one.
+        foreach (var data in _lodSpecificData)
+        {
+            data.Reset();
+        }
     }
 
     public bool IsActive
     {
         get { return _gameObject.activeSelf; }
         private set { _gameObject.SetActive(value); }
-    }
-
-    public TerrainChunk NeighborXM1
-    {
-        get { return _neighborXM1; }
-        set
-        {
-            if (_neighborXM1 != value)
-            {
-                _neighborXM1 = value;
-                OnNeighborChanged();
-            }
-        }
-    }
-
-    public TerrainChunk NeighborXP1
-    {
-        get { return _neighborXP1; }
-        set
-        {
-            if (_neighborXP1 != value)
-            {
-                _neighborXP1 = value;
-                OnNeighborChanged();
-            }
-        }
-    }
-
-    public TerrainChunk NeighborYM1
-    {
-        get { return _neighborYM1; }
-        set
-        {
-            if (_neighborYM1 != value)
-            {
-                _neighborYM1 = value;
-                OnNeighborChanged();
-            }
-        }
-    }
-
-    public TerrainChunk NeighborYP1
-    {
-        get { return _neighborYP1; }
-        set
-        {
-            if (_neighborYP1 != value)
-            {
-                _neighborYP1 = value;
-                OnNeighborChanged();
-            }
-        }
-    }
-
-    public TerrainChunk NeighborZM1
-    {
-        get { return _neighborZM1; }
-        set
-        {
-            if (_neighborZM1 != value)
-            {
-                _neighborZM1 = value;
-                OnNeighborChanged();
-            }
-        }
-    }
-
-    public TerrainChunk NeighborZP1
-    {
-        get { return _neighborZP1; }
-        set
-        {
-            if (_neighborZP1 != value)
-            {
-                _neighborZP1 = value;
-                OnNeighborChanged();
-            }
-        }
     }
 
     private void ExpectRunningOnOwnerThread()
@@ -254,6 +187,17 @@ public class TerrainChunk
 
     class LevelOfDetailSpecificData
     {
+        public LevelOfDetailSpecificData()
+        {
+            Reset();
+        }
+
+        public void Reset()
+        {
+            Mesh = null;
+            IsMeshRequested = false;
+        }
+
         public Mesh Mesh { get; set; }
         public bool IsMeshRequested { get; set; }
 
