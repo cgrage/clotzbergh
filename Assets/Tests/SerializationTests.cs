@@ -29,11 +29,11 @@ public class SerializationTests
             }
         }
 
-        for (int z = 0; z < WorldChunk.KlotzCountZ; z++)
+        for (int z = 0; z < WorldChunk.SubDivsZ; z++)
         {
-            for (int y = 0; y < WorldChunk.KlotzCountY; y++)
+            for (int y = 0; y < WorldChunk.SubDivsY; y++)
             {
-                for (int x = 0; x < WorldChunk.KlotzCountX; x++)
+                for (int x = 0; x < WorldChunk.SubDivsX; x++)
                 {
                     SubKlotz k1 = orig.Get(x, y, z);
                     SubKlotz k2 = copy.Get(x, y, z);

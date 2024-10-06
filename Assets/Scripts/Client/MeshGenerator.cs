@@ -26,16 +26,16 @@ public class MeshGenerator
         if (worldChunk == null)
             return null;
 
-        CellWallBuilder builder = new(WorldChunk.Size, WorldChunk.KlotzCount);
+        CellWallBuilder builder = new(WorldChunk.Size, WorldChunk.SubDivs);
         WorldStitcher stitcher = new(terrainChunk);
 
         builder.SetColor(ColorFromHash(terrainChunk.Id.GetHashCode()));
 
-        for (int z = 0; z < WorldChunk.KlotzCountZ; z++)
+        for (int z = 0; z < WorldChunk.SubDivsZ; z++)
         {
-            for (int y = 0; y < WorldChunk.KlotzCountY; y++)
+            for (int y = 0; y < WorldChunk.SubDivsY; y++)
             {
-                for (int x = 0; x < WorldChunk.KlotzCountX; x++)
+                for (int x = 0; x < WorldChunk.SubDivsX; x++)
                 {
                     bool clear = worldChunk.Get(x, y, z).IsClear;
                     if (clear)
@@ -93,13 +93,13 @@ public class WorldStitcher
         _neighborZP1 = chunk.NeighborZP1?.World;
     }
 
-    // shorthand notation
-    const int MAX_X = WorldChunk.KlotzCountX;
-    const int MAX_Y = WorldChunk.KlotzCountY;
-    const int MAX_Z = WorldChunk.KlotzCountZ;
 
     public SubKlotz? At(int x, int y, int z)
     {
+        const int MAX_X = WorldChunk.SubDivsX;
+        const int MAX_Y = WorldChunk.SubDivsY;
+        const int MAX_Z = WorldChunk.SubDivsZ;
+
         if (x < 0) { return _neighborXM1?.Get(x + MAX_X, y, z); }
         else if (x >= MAX_X) { return _neighborXP1?.Get(x - MAX_X, y, z); }
         else if (y < 0) { return _neighborYM1?.Get(x, y + MAX_Y, z); }
