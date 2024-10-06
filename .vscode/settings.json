@@ -51,5 +51,16 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Clotzbergh.sln"
+    "dotnet.defaultSolution": "Clotzbergh.sln",
+    "cSpell.words": [
+        "Behaviour",
+        "Divs",
+        "Expection",
+        "Klotz",
+        "Lacunarity",
+        "Mathf",
+        "Perlin",
+        "voxel",
+        "voxels"
+    ]
 }

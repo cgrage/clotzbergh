@@ -42,13 +42,13 @@ public static class KlotzKB
         return result;
     }
 
-    public static bool IsSubKlotzSeeThrough(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
+    public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
     {
         return t switch
         {
-            KlotzType.Plate1x1 => false,
-            KlotzType.Brick4x2 => false,
-            _ => true,
+            KlotzType.Plate1x1 => true,
+            KlotzType.Brick4x2 => true,
+            _ => false,
         };
     }
 }
@@ -58,7 +58,7 @@ public static class KlotzKB
 /// [Sizes and scale in real world]
 /// Reality:
 /// - P = 8mm, h = 3.2mm
-/// - Minifig height: 40mm
+/// - Figure height: 40mm
 /// - Scale: 1:45 ==> 40mm -> 1.8m
 /// 
 /// [Data]
@@ -114,9 +114,9 @@ public struct SubKlotz
 
     private readonly uint raw24bit;
 
-    public readonly bool IsSeeThrough
+    public readonly bool IsOpaque
     {
-        get { return KlotzKB.IsSubKlotzSeeThrough(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+        get { return KlotzKB.IsSubKlotzOpaque(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
     }
 
     public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)

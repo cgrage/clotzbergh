@@ -29,14 +29,14 @@ public class SerializationTests
             }
         }
 
-        for (int z = 0; z < WorldChunk.KlotzCountRawZ; z++)
+        for (int z = 0; z < WorldChunk.KlotzCountZ; z++)
         {
-            for (int y = 0; y < WorldChunk.KlotzCountRawY; y++)
+            for (int y = 0; y < WorldChunk.KlotzCountY; y++)
             {
-                for (int x = 0; x < WorldChunk.KlotzCountRawX; x++)
+                for (int x = 0; x < WorldChunk.KlotzCountX; x++)
                 {
-                    SubKlotz k1 = orig.GetRaw(x, y, z);
-                    SubKlotz k2 = copy.GetRaw(x, y, z);
+                    SubKlotz k1 = orig.Get(x, y, z);
+                    SubKlotz k2 = copy.Get(x, y, z);
 
                     Assert.AreEqual(k1.Type, k2.Type);
                     Assert.AreEqual(k1.Direction, k2.Direction);

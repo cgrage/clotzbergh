@@ -25,6 +25,10 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
     private Vector3 _viewerPos = Vector3.positiveInfinity;
     private bool _isConnected = false;
+
+    /// <summary>
+    /// Used during <c>Update()</c> do decide if we were connected at last <c>Update()</c>
+    /// </summary>
     private bool _wasConnected = false;
 
     private readonly CancellationTokenSource _runCancelTS = new();
@@ -137,7 +141,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
             while (!_runCancelTS.Token.IsCancellationRequested)
             {
                 MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
-                MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner.World, request.Lod);
+                MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
 
                 ToMainThread(() =>
                 {

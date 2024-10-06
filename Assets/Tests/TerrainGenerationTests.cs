@@ -40,8 +40,12 @@ public class TerrainGenerationTests
             {
                 for (int x = rangeX.x; x < rangeX.y; x++)
                 {
-                    WorldChunk chunk = world.GetChunk(new(x, y, z));
-                    mesh.GenerateTerrainMesh(chunk, 0);
+                    Vector3Int coords = new(x, y, z);
+                    TerrainChunk terrainChunk = new(coords, null, null, null);
+                    WorldChunk worldChunk = world.GetChunk(coords);
+
+                    terrainChunk.OnWorldChunkReceived(worldChunk, Vector3.zero);
+                    mesh.GenerateTerrainMesh(terrainChunk, 0);
                 }
             }
         }

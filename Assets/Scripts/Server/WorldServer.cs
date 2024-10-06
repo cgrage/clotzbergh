@@ -116,9 +116,9 @@ public class WorldServer : MonoBehaviour
 
                 if (cmd is TerrainProto.GetChunkCommand)
                 {
-                    var getch = cmd as TerrainProto.GetChunkCommand;
-                    var chunk = Gen.GetChunk(getch.Coord);
-                    var resp = new TerrainProto.ChunkDataCommand(getch.Coord, chunk);
+                    var getChunkCmd = cmd as TerrainProto.GetChunkCommand;
+                    var chunk = Gen.GetChunk(getChunkCmd.Coord);
+                    var resp = new TerrainProto.ChunkDataCommand(getChunkCmd.Coord, chunk);
                     Send(resp.ToBytes());
                 }
             });

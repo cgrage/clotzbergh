@@ -2,22 +2,22 @@ using System;
 using System.IO;
 using UnityEngine;
 
+/// <summary>
+/// The current chunk size is 32x80x32
+/// 
+/// Factorization:
+/// fact 32: 1, 2, 4, -, 8, --, 16, --, 32, --, --
+/// fact 80: 1, 2, 4, 5, 8, 10, 16, 20, --, 40, 80
+/// common:  1, 2, 4, -, 8, --, 16, --, --, --, --
+/// 
+/// 32*32*80 = 81.920 voxels per chunk
+/// 
+/// </summary>
 public class WorldChunk
 {
     public const int KlotzCountX = 32;
     public const int KlotzCountY = 80;
     public const int KlotzCountZ = 32;
-
-    // factors of 32:  1, 2, 4,    8,     16,     32
-    // factors of 80:  1, 2, 4, 5, 8, 10, 16, 20,     40, 80
-    // --------------  -------------------------------------
-    // common factors: 1, 2, 4,    8,     16
-
-    public const int BorderSize = 1;
-
-    public const int KlotzCountRawX = KlotzCountX + 2 * BorderSize;
-    public const int KlotzCountRawY = KlotzCountY + 2 * BorderSize;
-    public const int KlotzCountRawZ = KlotzCountZ + 2 * BorderSize;
 
     public static readonly Vector3Int KlotzCount = new(KlotzCountX, KlotzCountY, KlotzCountZ);
 
@@ -26,25 +26,22 @@ public class WorldChunk
     /// </summary>
     public static readonly Vector3 Size = new(SubKlotz.Size.x * KlotzCountX, SubKlotz.Size.y * KlotzCountY, SubKlotz.Size.z * KlotzCountZ);
 
-    private readonly SubKlotz[,,] _dataRaw;
+    private readonly SubKlotz[,,] _klotzData;
 
     private WorldChunk()
     {
-        _dataRaw = new SubKlotz[KlotzCountRawX, KlotzCountRawY, KlotzCountRawZ];
+        _klotzData = new SubKlotz[KlotzCountX, KlotzCountY, KlotzCountZ];
     }
 
-    private void FloodFill(int toHeight = KlotzCountY, bool inclNextUpper = true)
+    private void FloodFill(int toHeight = KlotzCountY)
     {
-        toHeight += BorderSize;
-        if (inclNextUpper) toHeight += BorderSize;
-
-        for (int z = 0; z < KlotzCountRawZ; z++)
+        for (int z = 0; z < KlotzCountZ; z++)
         {
             for (int y = 0; y < toHeight; y++)
             {
-                for (int x = 0; x < KlotzCountRawX; x++)
+                for (int x = 0; x < KlotzCountX; x++)
                 {
-                    _dataRaw[x, y, z] = new SubKlotz(
+                    _klotzData[x, y, z] = new SubKlotz(
                         KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
@@ -53,57 +50,37 @@ public class WorldChunk
 
     private void CoreFill()
     {
-        for (int z = 0; z < KlotzCountRawZ; z++)
+        for (int z = 0; z < KlotzCountZ; z++)
         {
-            for (int y = 0; y < KlotzCountRawY; y++)
+            for (int y = 0; y < KlotzCountY; y++)
             {
-                for (int x = 0; x < KlotzCountRawX; x++)
+                for (int x = 0; x < KlotzCountX; x++)
                 {
                     bool inCore =
-                         x > KlotzCountRawX / 4 && x < 3 * KlotzCountRawX / 4 &&
-                         y > KlotzCountRawY / 4 && y < 3 * KlotzCountRawY / 4 &&
-                         z > KlotzCountRawZ / 4 && z < 3 * KlotzCountRawZ / 4;
+                         x > KlotzCountX / 4 && x < 3 * KlotzCountX / 4 &&
+                         y > KlotzCountY / 4 && y < 3 * KlotzCountY / 4 &&
+                         z > KlotzCountZ / 4 && z < 3 * KlotzCountZ / 4;
 
-                    if (inCore) _dataRaw[x, y, z] = new SubKlotz(
+                    if (inCore) _klotzData[x, y, z] = new SubKlotz(
                         KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
         }
     }
 
-    public SubKlotz GetRaw(int rawx, int rawy, int rawz) { return _dataRaw[rawx, rawy, rawz]; }
+    public SubKlotz Get(int x, int y, int z) { return _klotzData[x, y, z]; }
 
-    public void SetRaw(int rawx, int rawy, int rawz, SubKlotz t) { _dataRaw[rawx, rawy, rawz] = t; }
-
-    public SubKlotz Get(int x, int y, int z)
-    {
-        if (x < -BorderSize || x >= KlotzCountX + BorderSize ||
-            y < -BorderSize || y >= KlotzCountY + BorderSize ||
-            z < -BorderSize || z >= KlotzCountZ + BorderSize)
-            throw new ArgumentOutOfRangeException();
-
-        return _dataRaw[x + BorderSize, y + BorderSize, z + BorderSize];
-    }
-
-    public void Set(int x, int y, int z, SubKlotz t)
-    {
-        if (x < -BorderSize || x >= KlotzCountX + BorderSize ||
-            y < -BorderSize || y >= KlotzCountY + BorderSize ||
-            z < -BorderSize || z >= KlotzCountZ + BorderSize)
-            throw new ArgumentOutOfRangeException();
-
-        _dataRaw[x + BorderSize, y + BorderSize, z + BorderSize] = t;
-    }
+    public void Set(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
 
     public static WorldChunk CreateEmpty()
     {
         return new WorldChunk();
     }
 
-    public static WorldChunk CreateFloodFilled(int toHeight = KlotzCountY, bool inclNextUpper = true)
+    public static WorldChunk CreateFloodFilled(int toHeight = KlotzCountY)
     {
         WorldChunk chunk = new();
-        chunk.FloodFill(toHeight, inclNextUpper);
+        chunk.FloodFill(toHeight);
         return chunk;
     }
 
@@ -116,13 +93,13 @@ public class WorldChunk
 
     public void Serialize(BinaryWriter w)
     {
-        for (int z = 0; z < KlotzCountRawZ; z++)
+        for (int z = 0; z < KlotzCountZ; z++)
         {
-            for (int y = 0; y < KlotzCountRawY; y++)
+            for (int y = 0; y < KlotzCountY; y++)
             {
-                for (int x = 0; x < KlotzCountRawX; x++)
+                for (int x = 0; x < KlotzCountX; x++)
                 {
-                    _dataRaw[x, y, z].Serialize(w);
+                    _klotzData[x, y, z].Serialize(w);
                 }
             }
         }
@@ -131,13 +108,13 @@ public class WorldChunk
     public static WorldChunk Deserialize(BinaryReader r)
     {
         WorldChunk chunk = new();
-        for (int z = 0; z < KlotzCountRawZ; z++)
+        for (int z = 0; z < KlotzCountZ; z++)
         {
-            for (int y = 0; y < KlotzCountRawY; y++)
+            for (int y = 0; y < KlotzCountY; y++)
             {
-                for (int x = 0; x < KlotzCountRawX; x++)
+                for (int x = 0; x < KlotzCountX; x++)
                 {
-                    chunk._dataRaw[x, y, z] = SubKlotz.Deserialize(r);
+                    chunk._klotzData[x, y, z] = SubKlotz.Deserialize(r);
                 }
             }
         }
