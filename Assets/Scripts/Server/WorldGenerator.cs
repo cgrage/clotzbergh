@@ -6,30 +6,28 @@ public class WorldGenerator
 
     public WorldChunk GetChunk(Vector3Int chunkCoords)
     {
-        // return WorldChunk.CreateCoreFilled(KlotzType.Plate1x1);
-
         var chunk = WorldChunk.CreateEmpty();
 
-        for (int iz = 0; iz < WorldChunk.KlotzCountRawZ; iz++)
+        for (int iz = 0; iz < WorldChunk.KlotzCountZ; iz++)
         {
-            for (int ix = 0; ix < WorldChunk.KlotzCountRawX; ix++)
+            for (int ix = 0; ix < WorldChunk.KlotzCountX; ix++)
             {
-                int x = chunkCoords.x * WorldChunk.KlotzCountX - WorldChunk.BorderSize + ix;
-                int z = chunkCoords.z * WorldChunk.KlotzCountZ - WorldChunk.BorderSize + iz;
+                int x = chunkCoords.x * WorldChunk.KlotzCountX + ix;
+                int z = chunkCoords.z * WorldChunk.KlotzCountZ + iz;
                 float height = _heightMap.At(x, z);
 
-                for (int iy = 0; iy < WorldChunk.KlotzCountRawY; iy++)
+                for (int iy = 0; iy < WorldChunk.KlotzCountY; iy++)
                 {
-                    int y = chunkCoords.y * WorldChunk.KlotzCountY - WorldChunk.BorderSize + iy;
+                    int y = chunkCoords.y * WorldChunk.KlotzCountY + iy;
                     float scaledY = y * SubKlotz.Size.y;
 
                     if (scaledY > height)
                     {
-                        chunk.SetRaw(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.SetRaw(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }
