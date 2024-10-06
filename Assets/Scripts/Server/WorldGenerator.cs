@@ -8,17 +8,17 @@ public class WorldGenerator
     {
         var chunk = WorldChunk.CreateEmpty();
 
-        for (int iz = 0; iz < WorldChunk.KlotzCountZ; iz++)
+        for (int iz = 0; iz < WorldChunk.SubDivsZ; iz++)
         {
-            for (int ix = 0; ix < WorldChunk.KlotzCountX; ix++)
+            for (int ix = 0; ix < WorldChunk.SubDivsX; ix++)
             {
-                int x = chunkCoords.x * WorldChunk.KlotzCountX + ix;
-                int z = chunkCoords.z * WorldChunk.KlotzCountZ + iz;
+                int x = chunkCoords.x * WorldChunk.SubDivsX + ix;
+                int z = chunkCoords.z * WorldChunk.SubDivsZ + iz;
                 float height = _heightMap.At(x, z);
 
-                for (int iy = 0; iy < WorldChunk.KlotzCountY; iy++)
+                for (int iy = 0; iy < WorldChunk.SubDivsY; iy++)
                 {
-                    int y = chunkCoords.y * WorldChunk.KlotzCountY + iy;
+                    int y = chunkCoords.y * WorldChunk.SubDivsY + iy;
                     float scaledY = y * SubKlotz.Size.y;
 
                     if (scaledY > height)
