@@ -44,7 +44,7 @@ public class TerrainGenerationTests
                     TerrainChunk terrainChunk = new(coords, null, null, null);
                     WorldChunk worldChunk = world.GetChunk(coords);
 
-                    terrainChunk.OnWorldChunkReceived(worldChunk, Vector3.zero);
+                    terrainChunk.OnWorldChunkReceived(worldChunk, 0);
                     mesh.GenerateTerrainMesh(terrainChunk, 0);
                 }
             }

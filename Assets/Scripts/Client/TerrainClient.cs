@@ -23,7 +23,8 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
     private readonly List<Thread> _meshThreads = new();
     private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
-    private Vector3 _viewerPos = Vector3.positiveInfinity;
+    private Vector3 _viewerPosition = Vector3.positiveInfinity;
+    private Vector3Int _viewerChunkCoords = Vector3Int.zero;
     private bool _isConnected = false;
 
     /// <summary>
@@ -79,21 +80,26 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 action();
             }
 
-            const float scale = 1f;
-            var newViewerPos = Viewer.position / scale;
+            float diffOfLastPos = Vector3.Distance(Viewer.position, _viewerPosition);
+            Vector3Int newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
 
-            if ((_viewerPos - newViewerPos).sqrMagnitude > MoveThreshold * MoveThreshold)
+            if (newCoords != _viewerChunkCoords /*&& diffOfLastPos > MoveThreshold*/)
             {
-                _viewerPos = newViewerPos;
-                _terrainChunkStore.OnViewerMoved(_viewerPos);
+                _viewerChunkCoords = newCoords;
+                _viewerPosition = Viewer.position;
+                _terrainChunkStore.OnViewerMoved(newCoords);
             }
-        }
-        else
-        {
-            _viewerPos = Vector3.positiveInfinity;
         }
 
         _wasConnected = _isConnected;
+    }
+
+    void OnGUI()
+    {
+        Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
+        GUI.Label(new Rect(0, 0, 500, 500),
+            $"Pos: {Viewer.position}\n" +
+            $"Chk: {viewerChunkCoords}");
     }
 
     /// <summary>
@@ -145,7 +151,8 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
                 ToMainThread(() =>
                 {
-                    request.Owner.OnMeshDataReceived(meshData, request.LodIndex, _viewerPos);
+                    int dist = WorldChunk.ChunkDistance(_viewerChunkCoords, request.Owner.Coords);
+                    request.Owner.OnMeshDataReceived(meshData, request.LodIndex, dist);
                 });
             }
         }
@@ -176,7 +183,11 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         {
             case TerrainProto.Command.CodeValue.ChuckData:
                 var realCmd = (TerrainProto.ChunkDataCommand)cmd;
-                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerPos); });
+                ToMainThread(() =>
+                {
+                    int dist = WorldChunk.ChunkDistance(_viewerChunkCoords, realCmd.Coord);
+                    _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, dist);
+                });
                 break;
         }
     }
