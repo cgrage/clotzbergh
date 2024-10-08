@@ -8,8 +8,6 @@ public class TerrainChunk
     private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
     private readonly IAsyncTerrainOps _asyncOps;
-    private readonly Vector3 _position;
-    private readonly Bounds _bounds;
 
     private readonly MeshRenderer _meshRenderer;
     private readonly MeshFilter _meshFilter;
@@ -20,10 +18,12 @@ public class TerrainChunk
     private WorldChunk _world;
     private int _currentLodIndex = -1;
 
+    public Vector3Int Coords { get; private set; }
+
     public struct LevelOfDetailSetting
     {
-        public int SetLevelOfDetail;
-        public float UsedBelowThisThreshold;
+        public int LevelOfDetail;
+        public int ChunkDistThreshold;
     }
 
     public static readonly LevelOfDetailSetting[] DetailLevels =
@@ -31,10 +31,11 @@ public class TerrainChunk
          //new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 4, },
          //new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 8, },
          //new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 12, },
-         new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 20, },
+         new() { LevelOfDetail = 1, ChunkDistThreshold = 2, },
+         // new() { LevelOfDetail = -1, ChunkDistThreshold = 3, }, // world load distance
     };
 
-    public static float MaxViewDist { get { return DetailLevels.Last().UsedBelowThisThreshold; } }
+    public static int ChunkLoadDistance { get { return DetailLevels.Last().ChunkDistThreshold; } }
 
     public WorldChunk World { get { return _world; } }
     public string Id { get { return _id; } }
@@ -48,21 +49,17 @@ public class TerrainChunk
 
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
+        Coords = coords;
         _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
         _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
         _asyncOps = asyncOps;
-
-        _position.x = coords.x * WorldChunk.Size.x;
-        _position.y = coords.y * WorldChunk.Size.y;
-        _position.z = coords.z * WorldChunk.Size.z;
-        _bounds = new Bounds(_position, WorldChunk.Size);
 
         _gameObject = new GameObject(_id);
         _meshRenderer = _gameObject.AddComponent<MeshRenderer>();
         _meshFilter = _gameObject.AddComponent<MeshFilter>();
         _meshCollider = _gameObject.AddComponent<MeshCollider>();
 
-        _gameObject.transform.position = _position;
+        _gameObject.transform.position = WorldChunk.ChunkCoordsToPosition(coords);
         _gameObject.transform.parent = parent;
         _meshRenderer.material = material;
         IsActive = false;
@@ -75,47 +72,47 @@ public class TerrainChunk
         _asyncOps?.RequestWorldData(coords);
     }
 
-    public void OnWorldChunkReceived(WorldChunk worldChunk, Vector3 viewerPos)
+    public void OnWorldChunkReceived(WorldChunk worldChunk, int viewerChunkDist)
     {
         // store the data
         _world = worldChunk;
 
         // update this. (TODO: what if this is an update?)
-        UpdateLevelOfDetail(viewerPos);
+        UpdateLevelOfDetail(viewerChunkDist);
 
         // update neighbors (TODO: Only if required?)
-        NeighborXM1?.ForceMeshFresh(viewerPos);
-        NeighborXP1?.ForceMeshFresh(viewerPos);
-        NeighborYM1?.ForceMeshFresh(viewerPos);
-        NeighborYP1?.ForceMeshFresh(viewerPos);
-        NeighborZM1?.ForceMeshFresh(viewerPos);
-        NeighborZP1?.ForceMeshFresh(viewerPos);
+        NeighborXM1?.ForceMeshFresh(viewerChunkDist);
+        NeighborXP1?.ForceMeshFresh(viewerChunkDist);
+        NeighborYM1?.ForceMeshFresh(viewerChunkDist);
+        NeighborYP1?.ForceMeshFresh(viewerChunkDist);
+        NeighborZM1?.ForceMeshFresh(viewerChunkDist);
+        NeighborZP1?.ForceMeshFresh(viewerChunkDist);
     }
 
-    public void ForceMeshFresh(Vector3 viewerPos)
+    public void ForceMeshFresh(int viewerChunkDist)
     {
         _currentLodIndex = -1;
         ClearLodData();
-        UpdateLevelOfDetail(viewerPos);
+        UpdateLevelOfDetail(viewerChunkDist);
     }
 
-    public void OnMeshDataReceived(MeshBuilder meshData, int lodIndex, Vector3 viewerPos)
+    public void OnMeshDataReceived(MeshBuilder meshData, int lodIndex, int viewerChunkDist)
     {
         // print("Mesh data received");
 
         var lodData = _lodSpecificData[lodIndex];
         lodData.Mesh = meshData.ToMesh();
 
-        UpdateLevelOfDetail(viewerPos);
+        UpdateLevelOfDetail(viewerChunkDist);
     }
 
     public bool IsWorldChunkReceived { get { return _world != null; } }
 
-    public static int? GetLodIndexFromDistance(float distance)
+    public static int? GetLodIndexFromDistance(int chunkDistance)
     {
         for (int i = 0; i < DetailLevels.Length; i++)
         {
-            if (distance <= DetailLevels[i].UsedBelowThisThreshold)
+            if (chunkDistance <= DetailLevels[i].ChunkDistThreshold)
                 return i;
         }
 
@@ -126,23 +123,21 @@ public class TerrainChunk
     /// <summary>
     /// This method is expected to be run on main thread.
     /// </summary>
-    public void UpdateLevelOfDetail(Vector3 viewerPos)
+    public void UpdateLevelOfDetail(int viewerChunkDist)
     {
         ExpectRunningOnOwnerThread();
 
         if (!IsWorldChunkReceived)
             return;
 
-        float viewerDistFromNearestEdge = Mathf.Sqrt(_bounds.SqrDistance(viewerPos));
-        int? lodIndex = GetLodIndexFromDistance(viewerDistFromNearestEdge);
-
+        int? lodIndex = GetLodIndexFromDistance(viewerChunkDist);
         if (!lodIndex.HasValue)
         {
             IsActive = false;
             return;
         }
 
-        int lodValue = DetailLevels[lodIndex.Value].SetLevelOfDetail;
+        int lodValue = DetailLevels[lodIndex.Value].LevelOfDetail;
         if (lodIndex != _currentLodIndex)
         {
             var lodData = _lodSpecificData[lodIndex.Value];

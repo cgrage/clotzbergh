@@ -11,45 +11,39 @@ public class TerrainChunkStore
     /// <summary>
     /// This method is expected to be run on main thread.
     /// </summary>
-    public void OnViewerMoved(Vector3 viewerPos)
+    public void OnViewerMoved(Vector3Int newCoords)
     {
+        Debug.Log($"Viewer moved to chunk ${newCoords}");
+
         var affectedChunks = AllActiveChunks;
+        int loadDist = TerrainChunk.ChunkLoadDistance;
 
-        int currentChunkCoordX = (int)(viewerPos.x / WorldChunk.Size.x);
-        int currentChunkCoordY = (int)(viewerPos.y / WorldChunk.Size.y);
-        int currentChunkCoordZ = (int)(viewerPos.z / WorldChunk.Size.z);
-
-        int chunksVisibleInViewDistX = Mathf.RoundToInt(TerrainChunk.MaxViewDist / WorldChunk.Size.x);
-        int chunksVisibleInViewDistY = Mathf.RoundToInt(TerrainChunk.MaxViewDist / WorldChunk.Size.y);
-        int chunksVisibleInViewDistZ = Mathf.RoundToInt(TerrainChunk.MaxViewDist / WorldChunk.Size.z);
-
-        for (int zOffset = -chunksVisibleInViewDistZ; zOffset <= chunksVisibleInViewDistY; zOffset++)
+        for (int z = newCoords.z - loadDist; z <= newCoords.z + loadDist; z++)
         {
-            for (int yOffset = -chunksVisibleInViewDistY; yOffset <= chunksVisibleInViewDistY; yOffset++)
+            for (int y = newCoords.y - loadDist; y <= newCoords.y + loadDist; y++)
             {
-                for (int xOffset = -chunksVisibleInViewDistX; xOffset <= chunksVisibleInViewDistX; xOffset++)
+                for (int x = newCoords.x - loadDist; x <= newCoords.x + loadDist; x++)
                 {
-                    Vector3Int viewedChunkCoord = new(
-                        currentChunkCoordX + xOffset,
-                        currentChunkCoordY + yOffset,
-                        currentChunkCoordZ + zOffset);
-
-                    var chunk = GetOrCreate(viewedChunkCoord);
-                    if (!affectedChunks.Contains(chunk))
+                    Vector3Int chunkCoords = new(x, y, z);
+                    if (WorldChunk.ChunkDistance(newCoords, chunkCoords) < loadDist)
+                    {
+                        var chunk = GetOrCreate(chunkCoords);
                         affectedChunks.Add(chunk);
+                    }
                 }
             }
         }
 
         foreach (var chunk in affectedChunks)
         {
-            chunk.UpdateLevelOfDetail(viewerPos);
+            int dist = WorldChunk.ChunkDistance(newCoords, chunk.Coords);
+            chunk.UpdateLevelOfDetail(dist);
         }
     }
 
-    public void OnWorldChunkReceived(Vector3Int coord, WorldChunk chunk, Vector3 viewerPos)
+    public void OnWorldChunkReceived(Vector3Int coord, WorldChunk chunk, int viewerChunkDist)
     {
-        GetOrCreate(coord).OnWorldChunkReceived(chunk, viewerPos);
+        GetOrCreate(coord).OnWorldChunkReceived(chunk, viewerChunkDist);
     }
 
     /// <summary>
@@ -87,11 +81,11 @@ public class TerrainChunkStore
         return thisChunk;
     }
 
-    public List<TerrainChunk> AllActiveChunks
+    public HashSet<TerrainChunk> AllActiveChunks
     {
         get
         {
-            List<TerrainChunk> chunks = new();
+            HashSet<TerrainChunk> chunks = new();
             foreach (var chunk in _dict.Values)
             {
                 if (chunk.IsActive)

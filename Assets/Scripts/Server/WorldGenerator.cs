@@ -33,7 +33,7 @@ public class WorldGenerator
             }
         }
 
-        PlaceBrick4x2(chunk, 10, 10, 10, KlotzDirection.ToPosX);
+        PlaceBrick4x2(chunk, 14, 39, 15, KlotzDirection.ToPosX);
 
         return chunk;
     }

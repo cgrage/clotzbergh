@@ -121,4 +121,30 @@ public class WorldChunk
 
         return chunk;
     }
+
+    public static Vector3Int PositionToChunkCoords(Vector3 position)
+    {
+        return new(
+            Mathf.FloorToInt(position.x / Size.x),
+            Mathf.FloorToInt(position.y / Size.y),
+            Mathf.FloorToInt(position.z / Size.z));
+    }
+
+    public static Vector3 ChunkCoordsToPosition(Vector3Int coords)
+    {
+        return Vector3.Scale(coords, Size);
+    }
+
+    public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
+    {
+        Vector3 chunkPosition = ChunkCoordsToPosition(chunkCoords);
+        Vector3 chunkCenter = chunkPosition + Size / 2;
+        return Vector3.Distance(position, chunkCenter);
+    }
+
+    public static int ChunkDistance(Vector3 position, Vector3Int chunkCoords)
+    {
+        Vector3Int posCoords = PositionToChunkCoords(position);
+        return (int)Vector3Int.Distance(posCoords, chunkCoords);
+    }
 }
