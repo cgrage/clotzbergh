@@ -142,9 +142,8 @@ public class WorldChunk
         return Vector3.Distance(position, chunkCenter);
     }
 
-    public static int ChunkDistance(Vector3 position, Vector3Int chunkCoords)
+    public static int ChunkDistance(Vector3Int a, Vector3Int b)
     {
-        Vector3Int posCoords = PositionToChunkCoords(position);
-        return (int)Vector3Int.Distance(posCoords, chunkCoords);
+        return (int)Vector3Int.Distance(a, b);
     }
 }

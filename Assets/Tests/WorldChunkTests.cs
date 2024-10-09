@@ -67,27 +67,32 @@ public class WorldChunkTests
     [Test]
     public void ChunkDistance()
     {
-        Vector3 pos0 = new(0, 0, 0);
-        Vector3 pos1 = new(X_UNIT_HALF, X_UNIT_HALF, Z_UNIT_HALF);
+        Vector3Int coords = new(0, 0, 0);
 
-        Assert.AreEqual(0, WorldChunk.ChunkDistance(pos0, new Vector3Int(0, 0, 0)));
-        Assert.AreEqual(0, WorldChunk.ChunkDistance(pos1, new Vector3Int(0, 0, 0)));
+        Assert.AreEqual(0, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, 0)));
+        Assert.AreEqual(1, WorldChunk.ChunkDistance(coords, new Vector3Int(1, 0, 0)));
 
-        Assert.AreEqual(1, WorldChunk.ChunkDistance(pos0, new Vector3Int(1, 0, 0)));
-        Assert.AreEqual(1, WorldChunk.ChunkDistance(pos1, new Vector3Int(1, 0, 0)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(100, 0, 0)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 100, 0)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, 100)));
 
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(100, 0, 0)));
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(0, 100, 0)));
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(0, 0, 100)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(-100, 0, 0)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(0, -100, 0)));
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, -100)));
 
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(-100, 0, 0)));
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(0, -100, 0)));
-        Assert.AreEqual(100, WorldChunk.ChunkDistance(pos0, new Vector3Int(0, 0, -100)));
+        coords = new(100, 0, 0);
+
+        Assert.AreEqual(100, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, 0)));
+
+        Assert.AreEqual(99, WorldChunk.ChunkDistance(coords, new Vector3Int(1, 0, 0)));
+
+        Assert.AreEqual(0, WorldChunk.ChunkDistance(coords, new Vector3Int(100, 0, 0)));
+        Assert.AreEqual(141, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 100, 0)));
+        Assert.AreEqual(141, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, 100)));
+
+        Assert.AreEqual(200, WorldChunk.ChunkDistance(coords, new Vector3Int(-100, 0, 0)));
+        Assert.AreEqual(141, WorldChunk.ChunkDistance(coords, new Vector3Int(0, -100, 0)));
+        Assert.AreEqual(141, WorldChunk.ChunkDistance(coords, new Vector3Int(0, 0, -100)));
     }
 
 }
-
-
-
-//public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
-//public static int ChunkDistance(Vector3 position, Vector3Int chunkCoords)
