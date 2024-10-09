@@ -15,6 +15,7 @@ public class TerrainChunk
 
     private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[DetailLevels.Length];
 
+    private bool _isCleanedUp = false;
     private WorldChunk _world;
     private int _currentLodIndex = -1;
 
@@ -23,19 +24,22 @@ public class TerrainChunk
     public struct LevelOfDetailSetting
     {
         public int LevelOfDetail;
-        public int ChunkDistThreshold;
+        public int MaxThreshold;
     }
 
+    /// <summary>
+    /// Numbers are inclusive.
+    /// </summary>
     public static readonly LevelOfDetailSetting[] DetailLevels =
     {
          //new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 4, },
          //new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 8, },
          //new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 12, },
-         new() { LevelOfDetail = 1, ChunkDistThreshold = 2, },
-         // new() { LevelOfDetail = -1, ChunkDistThreshold = 3, }, // world load distance
+         new() { LevelOfDetail = 1, MaxThreshold = 2, },
+         new() { LevelOfDetail = -1, MaxThreshold = 3, }, // world load distance
     };
 
-    public static int ChunkLoadDistance { get { return DetailLevels.Last().ChunkDistThreshold; } }
+    public static int ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
 
     public WorldChunk World { get { return _world; } }
     public string Id { get { return _id; } }
@@ -72,8 +76,19 @@ public class TerrainChunk
         _asyncOps?.RequestWorldData(coords);
     }
 
+    public void CleanUp()
+    {
+        ExpectRunningOnOwnerThread();
+
+        GameObject.Destroy(_gameObject);
+        _isCleanedUp = true;
+    }
+
     public void OnWorldChunkReceived(WorldChunk worldChunk, int viewerChunkDist)
     {
+        if (_isCleanedUp)
+            return;
+
         // store the data
         _world = worldChunk;
 
@@ -98,7 +113,8 @@ public class TerrainChunk
 
     public void OnMeshDataReceived(MeshBuilder meshData, int lodIndex, int viewerChunkDist)
     {
-        // print("Mesh data received");
+        if (_isCleanedUp)
+            return;
 
         var lodData = _lodSpecificData[lodIndex];
         lodData.Mesh = meshData.ToMesh();
@@ -112,7 +128,7 @@ public class TerrainChunk
     {
         for (int i = 0; i < DetailLevels.Length; i++)
         {
-            if (chunkDistance <= DetailLevels[i].ChunkDistThreshold)
+            if (chunkDistance <= DetailLevels[i].MaxThreshold)
                 return i;
         }
 
@@ -127,17 +143,25 @@ public class TerrainChunk
     {
         ExpectRunningOnOwnerThread();
 
-        if (!IsWorldChunkReceived)
+        if (!IsWorldChunkReceived || _isCleanedUp)
             return;
 
         int? lodIndex = GetLodIndexFromDistance(viewerChunkDist);
         if (!lodIndex.HasValue)
         {
+            // we should not be loaded..
             IsActive = false;
             return;
         }
 
         int lodValue = DetailLevels[lodIndex.Value].LevelOfDetail;
+        if (lodValue == -1)
+        {
+            // loaded, but not shown
+            IsActive = false;
+            return;
+        }
+
         if (lodIndex != _currentLodIndex)
         {
             var lodData = _lodSpecificData[lodIndex.Value];

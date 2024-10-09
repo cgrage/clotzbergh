@@ -183,11 +183,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         {
             case TerrainProto.Command.CodeValue.ChuckData:
                 var realCmd = (TerrainProto.ChunkDataCommand)cmd;
-                ToMainThread(() =>
-                {
-                    int dist = WorldChunk.ChunkDistance(_viewerChunkCoords, realCmd.Coord);
-                    _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, dist);
-                });
+                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerChunkCoords); });
                 break;
         }
     }
