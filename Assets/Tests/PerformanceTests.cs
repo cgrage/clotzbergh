@@ -7,16 +7,24 @@ using System;
 public class PerformanceTests
 {
     [Test]
-    public void PerformanceTestRadius0()
-    {
-        PerformanceTest(0, 0, 0);
-    }
+    public void PerformanceTestRadius0() { PerformanceTest(0); }
 
     [Test]
-    public void PerformanceTestRadius1()
-    {
-        PerformanceTest(1, 1, 1);
-    }
+    public void PerformanceTestRadius1() { PerformanceTest(1); }
+
+    [Test]
+    public void PerformanceTestRadius2() { PerformanceTest(2); }
+
+    [Test]
+    public void PerformanceTestRadius3() { PerformanceTest(3); }
+
+    [Test]
+    public void PerformanceTestRadius4() { PerformanceTest(4); }
+
+    [Test]
+    public void PerformanceTestRadius5() { PerformanceTest(5); }
+
+    public void PerformanceTest(int radius) { PerformanceTest(radius, radius, radius); }
 
     public void PerformanceTest(int radiusX, int radiusY, int radiusZ)
     {
@@ -28,11 +36,11 @@ public class PerformanceTests
 
             worlds = TimeAndLog("DeserializeWorld", () => DeserializeWorld(data));
 
-            TerrainChunk[,,] terrains = TimeAndLog("CreateTerrainChunks", () => CreateTerrainChunks(radiusX, radiusY, radiusZ));
+            TerrainChunk[,,] terrains = TimeAndLog("CreateTerrainChunks", () => CreateTerrainChunks(worlds));
 
-            TimeAndLog("InjectWorldIntoTerrain", () => { InjectWorldIntoTerrain(terrains, worlds); return true; });
+            MeshBuilder[,,] meshes = TimeAndLog("GenerateMeshes", () => GenerateMeshes(terrains));
 
-            TimeAndLog("GenerateAndSetMeshes", () => { GenerateAndSetMeshes(terrains); return true; });
+            TimeAndLog("SetMeshes", () => SetMeshes(terrains, meshes));
         }
         catch (Exception ex)
         {
@@ -59,13 +67,16 @@ public class PerformanceTests
             2 * radiusY + 1,
             2 * radiusZ + 1];
 
-        for (int z = -radiusZ; z <= radiusZ; z++)
+        for (int zCoord = -radiusZ; zCoord <= radiusZ; zCoord++)
         {
-            for (int y = -radiusY; y <= radiusY; y++)
+            for (int yCoord = -radiusY; yCoord <= radiusY; yCoord++)
             {
-                for (int x = radiusX; x <= radiusX; x++)
+                for (int xCoord = -radiusX; xCoord <= radiusX; xCoord++)
                 {
-                    worlds[x, y, z] = generator.GetChunk(new(x, y, z));
+                    int x = xCoord + radiusX;
+                    int y = yCoord + radiusY;
+                    int z = zCoord + radiusZ;
+                    worlds[x, y, z] = generator.GetChunk(new(xCoord, yCoord, zCoord));
                 }
             }
         }
@@ -121,44 +132,31 @@ public class PerformanceTests
         return worlds;
     }
 
-    private TerrainChunk[,,] CreateTerrainChunks(int radiusX, int radiusY, int radiusZ)
+    private TerrainChunk[,,] CreateTerrainChunks(WorldChunk[,,] worlds)
     {
-        TerrainChunk[,,] terrain = new TerrainChunk[
-            2 * radiusX + 1,
-            2 * radiusY + 1,
-            2 * radiusZ + 1];
+        TerrainChunk[,,] terrains = new TerrainChunk[
+           worlds.GetLength(0), worlds.GetLength(1), worlds.GetLength(2)];
 
-        for (int x = 0; x < terrain.GetLength(0); x++)
-        {
-            for (int y = 0; y < terrain.GetLength(1); y++)
-            {
-                for (int z = 0; z < terrain.GetLength(2); z++)
-                {
-                    terrain[x, y, z] = new(new(x, y, z), null, null, null);
-                }
-            }
-        }
-
-        return terrain;
-    }
-
-    private void InjectWorldIntoTerrain(TerrainChunk[,,] terrains, WorldChunk[,,] worlds)
-    {
         for (int x = 0; x < worlds.GetLength(0); x++)
         {
             for (int y = 0; y < worlds.GetLength(1); y++)
             {
                 for (int z = 0; z < worlds.GetLength(2); z++)
                 {
+                    terrains[x, y, z] = new(new(x, y, z), null, null, null);
                     terrains[x, y, z].OnWorldChunkReceived(worlds[x, y, z], 0);
                 }
             }
         }
+
+        return terrains;
     }
 
-    private void GenerateAndSetMeshes(TerrainChunk[,,] terrains)
+    private MeshBuilder[,,] GenerateMeshes(TerrainChunk[,,] terrains)
     {
         MeshGenerator meshGen = new();
+        MeshBuilder[,,] meshes = new MeshBuilder[
+            terrains.GetLength(0), terrains.GetLength(1), terrains.GetLength(2)];
 
         for (int x = 0; x < terrains.GetLength(0); x++)
         {
@@ -166,10 +164,27 @@ public class PerformanceTests
             {
                 for (int z = 0; z < terrains.GetLength(2); z++)
                 {
-                    MeshBuilder b = meshGen.GenerateTerrainMesh(terrains[x, y, z], 0);
-                    terrains[x, y, z].OnMeshDataReceived(b, 0, 0);
+                    meshes[x, y, z] = meshGen.GenerateTerrainMesh(terrains[x, y, z], 0);
                 }
             }
         }
+
+        return meshes;
+    }
+
+    private TerrainChunk[,,] SetMeshes(TerrainChunk[,,] terrains, MeshBuilder[,,] meshes)
+    {
+        for (int x = 0; x < terrains.GetLength(0); x++)
+        {
+            for (int y = 0; y < terrains.GetLength(1); y++)
+            {
+                for (int z = 0; z < terrains.GetLength(2); z++)
+                {
+                    terrains[x, y, z].OnMeshDataReceived(meshes[x, y, z], 0, 0);
+                }
+            }
+        }
+
+        return terrains;
     }
 }
