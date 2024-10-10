@@ -241,55 +241,55 @@ public class CellWallBuilder : MeshBuilder
     /// <summary>
     /// A.K.A. the left face
     /// </summary>
-    public void AddFaceXM1()
+    public void AddFaceXM1(bool reverse = false)
     {
         AddFace(new(_x1, _y1, _z1), new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x1, _y1, _z2),
-            new(-1, 0, 0), false);
+            new(-1, 0, 0), reverse);
     }
 
     /// <summary>
     /// A.K.A. the right face
     /// </summary>
-    public void AddFaceXP1()
+    public void AddFaceXP1(bool reverse = false)
     {
         AddFace(new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
-            new(1, 0, 0), true);
+            new(1, 0, 0), !reverse);
     }
 
     /// <summary>
     /// A.K.A. the bottom face
     /// </summary>
-    public void AddFaceYM1()
+    public void AddFaceYM1(bool reverse = false)
     {
         AddFace(new(_x1, _y1, _z1), new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y1, _z1),
-            new(0, -1, 0), false);
+            new(0, -1, 0), reverse);
     }
 
     /// <summary>
     /// A.K.A. the top face
     /// </summary>
-    public void AddFaceYP1()
+    public void AddFaceYP1(bool reverse = false)
     {
         AddFace(new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
-            new(0, 1, 0), true);
+            new(0, 1, 0), !reverse);
     }
 
     /// <summary>
     /// A.K.A. the back face
     /// </summary>
-    public void AddFaceZM1()
+    public void AddFaceZM1(bool reverse = false)
     {
         AddFace(new(_x1, _y1, _z1), new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x1, _y2, _z1),
-            new(0, 0, -1), false);
+            new(0, 0, -1), reverse);
     }
 
     /// <summary>
     /// A.K.A. the front face
     /// </summary>
-    public void AddFaceZP1()
+    public void AddFaceZP1(bool reverse = false)
     {
         AddFace(new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
-            new(0, 0, 1), true);
+            new(0, 0, 1), !reverse);
     }
 
     /// <summary>
@@ -300,11 +300,20 @@ public class CellWallBuilder : MeshBuilder
         Color32 color = AdjustColorBrightness(_color, 0.2f);
         int v0 = Vertices.Count;
 
-        Vertices.AddRange(new Vector3[] { corner1, corner2, corner3, corner4 });
-        Colors.AddRange(new Color32[] { color, color, color, color });
-        Normals.AddRange(new Vector3[] { normal, normal, normal, normal });
-        if (clockwise) Triangles.AddRange(new int[] { v0 + 0, v0 + 1, v0 + 2, v0 + 0, v0 + 2, v0 + 3 });
-        else Triangles.AddRange(new int[] { v0 + 0, v0 + 2, v0 + 1, v0 + 0, v0 + 3, v0 + 2 });
+        Vertices.Add(corner1); Vertices.Add(corner2); Vertices.Add(corner3); Vertices.Add(corner4);
+        Colors.Add(color); Colors.Add(color); Colors.Add(color); Colors.Add(color);
+        Normals.Add(normal); Normals.Add(normal); Normals.Add(normal); Normals.Add(normal);
+
+        if (clockwise)
+        {
+            Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
+            Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);
+        }
+        else
+        {
+            Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 1);
+            Triangles.Add(v0 + 0); Triangles.Add(v0 + 3); Triangles.Add(v0 + 2);
+        }
     }
 
     public Color32 AdjustColorBrightness(Color32 color, float adjustmentRange = 0.1f)
