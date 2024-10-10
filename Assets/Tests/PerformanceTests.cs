@@ -24,6 +24,9 @@ public class PerformanceTests
     [Test]
     public void PerformanceTestRadius5() { PerformanceTest(5); }
 
+    [Test]
+    public void PerformanceTestRadius6() { PerformanceTest(6); }
+
     public void PerformanceTest(int radius) { PerformanceTest(radius, radius, radius); }
 
     public void PerformanceTest(int radiusX, int radiusY, int radiusZ)

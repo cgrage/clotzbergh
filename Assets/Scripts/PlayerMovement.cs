@@ -31,7 +31,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        if (Time.time < 1)
+        if (Time.time < 5)
             return;
 
         Vector3 forward = transform.TransformDirection(Vector3.forward);

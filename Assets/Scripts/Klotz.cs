@@ -62,13 +62,13 @@ public static class KlotzKB
 /// - Scale: 1:45 ==> 40mm -> 1.8m
 /// 
 /// [Data]
-/// KlotzType              -> 10 bit
-/// Orientation (N/E/S/W)  ->  2 bit
-/// SubKlotzIndexX (0..15) ->  4 bit
-/// SubKlotzIndexY (0..15) ->  4 bit
-/// SubKlotzIndexZ (0..15) ->  4 bit
+/// KlotzType             ->  5 bit
+/// Orientation (N/E/S/W) ->  2 bit
+/// SubKlotzIndexX (0..7) ->  3 bit
+/// SubKlotzIndexY (0..7) ->  3 bit
+/// SubKlotzIndexZ (0..7) ->  3 bit
 /// --------------------------------
-/// Sum                       24 bit
+/// Sum                       16 bit
 /// 
 /// </summary>
 public struct SubKlotz
@@ -89,35 +89,35 @@ public struct SubKlotz
 
     public readonly KlotzType Type
     {
-        // bits: xxxxxxxxxx00000000000000
-        get { return (KlotzType)(raw24bit >> 14); }
+        // bits: xxxxx00000000000
+        get { return (KlotzType)(raw16bit >> 11); }
     }
 
     public readonly KlotzDirection Direction
     {
-        // bits: 0000000000xx000000000000
-        get { return (KlotzDirection)((raw24bit >> 12) & 0x3); }
+        // bits: 00000xx000000000
+        get { return (KlotzDirection)((raw16bit >> 9) & 0x3); }
     }
 
     public readonly int SubKlotzIndexX
     {
-        // bits: 000000000000xxxx00000000
-        get { return (int)((raw24bit >> 8) & 0xf); }
+        // bits: 0000000xxx000000
+        get { return (raw16bit >> 6) & 0x7; }
     }
 
     public readonly int SubKlotzIndexY
     {
-        // bits: 0000000000000000xxxx0000
-        get { return (int)((raw24bit >> 4) & 0xf); }
+        // bits: 0000000000xxx000
+        get { return (raw16bit >> 3) & 0x7; }
     }
 
     public readonly int SubKlotzIndexZ
     {
-        // bits: 00000000000000000000xxxx
-        get { return (int)((raw24bit >> 0) & 0xf); }
+        // bits: 0000000000000xxx
+        get { return (raw16bit >> 0) & 0x7; }
     }
 
-    private readonly uint raw24bit;
+    private readonly ushort raw16bit;
 
     public readonly bool IsClear
     {
@@ -126,33 +126,31 @@ public struct SubKlotz
 
     public readonly bool IsRootSubKlotz
     {
-        get { return (raw24bit & 0xfff) == 0; }
+        get { return (raw16bit & 0x1ff) == 0; }
     }
 
     public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
-        raw24bit =
-            ((uint)type & 0x3ff) << 14 |
-            ((uint)dir & 0x3) << 12 |
-            ((uint)subIdxX & 0xf) << 8 |
-            ((uint)subIdxY & 0xf) << 4 |
-            ((uint)subIdxZ & 0xf) << 0;
+        raw16bit = (ushort)(
+            ((int)type & 0x1f) << 11 |
+            ((int)dir & 0x3) << 9 |
+            (subIdxX & 0x7) << 6 |
+            (subIdxY & 0x7) << 3 |
+            (subIdxZ & 0x7) << 0);
     }
 
-    public SubKlotz(byte b0, byte b1, byte b2)
+    public SubKlotz(ushort u16)
     {
-        raw24bit = (uint)b0 << 16 | (uint)b1 << 8 | b2;
+        raw16bit = u16;
     }
 
     public static SubKlotz Deserialize(BinaryReader r)
     {
-        return new SubKlotz(r.ReadByte(), r.ReadByte(), r.ReadByte());
+        return new SubKlotz(r.ReadUInt16());
     }
 
     public readonly void Serialize(BinaryWriter w)
     {
-        w.Write((byte)(raw24bit >> 16));
-        w.Write((byte)(raw24bit >> 8));
-        w.Write((byte)(raw24bit >> 0));
+        w.Write(raw16bit);
     }
 }
