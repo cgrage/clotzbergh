@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class TerrainChunk
 {
+    public const int MaxLodValue = 4;
+
     private readonly string _id;
     private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
@@ -13,11 +15,16 @@ public class TerrainChunk
     private readonly MeshFilter _meshFilter;
     private readonly MeshCollider _meshCollider;
 
-    private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[DetailLevels.Length];
+    private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[MaxLodValue + 1];
 
     private bool _isCleanedUp = false;
-    private WorldChunk _world;
-    private int _currentLodIndex = -1;
+    private WorldChunk _currentWorld;
+    /// <summary>
+    /// The _currentWorldVersion is a purely local counter. 
+    /// It even goes up when the neighbors world version changed.
+    /// </summary>
+    private ulong _currentWorldVersion = 0;
+    private int _currentLevelOfDetail = -1;
 
     public Vector3Int Coords { get; private set; }
 
@@ -32,16 +39,15 @@ public class TerrainChunk
     /// </summary>
     public static readonly LevelOfDetailSetting[] DetailLevels =
     {
-         //new() { SetLevelOfDetail = 0, UsedBelowThisThreshold = 4, },
-         //new() { SetLevelOfDetail = 1, UsedBelowThisThreshold = 8, },
-         //new() { SetLevelOfDetail = 2, UsedBelowThisThreshold = 12, },
-         new() { LevelOfDetail = 1, MaxThreshold = 2, },
+         new() { LevelOfDetail = 0, MaxThreshold = 1, }, // 4
+         new() { LevelOfDetail = 1, MaxThreshold = 2, }, // 8
+         // new() { LevelOfDetail = 2, MaxThreshold = 3, }, // 12
          new() { LevelOfDetail = -1, MaxThreshold = 3, }, // world load distance
     };
 
     public static int ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
 
-    public WorldChunk World { get { return _world; } }
+    public WorldChunk World { get { return _currentWorld; } }
     public string Id { get { return _id; } }
 
     public TerrainChunk NeighborXM1 { get; set; }
@@ -68,7 +74,7 @@ public class TerrainChunk
         _meshRenderer.material = material;
         IsActive = false;
 
-        for (int i = 0; i < DetailLevels.Length; i++)
+        for (int i = 0; i < _lodSpecificData.Length; i++)
         {
             _lodSpecificData[i] = new LevelOfDetailSpecificData();
         }
@@ -84,56 +90,70 @@ public class TerrainChunk
         _isCleanedUp = true;
     }
 
-    public void OnWorldChunkReceived(WorldChunk worldChunk, int viewerChunkDist)
+    public void OnWorldUpdate(WorldChunk world)
     {
         if (_isCleanedUp)
             return;
 
         // store the data
-        _world = worldChunk;
-
-        // update this. (TODO: what if this is an update?)
-        UpdateLevelOfDetail(viewerChunkDist);
+        _currentWorld = world;
+        IncWorldVersion();
 
         // update neighbors (TODO: Only if required?)
-        NeighborXM1?.ForceMeshFresh(viewerChunkDist);
-        NeighborXP1?.ForceMeshFresh(viewerChunkDist);
-        NeighborYM1?.ForceMeshFresh(viewerChunkDist);
-        NeighborYP1?.ForceMeshFresh(viewerChunkDist);
-        NeighborZM1?.ForceMeshFresh(viewerChunkDist);
-        NeighborZP1?.ForceMeshFresh(viewerChunkDist);
+        NeighborXM1?.IncWorldVersion();
+        NeighborXP1?.IncWorldVersion();
+        NeighborYM1?.IncWorldVersion();
+        NeighborYP1?.IncWorldVersion();
+        NeighborZM1?.IncWorldVersion();
+        NeighborZP1?.IncWorldVersion();
     }
 
-    public void ForceMeshFresh(int viewerChunkDist)
-    {
-        _currentLodIndex = -1;
-        ClearLodData();
-        UpdateLevelOfDetail(viewerChunkDist);
-    }
-
-    public void OnMeshDataReceived(MeshBuilder meshData, int lodIndex, int viewerChunkDist)
+    public void OnMeshUpdate(MeshBuilder meshData, int levelOfDetail, ulong worldVersion)
     {
         if (_isCleanedUp)
             return;
 
-        var lodData = _lodSpecificData[lodIndex];
-        lodData.Mesh = meshData.ToMesh();
+        var lodData = _lodSpecificData[levelOfDetail];
 
-        UpdateLevelOfDetail(viewerChunkDist);
+        // is update really an update?
+        if (worldVersion < lodData.worldVersion)
+            return;
+
+        lodData.mesh = meshData.ToMesh();
+        lodData.worldVersion = worldVersion;
+
+        SetCurrentMeshIfAvailable();
     }
 
-    public bool IsWorldChunkReceived { get { return _world != null; } }
-
-    public static int? GetLodIndexFromDistance(int chunkDistance)
+    public static int? GetLodFromDistance(int chunkDistance)
     {
-        for (int i = 0; i < DetailLevels.Length; i++)
+        foreach (var entry in DetailLevels)
         {
-            if (chunkDistance <= DetailLevels[i].MaxThreshold)
-                return i;
+            if (chunkDistance <= entry.MaxThreshold)
+                return entry.LevelOfDetail;
         }
 
         // nothing found..
         return null;
+    }
+
+    public void RequestMeshUpdates()
+    {
+        if (_currentLevelOfDetail == -1 || _currentWorld == null)
+            return;
+
+        var lodData = _lodSpecificData[_currentLevelOfDetail];
+
+        // are we up to date?
+        if (lodData.worldVersion == _currentWorldVersion)
+            return;
+
+        // we are not up to date. have we at least requested the data?
+        if (lodData.requestedWorldVersion < _currentWorldVersion)
+        {
+            _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _currentWorldVersion);
+            lodData.requestedWorldVersion = _currentWorldVersion;
+        }
     }
 
     /// <summary>
@@ -143,51 +163,38 @@ public class TerrainChunk
     {
         ExpectRunningOnOwnerThread();
 
-        if (!IsWorldChunkReceived || _isCleanedUp)
+        if (_isCleanedUp)
             return;
 
-        int? lodIndex = GetLodIndexFromDistance(viewerChunkDist);
-        if (!lodIndex.HasValue)
+        // find new level of detail for this distance
+        int? levelOfDetail = GetLodFromDistance(viewerChunkDist);
+        if (!levelOfDetail.HasValue || levelOfDetail.Value == -1)
         {
-            // we should not be loaded..
+            _currentLevelOfDetail = -1;
             IsActive = false;
             return;
         }
 
-        int lodValue = DetailLevels[lodIndex.Value].LevelOfDetail;
-        if (lodValue == -1)
-        {
-            // loaded, but not shown
-            IsActive = false;
-            return;
-        }
-
-        if (lodIndex != _currentLodIndex)
-        {
-            var lodData = _lodSpecificData[lodIndex.Value];
-            if (lodData.HasMesh)
-            {
-                // print(string.Format("SetMesh {0}", this.position));
-                _meshFilter.mesh = lodData.Mesh;
-                _meshCollider.sharedMesh = lodData.Mesh;
-                _currentLodIndex = lodIndex.Value;
-            }
-            else if (!lodData.IsMeshRequested)
-            {
-                _asyncOps?.RequestMeshCalc(this, _world, lodValue, lodIndex.Value);
-                lodData.IsMeshRequested = true;
-            }
-        }
-
+        _currentLevelOfDetail = levelOfDetail.Value;
+        SetCurrentMeshIfAvailable();
         IsActive = true;
     }
 
-    void ClearLodData()
+    private void SetCurrentMeshIfAvailable()
     {
-        foreach (var data in _lodSpecificData)
-        {
-            data.Reset();
-        }
+        if (_currentLevelOfDetail == -1)
+            return;
+
+        var lodData = _lodSpecificData[_currentLevelOfDetail];
+
+        // we simply show the newest mesh we have, even if is it a bit outdated.
+        _meshFilter.mesh = lodData.mesh;
+        _meshCollider.sharedMesh = lodData.mesh;
+    }
+
+    private void IncWorldVersion()
+    {
+        _currentWorldVersion++;
     }
 
     public bool IsActive
@@ -206,20 +213,8 @@ public class TerrainChunk
 
     class LevelOfDetailSpecificData
     {
-        public LevelOfDetailSpecificData()
-        {
-            Reset();
-        }
-
-        public void Reset()
-        {
-            Mesh = null;
-            IsMeshRequested = false;
-        }
-
-        public Mesh Mesh { get; set; }
-        public bool IsMeshRequested { get; set; }
-
-        public bool HasMesh { get { return Mesh != null; } }
+        public Mesh mesh = null;
+        public ulong worldVersion = 0;
+        public ulong requestedWorldVersion = 0;
     }
 }

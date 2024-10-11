@@ -6,17 +6,29 @@ public class TerrainChunkStore
     public Transform ParentObject { get; set; }
     public IAsyncTerrainOps AsyncTerrainOps { get; set; }
     public Material KlotzMat { get; set; }
+
     private readonly Dictionary<Vector3Int, TerrainChunk> _dict = new();
+    private readonly HashSet<TerrainChunk> _activeChunks = new();
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public void OnUpdate()
+    {
+        foreach (var chunk in _activeChunks)
+        {
+            chunk.RequestMeshUpdates();
+        }
+    }
 
     /// <summary>
     /// This method is expected to be run on main thread.
     /// </summary>
     public void OnViewerMoved(Vector3Int newCoords)
     {
-        var affectedChunks = AllActiveChunks;
         int loadDist = TerrainChunk.ChunkLoadDistance;
 
-        Debug.Log($"Viewer moved to chunk ${newCoords}, load dist: {loadDist}");
+        HashSet<TerrainChunk> killList = new(_activeChunks);
 
         for (int z = newCoords.z - loadDist; z <= newCoords.z + loadDist; z++)
         {
@@ -25,35 +37,34 @@ public class TerrainChunkStore
                 for (int x = newCoords.x - loadDist; x <= newCoords.x + loadDist; x++)
                 {
                     Vector3Int chunkCoords = new(x, y, z);
-                    if (WorldChunk.ChunkDistance(newCoords, chunkCoords) <= loadDist)
+                    int dist = WorldChunk.ChunkDistance(newCoords, chunkCoords);
+
+                    if (dist <= loadDist)
                     {
                         var chunk = GetOrCreate(chunkCoords);
-                        affectedChunks.Add(chunk);
+                        chunk.UpdateLevelOfDetail(dist);
+
+                        if (chunk.IsActive) { _activeChunks.Add(chunk); }
+                        else { _activeChunks.Remove(chunk); }
+
+                        killList.Remove(chunk);
                     }
                 }
             }
         }
 
-        foreach (var chunk in affectedChunks)
+        foreach (var chunk in killList)
         {
-            int dist = WorldChunk.ChunkDistance(newCoords, chunk.Coords);
-            int unloadDistance = TerrainChunk.ChunkLoadDistance; // unload if [x] or more away
+            _dict.Remove(chunk.Coords);
+            _activeChunks.Remove(chunk);
 
-            if (dist < unloadDistance)
-            {
-                chunk.UpdateLevelOfDetail(dist);
-            }
-            else
-            {
-                RemoveAndDestroy(chunk.Coords);
-            }
+            chunk.CleanUp();
         }
     }
 
-    public void OnWorldChunkReceived(Vector3Int coords, WorldChunk chunk, Vector3Int viewerChunkCoords)
+    public void OnWorldChunkReceived(Vector3Int coords, WorldChunk chunk)
     {
-        int dist = WorldChunk.ChunkDistance(viewerChunkCoords, coords);
-        GetOrCreate(coords).OnWorldChunkReceived(chunk, dist);
+        GetOrCreate(coords).OnWorldUpdate(chunk);
     }
 
     /// <summary>
@@ -91,29 +102,5 @@ public class TerrainChunkStore
         if (neighborZP1 != null) { thisChunk.NeighborZP1 = neighborZP1; neighborZP1.NeighborZM1 = thisChunk; }
 
         return thisChunk;
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    private void RemoveAndDestroy(Vector3Int coords)
-    {
-        _dict.Remove(coords, out TerrainChunk thisChunk);
-        thisChunk.CleanUp();
-    }
-
-    public HashSet<TerrainChunk> AllActiveChunks
-    {
-        get
-        {
-            HashSet<TerrainChunk> chunks = new();
-            foreach (var chunk in _dict.Values)
-            {
-                if (chunk.IsActive)
-                    chunks.Add(chunk);
-            }
-
-            return chunks;
-        }
     }
 }

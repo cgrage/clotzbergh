@@ -129,6 +129,14 @@ public struct SubKlotz
         get { return (raw16bit & 0x1ff) == 0; }
     }
 
+    /// <summary>
+    /// Calculates the position of the RootSubKlotz based on the position of this SubKlotz.
+    /// </summary>
+    public readonly Vector3Int RootPos(int x, int y, int z)
+    {
+        return new(x - SubKlotzIndexX, y - SubKlotzIndexY, z - SubKlotzIndexZ);
+    }
+
     public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
         raw16bit = (ushort)(

@@ -147,7 +147,7 @@ public class PerformanceTests
                 for (int z = 0; z < worlds.GetLength(2); z++)
                 {
                     terrains[x, y, z] = new(new(x, y, z), null, null, null);
-                    terrains[x, y, z].OnWorldChunkReceived(worlds[x, y, z], 0);
+                    terrains[x, y, z].OnWorldUpdate(worlds[x, y, z]);
                 }
             }
         }
@@ -183,7 +183,7 @@ public class PerformanceTests
             {
                 for (int z = 0; z < terrains.GetLength(2); z++)
                 {
-                    terrains[x, y, z].OnMeshDataReceived(meshes[x, y, z], 0, 0);
+                    terrains[x, y, z].OnMeshUpdate(meshes[x, y, z], 0, 0);
                 }
             }
         }

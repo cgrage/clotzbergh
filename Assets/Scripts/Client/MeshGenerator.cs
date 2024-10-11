@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,32 +23,49 @@ public class MeshGenerator
     /// </summary>
     public MeshBuilder GenerateTerrainMesh(TerrainChunk terrainChunk, int lod)
     {
+        if (lod < 0 || lod > 4)
+            throw new ArgumentOutOfRangeException("lod", "lod must be 0 to 4");
+
         WorldChunk worldChunk = terrainChunk.World;
         if (worldChunk == null)
             return null;
 
-        CellWallBuilder builder = new(WorldChunk.Size, WorldChunk.SubDivs);
+        int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
         WorldStitcher stitcher = new(terrainChunk);
+        CellWallBuilder builder = new(WorldChunk.Size, WorldChunk.SubDivs / lodSkip);
 
         builder.SetColor(ColorFromHash(terrainChunk.Id.GetHashCode()));
 
-        for (int z = 0; z < WorldChunk.SubDivsZ; z++)
+        for (int z = 0, zi = 0; z < WorldChunk.SubDivsZ; z += lodSkip, zi++)
         {
-            for (int y = 0; y < WorldChunk.SubDivsY; y++)
+            for (int y = 0, yi = 0; y < WorldChunk.SubDivsY; y += lodSkip, yi++)
             {
-                for (int x = 0; x < WorldChunk.SubDivsX; x++)
+                for (int x = 0, xi = 0; x < WorldChunk.SubDivsX; x += lodSkip, xi++)
                 {
-                    bool clear = worldChunk.Get(x, y, z).IsClear;
+                    SubKlotz k = worldChunk.Get(x, y, z);
+                    bool clear = k.IsClear;
                     if (clear)
                         continue; // later this will be more complex, I guess.
 
-                    builder.MoveTo(x, y, z);
-                    if (stitcher.IsKnownClearAt(x - 1, y, z)) builder.AddFaceXM1();
-                    if (stitcher.IsKnownClearAt(x + 1, y, z)) builder.AddFaceXP1();
-                    if (stitcher.IsKnownClearAt(x, y - 1, z)) builder.AddFaceYM1();
-                    if (stitcher.IsKnownClearAt(x, y + 1, z)) builder.AddFaceYP1();
-                    if (stitcher.IsKnownClearAt(x, y, z - 1)) builder.AddFaceZM1();
-                    if (stitcher.IsKnownClearAt(x, y, z + 1)) builder.AddFaceZP1();
+                    bool clearXM1 = stitcher.IsKnownClearAt(x - lodSkip, y, z);
+                    bool clearXP1 = stitcher.IsKnownClearAt(x + lodSkip, y, z);
+                    bool clearYM1 = stitcher.IsKnownClearAt(x, y - lodSkip, z);
+                    bool clearYP1 = stitcher.IsKnownClearAt(x, y + lodSkip, z);
+                    bool clearZM1 = stitcher.IsKnownClearAt(x, y, z - lodSkip);
+                    bool clearZP1 = stitcher.IsKnownClearAt(x, y, z + lodSkip);
+
+                    if (!clearXM1 && !clearXP1 && !clearYM1 && !clearYP1 && !clearZM1 && !clearZP1)
+                        continue;
+
+                    builder.MoveTo(xi, yi, zi);
+                    builder.SetColorVariantFromPosition(k.RootPos(x, y, z));
+
+                    if (clearXM1) builder.AddFaceXM1();
+                    if (clearXP1) builder.AddFaceXP1();
+                    if (clearYM1) builder.AddFaceYM1();
+                    if (clearYP1) builder.AddFaceYP1();
+                    if (clearZM1) builder.AddFaceZM1();
+                    if (clearZP1) builder.AddFaceZP1();
                 }
             }
         }
@@ -211,16 +229,21 @@ public class CellWallBuilder : MeshBuilder
 {
     private readonly Vector3 _segmentSize;
 
-    private Color32 _color;
+    private Color32 _mainColor, _colorVariant;
 
     private float _x1, _x2, _y1, _y2, _z1, _z2;
 
-    private readonly System.Random _todoRemove = new();
+    private readonly float[] _colorAdjustmentLookup = new float[64];
 
     public CellWallBuilder(Vector3 size, Vector3Int subDivs)
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
-        _color = Color.magenta;
+        _mainColor = Color.magenta;
+        _colorVariant = Color.magenta;
+
+        System.Random random = new();
+        for (int i = 0; i < _colorAdjustmentLookup.Length; i++)
+            _colorAdjustmentLookup[i] = (float)(random.NextDouble() * 2 - 1) * 0.2f;
     }
 
     public void MoveTo(int x, int y, int z)
@@ -235,7 +258,21 @@ public class CellWallBuilder : MeshBuilder
 
     public void SetColor(Color32 color)
     {
-        _color = color;
+        _mainColor = color;
+        _colorVariant = color;
+    }
+
+    public void SetColorVariantFromPosition(Vector3Int pos)
+    {
+        int i = (pos.x + pos.y + pos.z) % 64;
+        float adjustmentFactor = _colorAdjustmentLookup[i];
+
+        // Adjust color values
+        byte r = (byte)Mathf.Clamp(_mainColor.r + (_mainColor.r * adjustmentFactor), 0, 255);
+        byte g = (byte)Mathf.Clamp(_mainColor.g + (_mainColor.g * adjustmentFactor), 0, 255);
+        byte b = (byte)Mathf.Clamp(_mainColor.b + (_mainColor.b * adjustmentFactor), 0, 255);
+
+        _colorVariant = new Color32(r, g, b, _mainColor.a);
     }
 
     /// <summary>
@@ -293,15 +330,14 @@ public class CellWallBuilder : MeshBuilder
     }
 
     /// <summary>
-    /// A.K.A. the front face
+    /// Adds a face to the current mesh (-builder)
     /// </summary>
     private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, Vector3 normal, bool clockwise)
     {
-        Color32 color = AdjustColorBrightness(_color, 0.2f);
         int v0 = Vertices.Count;
 
         Vertices.Add(corner1); Vertices.Add(corner2); Vertices.Add(corner3); Vertices.Add(corner4);
-        Colors.Add(color); Colors.Add(color); Colors.Add(color); Colors.Add(color);
+        Colors.Add(_colorVariant); Colors.Add(_colorVariant); Colors.Add(_colorVariant); Colors.Add(_colorVariant);
         Normals.Add(normal); Normals.Add(normal); Normals.Add(normal); Normals.Add(normal);
 
         if (clockwise)
@@ -314,18 +350,5 @@ public class CellWallBuilder : MeshBuilder
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 1);
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 3); Triangles.Add(v0 + 2);
         }
-    }
-
-    public Color32 AdjustColorBrightness(Color32 color, float adjustmentRange = 0.1f)
-    {
-        // Generate random adjustment factor
-        float adjustmentFactor = (float)(_todoRemove.NextDouble() * 2 - 1) * adjustmentRange;
-
-        // Adjust color values
-        byte r = (byte)Mathf.Clamp(color.r + (color.r * adjustmentFactor), 0, 255);
-        byte g = (byte)Mathf.Clamp(color.g + (color.g * adjustmentFactor), 0, 255);
-        byte b = (byte)Mathf.Clamp(color.b + (color.b * adjustmentFactor), 0, 255);
-
-        return new Color32(r, g, b, color.a);
     }
 }
