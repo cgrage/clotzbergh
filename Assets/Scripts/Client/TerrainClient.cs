@@ -8,7 +8,7 @@ using WebSocketSharp;
 public interface IAsyncTerrainOps
 {
     void RequestWorldData(Vector3Int coords);
-    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, int lodIndex);
+    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldVersion);
 }
 
 public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
@@ -80,6 +80,8 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 action();
             }
 
+            _terrainChunkStore.OnUpdate();
+
             float diffOfLastPos = Vector3.Distance(Viewer.position, _viewerPosition);
             Vector3Int newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
 
@@ -87,8 +89,11 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
             {
                 _viewerChunkCoords = newCoords;
                 _viewerPosition = Viewer.position;
+
+                Debug.Log($"Viewer moved to chunk ${newCoords}");
                 _terrainChunkStore.OnViewerMoved(newCoords);
             }
+
         }
 
         _wasConnected = _isConnected;
@@ -149,11 +154,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
                 MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
 
-                ToMainThread(() =>
-                {
-                    int dist = WorldChunk.ChunkDistance(_viewerChunkCoords, request.Owner.Coords);
-                    request.Owner.OnMeshDataReceived(meshData, request.LodIndex, dist);
-                });
+                ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldVersion); });
             }
         }
         catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
@@ -183,7 +184,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         {
             case TerrainProto.Command.CodeValue.ChuckData:
                 var realCmd = (TerrainProto.ChunkDataCommand)cmd;
-                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk, _viewerChunkCoords); });
+                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk); });
                 break;
         }
     }
@@ -224,22 +225,22 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     {
         private readonly TerrainChunk owner;
         private readonly int lod;
-        private readonly int lodIndex;
+        private readonly ulong worldVersion;
 
-        public MeshRequest(TerrainChunk owner, int lod, int lodIndex)
+        public MeshRequest(TerrainChunk owner, int lod, ulong worldVersion)
         {
             this.owner = owner;
             this.lod = lod;
-            this.lodIndex = lodIndex;
+            this.worldVersion = worldVersion;
         }
 
-        public readonly TerrainChunk Owner { get { return owner; } }
-        public readonly int Lod { get { return lod; } }
-        public readonly int LodIndex { get { return lodIndex; } }
+        public readonly TerrainChunk Owner => owner;
+        public readonly int Lod => lod;
+        public readonly ulong WorldVersion => worldVersion;
     }
 
-    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, int lodIndex)
+    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldVersion)
     {
-        _meshRequestQueue.Add(new MeshRequest(owner, lod, lodIndex));
+        _meshRequestQueue.Add(new MeshRequest(owner, lod, worldVersion));
     }
 }
