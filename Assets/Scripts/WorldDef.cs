@@ -13,9 +13,28 @@ using UnityEngine;
 /// </summary>
 public static class WorldDef
 {
-    private const float P = 0.008f;
-    private const float h = 0.0032f;
-    private const float ScaleInv = 45;
+    /// <summary>
+    /// Word limits. Numbers are inclusive.
+    /// </summary>
+    public static class Limits
+    {
+        public static int MinCoordsX = -10;
+        public static int MaxCoordsX = 10;
+        public static int MinCoordsY = -2;
+        public static int MaxCoordsY = 2;
+        public static int MinCoordsZ = -10;
+        public static int MaxCoordsZ = 10;
+    }
+
+    /// <summary>
+    /// Where all the sizing is based on
+    /// </summary>
+    private static class Fundamentals
+    {
+        public const float P = 0.008f;
+        public const float h = 0.0032f;
+        public const float ScaleInv = 45;
+    }
 
     /// <summary>
     /// This is calculated from constants.
@@ -25,7 +44,10 @@ public static class WorldDef
     /// 
     /// So the result is { 0.36, 0.144, 0.36 }
     /// </summary>
-    public static readonly Vector3 SubKlotzSize = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
+    public static readonly Vector3 SubKlotzSize = new(
+        Fundamentals.P * Fundamentals.ScaleInv,
+        Fundamentals.h * Fundamentals.ScaleInv,
+        Fundamentals.P * Fundamentals.ScaleInv);
 
     /// <summary>
     /// 
@@ -76,11 +98,11 @@ public static class WorldDef
     /// </summary>
     public static readonly LevelOfDetailSetting[] DetailLevels =
     {
-         new() { LevelOfDetail = 0, MaxThreshold = 1, }, // 4
-         new() { LevelOfDetail = 1, MaxThreshold = 2, }, // 8
-         new() { LevelOfDetail = 2, MaxThreshold = 3, }, // 12
-         new() { LevelOfDetail = 2, MaxThreshold = 4, }, // 16
-         new() { LevelOfDetail = -1, MaxThreshold = 5, }, // world load distance
+         new() { LevelOfDetail = 0, MaxThreshold = 2, }, // 4
+         new() { LevelOfDetail = 1, MaxThreshold = 4, }, // 8
+         new() { LevelOfDetail = 2, MaxThreshold = 8, }, // 12
+         new() { LevelOfDetail = 2, MaxThreshold = 10, }, // 16
+         new() { LevelOfDetail = -1, MaxThreshold = 11, }, // world load distance
     };
 
     /// <summary>
