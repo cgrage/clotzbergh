@@ -8,16 +8,26 @@ public class TerrainChunkStore
     public Material KlotzMat { get; set; }
 
     private readonly Dictionary<Vector3Int, TerrainChunk> _dict = new();
-    private readonly HashSet<TerrainChunk> _activeChunks = new();
+
+    // _activeChunks is sorted by their priority
+    private readonly List<TerrainChunk> _activeChunks = new();
+
+    public int ChunkCount { get => _dict.Count; }
+    public int ActiveChunkCount { get => _activeChunks.Count; }
 
     /// <summary>
     /// 
     /// </summary>
     public void OnUpdate()
     {
+        int reqCount = 0;
+
         foreach (var chunk in _activeChunks)
         {
-            chunk.RequestMeshUpdates();
+            if (reqCount < 5 && chunk.RequestWorldIfNeeded())
+                reqCount++;
+
+            chunk.RequestMeshUpdatesIfNeeded();
         }
     }
 
@@ -28,7 +38,7 @@ public class TerrainChunkStore
     {
         int loadDist = TerrainChunk.ChunkLoadDistance;
 
-        HashSet<TerrainChunk> killList = new(_activeChunks);
+        // HashSet<TerrainChunk> killList = new(_activeChunks);
 
         for (int z = newCoords.z - loadDist; z <= newCoords.z + loadDist; z++)
         {
@@ -42,24 +52,33 @@ public class TerrainChunkStore
                     if (dist <= loadDist)
                     {
                         var chunk = GetOrCreate(chunkCoords);
-                        chunk.UpdateLevelOfDetail(dist);
+                        chunk.OnViewerMoved(dist);
 
-                        if (chunk.IsActive) { _activeChunks.Add(chunk); }
-                        else { _activeChunks.Remove(chunk); }
+                        if (chunk.IsActive)
+                        {
+                            if (!_activeChunks.Contains(chunk))
+                                _activeChunks.Add(chunk);
+                        }
+                        else
+                        {
+                            _activeChunks.Remove(chunk);
+                        }
 
-                        killList.Remove(chunk);
+                        // killList.Remove(chunk);
                     }
                 }
             }
         }
 
-        foreach (var chunk in killList)
-        {
-            _dict.Remove(chunk.Coords);
-            _activeChunks.Remove(chunk);
+        _activeChunks.Sort((a, b) => a.LoadPriority.CompareTo(b.LoadPriority));
 
-            chunk.CleanUp();
-        }
+        // foreach (var chunk in killList)
+        // {
+        //     _dict.Remove(chunk.Coords);
+        //     _activeChunks.Remove(chunk);
+        //
+        //     chunk.CleanUp();
+        // }
     }
 
     public void OnWorldChunkReceived(Vector3Int coords, WorldChunk chunk)
