@@ -80,8 +80,6 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 action();
             }
 
-            _terrainChunkStore.OnUpdate();
-
             float diffOfLastPos = Vector3.Distance(Viewer.position, _viewerPosition);
             Vector3Int newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
 
@@ -94,6 +92,8 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 _terrainChunkStore.OnViewerMoved(newCoords);
             }
 
+            // update after "on moved" so that world can be requested on first frame
+            _terrainChunkStore.OnUpdate();
         }
 
         _wasConnected = _isConnected;
@@ -104,7 +104,9 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
         GUI.Label(new Rect(0, 0, 500, 500),
             $"Pos: {Viewer.position}\n" +
-            $"Chk: {viewerChunkCoords}");
+            $"Coord: {viewerChunkCoords}\n" +
+            $"Chk Count: {_terrainChunkStore.ChunkCount}\n" +
+            $"Act Count: {_terrainChunkStore.ActiveChunkCount}");
     }
 
     /// <summary>

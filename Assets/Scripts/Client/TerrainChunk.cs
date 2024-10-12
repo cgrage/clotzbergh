@@ -7,6 +7,7 @@ public class TerrainChunk
     public const int MaxLodValue = 4;
 
     private readonly string _id;
+    private readonly Vector3Int _coords;
     private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
     private readonly IAsyncTerrainOps _asyncOps;
@@ -24,9 +25,9 @@ public class TerrainChunk
     /// It even goes up when the neighbors world version changed.
     /// </summary>
     private ulong _currentWorldVersion = 0;
+    private bool _currentWorldRequested = false;
     private int _currentLevelOfDetail = -1;
-
-    public Vector3Int Coords { get; private set; }
+    private int _loadPriority = 1000; // less is higher priority
 
     public struct LevelOfDetailSetting
     {
@@ -41,14 +42,16 @@ public class TerrainChunk
     {
          new() { LevelOfDetail = 0, MaxThreshold = 1, }, // 4
          new() { LevelOfDetail = 1, MaxThreshold = 2, }, // 8
-         // new() { LevelOfDetail = 2, MaxThreshold = 3, }, // 12
-         new() { LevelOfDetail = -1, MaxThreshold = 3, }, // world load distance
+         new() { LevelOfDetail = 2, MaxThreshold = 3, }, // 12
+         new() { LevelOfDetail = -1, MaxThreshold = 4, }, // world load distance
     };
 
     public static int ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
 
-    public WorldChunk World { get { return _currentWorld; } }
-    public string Id { get { return _id; } }
+    public WorldChunk World => _currentWorld;
+    public string Id => _id;
+    public Vector3Int Coords => _coords;
+    public int LoadPriority => _loadPriority;
 
     public TerrainChunk NeighborXM1 { get; set; }
     public TerrainChunk NeighborXP1 { get; set; }
@@ -59,8 +62,8 @@ public class TerrainChunk
 
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
-        Coords = coords;
         _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
+        _coords = coords;
         _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
         _asyncOps = asyncOps;
 
@@ -78,8 +81,20 @@ public class TerrainChunk
         {
             _lodSpecificData[i] = new LevelOfDetailSpecificData();
         }
+    }
 
-        _asyncOps?.RequestWorldData(coords);
+    public bool RequestWorldIfNeeded()
+    {
+        if (_currentWorld != null)
+            return false;
+
+        if (_currentWorldRequested)
+            return false;
+
+        // Debug.Log($"Request world for ${_coords} (Prio: {_loadPriority})");
+        _asyncOps?.RequestWorldData(_coords);
+        _currentWorldRequested = true;
+        return true;
     }
 
     public void CleanUp()
@@ -137,29 +152,30 @@ public class TerrainChunk
         return null;
     }
 
-    public void RequestMeshUpdates()
+    public bool RequestMeshUpdatesIfNeeded()
     {
         if (_currentLevelOfDetail == -1 || _currentWorld == null)
-            return;
+            return false;
 
         var lodData = _lodSpecificData[_currentLevelOfDetail];
 
         // are we up to date?
         if (lodData.worldVersion == _currentWorldVersion)
-            return;
+            return false;
 
         // we are not up to date. have we at least requested the data?
-        if (lodData.requestedWorldVersion < _currentWorldVersion)
-        {
-            _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _currentWorldVersion);
-            lodData.requestedWorldVersion = _currentWorldVersion;
-        }
+        if (lodData.requestedWorldVersion >= _currentWorldVersion)
+            return false;
+
+        _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _currentWorldVersion);
+        lodData.requestedWorldVersion = _currentWorldVersion;
+        return true;
     }
 
     /// <summary>
     /// This method is expected to be run on main thread.
     /// </summary>
-    public void UpdateLevelOfDetail(int viewerChunkDist)
+    public void OnViewerMoved(int viewerChunkDist)
     {
         ExpectRunningOnOwnerThread();
 
@@ -176,6 +192,8 @@ public class TerrainChunk
         }
 
         _currentLevelOfDetail = levelOfDetail.Value;
+        _loadPriority = viewerChunkDist;
+
         SetCurrentMeshIfAvailable();
         IsActive = true;
     }
