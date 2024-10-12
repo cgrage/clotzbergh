@@ -36,7 +36,7 @@ public class TerrainChunkStore
     /// </summary>
     public void OnViewerMoved(Vector3Int newCoords)
     {
-        int loadDist = TerrainChunk.ChunkLoadDistance;
+        int loadDist = WorldDef.ChunkLoadDistance;
 
         // HashSet<TerrainChunk> killList = new(_activeChunks);
 
