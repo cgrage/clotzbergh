@@ -1,45 +1,28 @@
-using System;
 using System.IO;
 using UnityEngine;
 
 /// <summary>
-/// The current chunk size is 32x80x32
-/// 
-/// Factorization:
-/// fact 32: 1, 2, 4, -, 8, --, 16, --, 32, --, --
-/// fact 80: 1, 2, 4, 5, 8, 10, 16, 20, --, 40, 80
-/// common:  1, 2, 4, -, 8, --, 16, --, --, --, --
-/// 
-/// 32*32*80 = 81.920 voxels per chunk
 /// 
 /// </summary>
 public class WorldChunk
 {
-    public const int SubDivsX = 32;
-    public const int SubDivsY = 80;
-    public const int SubDivsZ = 32;
-
-    public static readonly Vector3Int SubDivs = new(SubDivsX, SubDivsY, SubDivsZ);
-
-    /// <summary>
-    /// 32 * 0.36 = 80 * 0.144 = 11,52
-    /// </summary>
-    public static readonly Vector3 Size = new(SubKlotz.Size.x * SubDivsX, SubKlotz.Size.y * SubDivsY, SubKlotz.Size.z * SubDivsZ);
-
     private readonly SubKlotz[,,] _klotzData;
 
     private WorldChunk()
     {
-        _klotzData = new SubKlotz[SubDivsX, SubDivsY, SubDivsZ];
+        _klotzData = new SubKlotz[
+            WorldDef.ChunkSubDivsX,
+            WorldDef.ChunkSubDivsY,
+            WorldDef.ChunkSubDivsZ];
     }
 
-    private void FloodFill(int toHeight = SubDivsY)
+    private void FloodFill(int toHeight = WorldDef.ChunkSubDivsY)
     {
-        for (int z = 0; z < SubDivsZ; z++)
+        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
             for (int y = 0; y < toHeight; y++)
             {
-                for (int x = 0; x < SubDivsX; x++)
+                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     _klotzData[x, y, z] = new SubKlotz(
                         KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
@@ -50,16 +33,16 @@ public class WorldChunk
 
     private void CoreFill()
     {
-        for (int z = 0; z < SubDivsZ; z++)
+        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
-            for (int y = 0; y < SubDivsY; y++)
+            for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
             {
-                for (int x = 0; x < SubDivsX; x++)
+                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     bool inCore =
-                         x > SubDivsX / 4 && x < 3 * SubDivsX / 4 &&
-                         y > SubDivsY / 4 && y < 3 * SubDivsY / 4 &&
-                         z > SubDivsZ / 4 && z < 3 * SubDivsZ / 4;
+                         x > WorldDef.ChunkSubDivsX / 4 && x < 3 * WorldDef.ChunkSubDivsX / 4 &&
+                         y > WorldDef.ChunkSubDivsY / 4 && y < 3 * WorldDef.ChunkSubDivsY / 4 &&
+                         z > WorldDef.ChunkSubDivsZ / 4 && z < 3 * WorldDef.ChunkSubDivsZ / 4;
 
                     if (inCore) _klotzData[x, y, z] = new SubKlotz(
                         KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
@@ -77,7 +60,7 @@ public class WorldChunk
         return new WorldChunk();
     }
 
-    public static WorldChunk CreateFloodFilled(int toHeight = SubDivsY)
+    public static WorldChunk CreateFloodFilled(int toHeight = WorldDef.ChunkSubDivsY)
     {
         WorldChunk chunk = new();
         chunk.FloodFill(toHeight);
@@ -93,11 +76,11 @@ public class WorldChunk
 
     public void Serialize(BinaryWriter w)
     {
-        for (int z = 0; z < SubDivsZ; z++)
+        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
-            for (int y = 0; y < SubDivsY; y++)
+            for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
             {
-                for (int x = 0; x < SubDivsX; x++)
+                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     _klotzData[x, y, z].Serialize(w);
                 }
@@ -108,11 +91,11 @@ public class WorldChunk
     public static WorldChunk Deserialize(BinaryReader r)
     {
         WorldChunk chunk = new();
-        for (int z = 0; z < SubDivsZ; z++)
+        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
-            for (int y = 0; y < SubDivsY; y++)
+            for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
             {
-                for (int x = 0; x < SubDivsX; x++)
+                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     chunk._klotzData[x, y, z] = SubKlotz.Deserialize(r);
                 }
@@ -125,20 +108,20 @@ public class WorldChunk
     public static Vector3Int PositionToChunkCoords(Vector3 position)
     {
         return new(
-            Mathf.FloorToInt(position.x / Size.x),
-            Mathf.FloorToInt(position.y / Size.y),
-            Mathf.FloorToInt(position.z / Size.z));
+            Mathf.FloorToInt(position.x / WorldDef.ChunkSize.x),
+            Mathf.FloorToInt(position.y / WorldDef.ChunkSize.y),
+            Mathf.FloorToInt(position.z / WorldDef.ChunkSize.z));
     }
 
     public static Vector3 ChunkCoordsToPosition(Vector3Int coords)
     {
-        return Vector3.Scale(coords, Size);
+        return Vector3.Scale(coords, WorldDef.ChunkSize);
     }
 
     public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
     {
         Vector3 chunkPosition = ChunkCoordsToPosition(chunkCoords);
-        Vector3 chunkCenter = chunkPosition + Size / 2;
+        Vector3 chunkCenter = chunkPosition + WorldDef.ChunkSize / 2;
         return Vector3.Distance(position, chunkCenter);
     }
 

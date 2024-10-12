@@ -68,6 +68,7 @@
     <Compile Include="Assets\Scripts\WorldChunk.cs" />
     <Compile Include="Assets\Scripts\Client\TerrainChunk.cs" />
     <Compile Include="Assets\Scripts\TerrainProto.cs" />
+    <Compile Include="Assets\Scripts\WorldDef.cs" />
     <Compile Include="Assets\Scripts\Klotz.cs" />
     <Compile Include="Assets\Scripts\Client\TerrainClient.cs" />
     <Compile Include="Assets\Scripts\Client\TerrainChunkStore.cs" />

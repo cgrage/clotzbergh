@@ -71,22 +71,8 @@ public static class KlotzKB
 /// Sum                       16 bit
 /// 
 /// </summary>
-public struct SubKlotz
+public readonly struct SubKlotz
 {
-    private const float P = 0.008f;
-    private const float h = 0.0032f;
-    private const float ScaleInv = 45;
-
-    /// <summary>
-    /// This is calculated from constants.
-    /// 
-    /// X/Z: P * ScaleInv = 0.0080 * 45 = 0.360
-    /// Y:   h * ScaleInv = 0.0032 * 45 = 0.144
-    /// 
-    /// So the result is { 0.36, 0.144, 0.36 }
-    /// </summary>
-    public static readonly Vector3 Size = new(P * ScaleInv, h * ScaleInv, P * ScaleInv);
-
     public readonly KlotzType Type
     {
         // bits: xxxxx00000000000

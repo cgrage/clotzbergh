@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class TerrainChunk
 {
-    public const int MaxLodValue = 4;
-
     private readonly string _id;
     private readonly Vector3Int _coords;
     private readonly int _ownerThreadId;
@@ -16,7 +14,7 @@ public class TerrainChunk
     private readonly MeshFilter _meshFilter;
     private readonly MeshCollider _meshCollider;
 
-    private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[MaxLodValue + 1];
+    private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[WorldDef.MaxLodValue + 1];
 
     private bool _isCleanedUp = false;
     private WorldChunk _currentWorld;
@@ -28,25 +26,6 @@ public class TerrainChunk
     private bool _currentWorldRequested = false;
     private int _currentLevelOfDetail = -1;
     private int _loadPriority = 1000; // less is higher priority
-
-    public struct LevelOfDetailSetting
-    {
-        public int LevelOfDetail;
-        public int MaxThreshold;
-    }
-
-    /// <summary>
-    /// Numbers are inclusive.
-    /// </summary>
-    public static readonly LevelOfDetailSetting[] DetailLevels =
-    {
-         new() { LevelOfDetail = 0, MaxThreshold = 1, }, // 4
-         new() { LevelOfDetail = 1, MaxThreshold = 2, }, // 8
-         new() { LevelOfDetail = 2, MaxThreshold = 3, }, // 12
-         new() { LevelOfDetail = -1, MaxThreshold = 4, }, // world load distance
-    };
-
-    public static int ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
 
     public WorldChunk World => _currentWorld;
     public string Id => _id;
@@ -142,7 +121,7 @@ public class TerrainChunk
 
     public static int? GetLodFromDistance(int chunkDistance)
     {
-        foreach (var entry in DetailLevels)
+        foreach (var entry in WorldDef.DetailLevels)
         {
             if (chunkDistance <= entry.MaxThreshold)
                 return entry.LevelOfDetail;

@@ -3,9 +3,9 @@ using UnityEngine;
 
 public class WorldChunkTests
 {
-    private static readonly float X_UNIT = WorldChunk.Size.x;
-    private static readonly float Y_UNIT = WorldChunk.Size.y;
-    private static readonly float Z_UNIT = WorldChunk.Size.z;
+    private static readonly float X_UNIT = WorldDef.ChunkSize.x;
+    private static readonly float Y_UNIT = WorldDef.ChunkSize.y;
+    private static readonly float Z_UNIT = WorldDef.ChunkSize.z;
 
     private static readonly float X_UNIT_HALF = X_UNIT / 2;
     private static readonly float Y_UNIT_HALF = Y_UNIT / 2;

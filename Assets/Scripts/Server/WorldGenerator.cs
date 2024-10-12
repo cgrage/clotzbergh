@@ -8,18 +8,18 @@ public class WorldGenerator
     {
         var chunk = WorldChunk.CreateEmpty();
 
-        for (int iz = 0; iz < WorldChunk.SubDivsZ; iz++)
+        for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
         {
-            for (int ix = 0; ix < WorldChunk.SubDivsX; ix++)
+            for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
             {
-                int x = chunkCoords.x * WorldChunk.SubDivsX + ix;
-                int z = chunkCoords.z * WorldChunk.SubDivsZ + iz;
+                int x = chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                int z = chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
                 float height = _heightMap.At(x, z);
 
-                for (int iy = 0; iy < WorldChunk.SubDivsY; iy++)
+                for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                 {
-                    int y = chunkCoords.y * WorldChunk.SubDivsY + iy;
-                    float scaledY = y * SubKlotz.Size.y;
+                    int y = chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                    float scaledY = y * WorldDef.SubKlotzSize.y;
 
                     if (scaledY > height)
                     {
@@ -66,9 +66,9 @@ public class WorldGenerator
             for (int x = -dist; x < dist; x++)
             {
                 vertices[vIndex++] = new Vector3(
-                    x * SubKlotz.Size.x,
+                    x * WorldDef.SubKlotzSize.x,
                     _heightMap.At(x, y),
-                    y * SubKlotz.Size.z);
+                    y * WorldDef.SubKlotzSize.z);
             }
         }
 
