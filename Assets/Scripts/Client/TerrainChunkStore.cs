@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -38,13 +39,20 @@ public class TerrainChunkStore
     {
         int loadDist = WorldDef.ChunkLoadDistance;
 
+        int xStart = Math.Max(newCoords.x - loadDist, WorldDef.Limits.MinCoordsX);
+        int xEnd = Math.Min(newCoords.x + loadDist, WorldDef.Limits.MaxCoordsX);
+        int yStart = Math.Max(newCoords.y - loadDist, WorldDef.Limits.MinCoordsY);
+        int yEnd = Math.Min(newCoords.y + loadDist, WorldDef.Limits.MaxCoordsY);
+        int zStart = Math.Max(newCoords.z - loadDist, WorldDef.Limits.MinCoordsZ);
+        int zEnd = Math.Min(newCoords.z + loadDist, WorldDef.Limits.MaxCoordsZ);
+
         // HashSet<TerrainChunk> killList = new(_activeChunks);
 
-        for (int z = newCoords.z - loadDist; z <= newCoords.z + loadDist; z++)
+        for (int z = zStart; z <= zEnd; z++)
         {
-            for (int y = newCoords.y - loadDist; y <= newCoords.y + loadDist; y++)
+            for (int y = yStart; y <= yEnd; y++)
             {
-                for (int x = newCoords.x - loadDist; x <= newCoords.x + loadDist; x++)
+                for (int x = xStart; x <= xEnd; x++)
                 {
                     Vector3Int chunkCoords = new(x, y, z);
                     int dist = WorldChunk.ChunkDistance(newCoords, chunkCoords);
