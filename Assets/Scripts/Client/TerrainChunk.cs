@@ -39,6 +39,19 @@ public class TerrainChunk
     public TerrainChunk NeighborZM1 { get; set; }
     public TerrainChunk NeighborZP1 { get; set; }
 
+    public class OwnerRef : MonoBehaviour
+    {
+        public TerrainChunk owner;
+    }
+
+    class LevelOfDetailSpecificData
+    {
+        public Mesh mesh = null;
+        public Vector3Int[] voxelCoords = null;
+        public ulong worldVersion = 0;
+        public ulong requestedWorldVersion = 0;
+    }
+
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
     {
         _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
@@ -47,8 +60,10 @@ public class TerrainChunk
         _asyncOps = asyncOps;
 
         _gameObject = new GameObject(_id);
+        _gameObject.AddComponent<OwnerRef>().owner = this;
         _meshRenderer = _gameObject.AddComponent<MeshRenderer>();
         _meshFilter = _gameObject.AddComponent<MeshFilter>();
+        _meshCollider = _gameObject.AddComponent<MeshCollider>();
         _meshCollider = _gameObject.AddComponent<MeshCollider>();
 
         _gameObject.transform.position = WorldChunk.ChunkCoordsToPosition(coords);
@@ -102,7 +117,7 @@ public class TerrainChunk
         NeighborZP1?.IncWorldVersion();
     }
 
-    public void OnMeshUpdate(MeshBuilder meshData, int levelOfDetail, ulong worldVersion)
+    public void OnMeshUpdate(VoxelMeshBuilder meshData, int levelOfDetail, ulong worldVersion)
     {
         if (_isCleanedUp)
             return;
@@ -114,6 +129,7 @@ public class TerrainChunk
             return;
 
         lodData.mesh = meshData.ToMesh();
+        lodData.voxelCoords = meshData.VoxelCoords.ToArray();
         lodData.worldVersion = worldVersion;
 
         SetCurrentMeshIfAvailable();
@@ -208,10 +224,17 @@ public class TerrainChunk
         throw new System.Exception("TerrainChunk updated by wrong thread!");
     }
 
-    class LevelOfDetailSpecificData
+    public Klotz GetKlotzFromTriangleIndex(int triangleIndex)
     {
-        public Mesh mesh = null;
-        public ulong worldVersion = 0;
-        public ulong requestedWorldVersion = 0;
+        if (_currentWorld == null)
+            return null;
+
+        if (_currentLevelOfDetail != 0)
+            return null;
+
+        var lodData = _lodSpecificData[0];
+        Vector3Int subKlotzCoords = lodData.voxelCoords[triangleIndex];
+
+        return _currentWorld.Get(subKlotzCoords).ToKlotz(subKlotzCoords, _coords);
     }
 }

@@ -52,8 +52,10 @@ public class WorldChunk
     }
 
     public SubKlotz Get(int x, int y, int z) { return _klotzData[x, y, z]; }
+    public SubKlotz Get(Vector3Int coords) { return _klotzData[coords.x, coords.y, coords.z]; }
 
     public void Set(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
+    public void Set(Vector3Int coords, SubKlotz t) { _klotzData[coords.x, coords.y, coords.z] = t; }
 
     public static WorldChunk CreateEmpty()
     {

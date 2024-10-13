@@ -2,6 +2,17 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
+/// Dimensions and scale in real world
+/// ----------------------------------
+/// 
+/// Reality:
+/// - P = 8mm, h = 3.2mm
+/// - Figure height: 40mm
+/// - Scale: 1:45 ==> 40mm -> 1.8m
+/// 
+/// Chunks
+/// ------
+/// 
 /// The current chunk size is 32x80x32
 /// 
 /// Factorization:
@@ -10,6 +21,7 @@ using UnityEngine;
 /// common:  1, 2, 4, -, 8, --, 16, --, --, --, --
 /// 
 /// 32*32*80 = 81.920 voxels per chunk
+/// 
 /// </summary>
 public static class WorldDef
 {
