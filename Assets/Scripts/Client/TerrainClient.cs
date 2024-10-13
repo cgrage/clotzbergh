@@ -158,7 +158,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
             while (!_runCancelTS.Token.IsCancellationRequested)
             {
                 MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
-                MeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
+                VoxelMeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
 
                 ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldVersion); });
             }

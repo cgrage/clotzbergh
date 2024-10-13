@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEngine;
 
@@ -26,7 +27,7 @@ public static class KlotzKB
         return t switch
         {
             KlotzType.Plate1x1 => new(1, 1, 1),
-            KlotzType.Brick4x2 => new(4, 6, 2),
+            KlotzType.Brick4x2 => new(4, 3, 2),
             _ => Vector3Int.zero,
         };
     }
@@ -54,14 +55,8 @@ public static class KlotzKB
 }
 
 /// <summary>
+/// The base voxel for the terrain.
 /// 
-/// [Sizes and scale in real world]
-/// Reality:
-/// - P = 8mm, h = 3.2mm
-/// - Figure height: 40mm
-/// - Scale: 1:45 ==> 40mm -> 1.8m
-/// 
-/// [Data]
 /// KlotzType             ->  5 bit
 /// Orientation (N/E/S/W) ->  2 bit
 /// SubKlotzIndexX (0..7) ->  3 bit
@@ -73,6 +68,23 @@ public static class KlotzKB
 /// </summary>
 public readonly struct SubKlotz
 {
+    private readonly ushort raw16bit;
+
+    public SubKlotz(ushort u16)
+    {
+        raw16bit = u16;
+    }
+
+    public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    {
+        raw16bit = (ushort)(
+            ((int)type & 0x1f) << 11 |
+            ((int)dir & 0x3) << 9 |
+            (subIdxX & 0x7) << 6 |
+            (subIdxY & 0x7) << 3 |
+            (subIdxZ & 0x7) << 0);
+    }
+
     public readonly KlotzType Type
     {
         // bits: xxxxx00000000000
@@ -103,8 +115,6 @@ public readonly struct SubKlotz
         get { return (raw16bit >> 0) & 0x7; }
     }
 
-    private readonly ushort raw16bit;
-
     public readonly bool IsClear
     {
         get { return KlotzKB.IsSubKlotzClear(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
@@ -118,24 +128,12 @@ public readonly struct SubKlotz
     /// <summary>
     /// Calculates the position of the RootSubKlotz based on the position of this SubKlotz.
     /// </summary>
-    public readonly Vector3Int RootPos(int x, int y, int z)
+    public readonly Vector3Int RootPos(Vector3Int myPos)
     {
-        return new(x - SubKlotzIndexX, y - SubKlotzIndexY, z - SubKlotzIndexZ);
-    }
-
-    public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
-    {
-        raw16bit = (ushort)(
-            ((int)type & 0x1f) << 11 |
-            ((int)dir & 0x3) << 9 |
-            (subIdxX & 0x7) << 6 |
-            (subIdxY & 0x7) << 3 |
-            (subIdxZ & 0x7) << 0);
-    }
-
-    public SubKlotz(ushort u16)
-    {
-        raw16bit = u16;
+        return new(
+            myPos.x - SubKlotzIndexX,
+            myPos.y - SubKlotzIndexY,
+            myPos.z - SubKlotzIndexZ);
     }
 
     public static SubKlotz Deserialize(BinaryReader r)
@@ -147,4 +145,39 @@ public readonly struct SubKlotz
     {
         w.Write(raw16bit);
     }
+
+    public Klotz ToKlotz(Vector3Int myPos, Vector3Int chunkCoords)
+    {
+        Vector3 innerPos = Vector3.Scale(RootPos(myPos), WorldDef.SubKlotzSize);
+        Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(chunkCoords);
+        Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(Type, Direction), WorldDef.SubKlotzSize);
+
+        return new()
+        {
+            position = pos,
+            size = size,
+            type = Type
+        };
+    }
+}
+
+/// <summary>
+/// 
+/// </summary>
+public class Klotz
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public Vector3 position;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Vector3 size;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public KlotzType type;
 }

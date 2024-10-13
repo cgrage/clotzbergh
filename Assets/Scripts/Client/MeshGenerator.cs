@@ -21,7 +21,7 @@ public class MeshGenerator
     /// <summary>
     /// 
     /// </summary>
-    public MeshBuilder GenerateTerrainMesh(TerrainChunk terrainChunk, int lod)
+    public VoxelMeshBuilder GenerateTerrainMesh(TerrainChunk terrainChunk, int lod)
     {
         if (lod < 0 || lod > 4)
             throw new ArgumentOutOfRangeException("lod", "lod must be 0 to 4");
@@ -32,8 +32,9 @@ public class MeshGenerator
 
         int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
         WorldStitcher stitcher = new(terrainChunk);
-        CellWallBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
+        VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
 
+        builder.AddVoxelCoords = lod == 0;
         builder.SetColor(ColorFromHash(terrainChunk.Id.GetHashCode()));
 
         for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
@@ -58,7 +59,7 @@ public class MeshGenerator
                         continue;
 
                     builder.MoveTo(xi, yi, zi);
-                    builder.SetColorVariantFromPosition(k.RootPos(x, y, z));
+                    builder.SetColorVariantFromPosition(k.RootPos(new(x, y, z)));
 
                     if (clearXM1) builder.AddFaceXM1();
                     if (clearXP1) builder.AddFaceXP1();
@@ -225,7 +226,7 @@ public class MeshBuilder
     }
 }
 
-public class CellWallBuilder : MeshBuilder
+public class VoxelMeshBuilder : MeshBuilder
 {
     private readonly Vector3 _segmentSize;
 
@@ -233,9 +234,18 @@ public class CellWallBuilder : MeshBuilder
 
     private float _x1, _x2, _y1, _y2, _z1, _z2;
 
+    private Vector3Int _currentCoords;
+
     private readonly float[] _colorAdjustmentLookup = new float[64];
 
-    public CellWallBuilder(Vector3 size, Vector3Int subDivs)
+    public bool AddVoxelCoords { get; set; } = true;
+
+    /// <summary>
+    /// Can be used to look-up the voxel coords once you know the triangle index.
+    /// </summary>
+    public List<Vector3Int> VoxelCoords { get; private set; }
+
+    public VoxelMeshBuilder(Vector3 size, Vector3Int subDivs)
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
         _mainColor = Color.magenta;
@@ -244,10 +254,13 @@ public class CellWallBuilder : MeshBuilder
         System.Random random = new();
         for (int i = 0; i < _colorAdjustmentLookup.Length; i++)
             _colorAdjustmentLookup[i] = (float)(random.NextDouble() * 2 - 1) * 0.2f;
+
+        VoxelCoords = new();
     }
 
     public void MoveTo(int x, int y, int z)
     {
+        _currentCoords = new(x, y, z);
         _x1 = x * _segmentSize.x;
         _x2 = _x1 + _segmentSize.x;
         _y1 = y * _segmentSize.y;
@@ -350,5 +363,7 @@ public class CellWallBuilder : MeshBuilder
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 1);
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 3); Triangles.Add(v0 + 2);
         }
+
+        VoxelCoords.Add(_currentCoords); VoxelCoords.Add(_currentCoords);
     }
 }

@@ -2,21 +2,13 @@ using UnityEngine;
 
 public class PlayerSelection : MonoBehaviour
 {
-    public TerrainClient terrain;
-
     private Vector3 _hitPosition = Vector3.zero;
-    private Vector3Int _hitChunk = Vector3Int.zero;
+    private Klotz _hitKlotz = null;
     private GameObject _highlightBox = null;
 
     // Start is called before the first frame update
     void Start()
     {
-        if (terrain == null)
-        {
-            Debug.Log($"PlayerSelection has no terrain. Deactivating.");
-            return;
-        }
-
         _highlightBox = CreateHighlightCube();
     }
 
@@ -26,23 +18,30 @@ public class PlayerSelection : MonoBehaviour
         if (_highlightBox == null)
             return;
 
-        Vector3 screenCenter = new Vector3(Screen.width / 2, Screen.height / 2, 0);
-        Ray ray = Camera.main.ScreenPointToRay(screenCenter);
-        // Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        // Vector3 screenCenter = new Vector3(Screen.width / 2, Screen.height / 2, 0);
+        // Ray ray = Camera.main.ScreenPointToRay(screenCenter);
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000))
+        _hitPosition = Vector3.zero;
+        _hitKlotz = null;
+
+        if (Physics.Raycast(ray, out RaycastHit hit, 8))
         {
             _hitPosition = hit.point;
-            _hitChunk = WorldChunk.PositionToChunkCoords(_hitPosition);
+            if (hit.collider.gameObject.TryGetComponent<TerrainChunk.OwnerRef>(out TerrainChunk.OwnerRef ownerRef))
+            {
+                _hitKlotz = ownerRef.owner.GetKlotzFromTriangleIndex(hit.triangleIndex);
+            }
+        }
 
-            _highlightBox.transform.position = WorldChunk.ChunkCoordsToPosition(_hitChunk);
-            _highlightBox.transform.localScale = WorldDef.ChunkSize;
+        if (_hitKlotz != null)
+        {
+            _highlightBox.transform.position = _hitKlotz.position;
+            _highlightBox.transform.localScale = _hitKlotz.size;
             _highlightBox.SetActive(true);
         }
         else
         {
-            _hitPosition = Vector3.zero;
-            _hitChunk = Vector3Int.zero;
             _highlightBox.SetActive(false);
         }
     }
@@ -54,7 +53,7 @@ public class PlayerSelection : MonoBehaviour
 
         GUI.Label(new Rect(5, 150, 500, 150),
             $"Hit: {_hitPosition}\n" +
-            $"Chunk: {_hitChunk}\n",
+            $"Klotz: {_hitKlotz?.type}\n",
             style);
     }
 
@@ -85,12 +84,13 @@ public class PlayerSelection : MonoBehaviour
             lr.material = new Material(Shader.Find("Sprites/Default")); // Using a simple shader
             lr.startColor = Color.yellow;
             lr.endColor = Color.yellow;
-            lr.startWidth = 0.02f;
-            lr.endWidth = 0.02f;
+            lr.startWidth = 0.03f;
+            lr.endWidth = 0.03f;
             lr.positionCount = 2;
             lr.SetPosition(0, vertices[edges[i, 0]]);
             lr.SetPosition(1, vertices[edges[i, 1]]);
             lr.useWorldSpace = false; // Ensure local space rendering
+            lr.numCapVertices = 2; // Add anti-aliasing to the lines
         }
 
         return box;
