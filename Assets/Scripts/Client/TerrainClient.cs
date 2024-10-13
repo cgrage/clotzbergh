@@ -101,12 +101,16 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
     void OnGUI()
     {
+        GUIStyle style = new() { fontSize = 16 };
+        style.normal.textColor = Color.black;
+
         Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
-        GUI.Label(new Rect(0, 0, 500, 500),
+        GUI.Label(new Rect(5, 5, 500, 150),
             $"Pos: {Viewer.position}\n" +
             $"Coord: {viewerChunkCoords}\n" +
             $"Chk Count: {_terrainChunkStore.ChunkCount}\n" +
-            $"Act Count: {_terrainChunkStore.ActiveChunkCount}");
+            $"Act Count: {_terrainChunkStore.ActiveChunkCount}",
+            style);
     }
 
     /// <summary>
