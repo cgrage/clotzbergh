@@ -36,18 +36,4 @@ public class KlotzTests
         subKlotz = new(KlotzType.Brick4x2, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.IsFalse(subKlotz.IsClear);
     }
-
-    [Test]
-    public void KlotzBasics()
-    {
-        SubKlotz subKlotz;
-        Klotz klotz;
-
-        subKlotz = new(KlotzType.Brick4x2, KlotzDirection.ToPosX, 0, 0, 0);
-        klotz = subKlotz.ToKlotz(Vector3Int.zero, Vector3Int.zero);
-
-        Assert.AreEqual(WorldDef.SubKlotzSize.x * 4, klotz.size.x);
-        Assert.AreEqual(WorldDef.SubKlotzSize.y * 3, klotz.size.y);
-        Assert.AreEqual(WorldDef.SubKlotzSize.z * 2, klotz.size.z);
-    }
 }

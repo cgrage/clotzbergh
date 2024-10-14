@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -19,10 +18,10 @@ public class TerrainChunk
     private bool _isCleanedUp = false;
     private WorldChunk _currentWorld;
     /// <summary>
-    /// The _currentWorldVersion is a purely local counter. 
-    /// It even goes up when the neighbors world version changed.
+    /// The _worldLocalVersion is a purely local counter. 
+    /// It even goes up when the neighbors _worldLocalVersion changes.
     /// </summary>
-    private ulong _currentWorldVersion = 0;
+    private ulong _worldLocalVersion = 0;
     private bool _currentWorldRequested = false;
     private int _currentLevelOfDetail = -1;
     private int _loadPriority = 1000; // less is higher priority
@@ -48,8 +47,8 @@ public class TerrainChunk
     {
         public Mesh mesh = null;
         public Vector3Int[] voxelCoords = null;
-        public ulong worldVersion = 0;
-        public ulong requestedWorldVersion = 0;
+        public ulong worldLocalVersion = 0;
+        public ulong requestedWorldLocalVersion = 0;
     }
 
     public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
@@ -106,18 +105,18 @@ public class TerrainChunk
 
         // store the data
         _currentWorld = world;
-        IncWorldVersion();
+        IncWorldLocalVersion();
 
         // update neighbors (TODO: Only if required?)
-        NeighborXM1?.IncWorldVersion();
-        NeighborXP1?.IncWorldVersion();
-        NeighborYM1?.IncWorldVersion();
-        NeighborYP1?.IncWorldVersion();
-        NeighborZM1?.IncWorldVersion();
-        NeighborZP1?.IncWorldVersion();
+        NeighborXM1?.IncWorldLocalVersion();
+        NeighborXP1?.IncWorldLocalVersion();
+        NeighborYM1?.IncWorldLocalVersion();
+        NeighborYP1?.IncWorldLocalVersion();
+        NeighborZM1?.IncWorldLocalVersion();
+        NeighborZP1?.IncWorldLocalVersion();
     }
 
-    public void OnMeshUpdate(VoxelMeshBuilder meshData, int levelOfDetail, ulong worldVersion)
+    public void OnMeshUpdate(VoxelMeshBuilder meshData, int levelOfDetail, ulong worldLocalVersion)
     {
         if (_isCleanedUp)
             return;
@@ -125,12 +124,12 @@ public class TerrainChunk
         var lodData = _lodSpecificData[levelOfDetail];
 
         // is update really an update?
-        if (worldVersion < lodData.worldVersion)
+        if (worldLocalVersion < lodData.worldLocalVersion)
             return;
 
         lodData.mesh = meshData.ToMesh();
         lodData.voxelCoords = meshData.VoxelCoords.ToArray();
-        lodData.worldVersion = worldVersion;
+        lodData.worldLocalVersion = worldLocalVersion;
 
         SetCurrentMeshIfAvailable();
     }
@@ -155,15 +154,15 @@ public class TerrainChunk
         var lodData = _lodSpecificData[_currentLevelOfDetail];
 
         // are we up to date?
-        if (lodData.worldVersion == _currentWorldVersion)
+        if (lodData.worldLocalVersion == _worldLocalVersion)
             return false;
 
         // we are not up to date. have we at least requested the data?
-        if (lodData.requestedWorldVersion >= _currentWorldVersion)
+        if (lodData.requestedWorldLocalVersion >= _worldLocalVersion)
             return false;
 
-        _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _currentWorldVersion);
-        lodData.requestedWorldVersion = _currentWorldVersion;
+        _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _worldLocalVersion);
+        lodData.requestedWorldLocalVersion = _worldLocalVersion;
         return true;
     }
 
@@ -205,9 +204,9 @@ public class TerrainChunk
         _meshCollider.sharedMesh = lodData.mesh;
     }
 
-    private void IncWorldVersion()
+    private void IncWorldLocalVersion()
     {
-        _currentWorldVersion++;
+        _worldLocalVersion++;
     }
 
     public bool IsActive
@@ -224,17 +223,41 @@ public class TerrainChunk
         throw new System.Exception("TerrainChunk updated by wrong thread!");
     }
 
-    public Klotz GetKlotzFromTriangleIndex(int triangleIndex)
+    private Klotz GetKlotzAt(Vector3Int subKlotzCoords)
     {
         if (_currentWorld == null)
             return null;
 
+        SubKlotz k = _currentWorld.Get(subKlotzCoords);
+        Vector3Int rootPos = k.RootPos(subKlotzCoords);
+
+        Vector3 innerPos = Vector3.Scale(rootPos, WorldDef.SubKlotzSize);
+        Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(_coords);
+        Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(k.Type, k.Direction), WorldDef.SubKlotzSize);
+
+        return new()
+        {
+            innerChunkCoords = rootPos,
+            worldPosition = pos,
+            worldSize = size,
+            type = k.Type,
+        };
+    }
+
+    public Klotz GetKlotzFromTriangleIndex(int triangleIndex)
+    {
         if (_currentLevelOfDetail != 0)
             return null;
 
-        var lodData = _lodSpecificData[0];
-        Vector3Int subKlotzCoords = lodData.voxelCoords[triangleIndex];
+        if (_lodSpecificData[0].voxelCoords == null)
+            return null;
 
-        return _currentWorld.Get(subKlotzCoords).ToKlotz(subKlotzCoords, _coords);
+        Vector3Int subKlotzCoords = _lodSpecificData[0].voxelCoords[triangleIndex];
+        return GetKlotzAt(subKlotzCoords);
+    }
+
+    public void TakeKlotz(Vector3Int innerChunkCoords)
+    {
+        // _asyncOps?.RequestWorldData
     }
 }

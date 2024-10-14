@@ -8,7 +8,7 @@ using WebSocketSharp;
 public interface IAsyncTerrainOps
 {
     void RequestWorldData(Vector3Int coords);
-    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldVersion);
+    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
 }
 
 public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
@@ -160,7 +160,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
                 VoxelMeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
 
-                ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldVersion); });
+                ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldLocalVersion); });
             }
         }
         catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
@@ -231,22 +231,22 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     {
         private readonly TerrainChunk owner;
         private readonly int lod;
-        private readonly ulong worldVersion;
+        private readonly ulong worldLocalVersion;
 
-        public MeshRequest(TerrainChunk owner, int lod, ulong worldVersion)
+        public MeshRequest(TerrainChunk owner, int lod, ulong worldLocalVersion)
         {
             this.owner = owner;
             this.lod = lod;
-            this.worldVersion = worldVersion;
+            this.worldLocalVersion = worldLocalVersion;
         }
 
         public readonly TerrainChunk Owner => owner;
         public readonly int Lod => lod;
-        public readonly ulong WorldVersion => worldVersion;
+        public readonly ulong WorldLocalVersion => worldLocalVersion;
     }
 
-    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldVersion)
+    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldLocalVersion)
     {
-        _meshRequestQueue.Add(new MeshRequest(owner, lod, worldVersion));
+        _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
     }
 }
