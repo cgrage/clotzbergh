@@ -145,20 +145,6 @@ public readonly struct SubKlotz
     {
         w.Write(raw16bit);
     }
-
-    public Klotz ToKlotz(Vector3Int myPos, Vector3Int chunkCoords)
-    {
-        Vector3 innerPos = Vector3.Scale(RootPos(myPos), WorldDef.SubKlotzSize);
-        Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(chunkCoords);
-        Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(Type, Direction), WorldDef.SubKlotzSize);
-
-        return new()
-        {
-            position = pos,
-            size = size,
-            type = Type
-        };
-    }
 }
 
 /// <summary>
@@ -169,12 +155,17 @@ public class Klotz
     /// <summary>
     /// 
     /// </summary>
-    public Vector3 position;
+    public Vector3Int innerChunkCoords;
 
     /// <summary>
     /// 
     /// </summary>
-    public Vector3 size;
+    public Vector3 worldPosition;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public Vector3 worldSize;
 
     /// <summary>
     /// 

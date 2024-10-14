@@ -2,9 +2,20 @@ using UnityEngine;
 
 public class PlayerSelection : MonoBehaviour
 {
-    private Vector3 _hitPosition = Vector3.zero;
-    private Klotz _hitKlotz = null;
+    private Vector3 _viewedPosition = Vector3.zero;
+    private Klotz _viewedKlotz = null;
     private GameObject _highlightBox = null;
+
+    private bool _actIsHolding;
+    private float _actHoldTime;
+    private const float RequiredHoldTime = 0.1f; // The duration required to trigger the action
+
+    private class Selection
+    {
+        public Vector3 viewedPosition;
+        public TerrainChunk viewedChunk;
+        public Klotz viewedKlotz;
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -18,31 +29,75 @@ public class PlayerSelection : MonoBehaviour
         if (_highlightBox == null)
             return;
 
-        // Vector3 screenCenter = new Vector3(Screen.width / 2, Screen.height / 2, 0);
-        // Ray ray = Camera.main.ScreenPointToRay(screenCenter);
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        _hitPosition = Vector3.zero;
-        _hitKlotz = null;
-
-        if (Physics.Raycast(ray, out RaycastHit hit, 8))
+        var selection = GetSelection();
+        if (selection != null)
         {
-            _hitPosition = hit.point;
-            if (hit.collider.gameObject.TryGetComponent<TerrainChunk.OwnerRef>(out TerrainChunk.OwnerRef ownerRef))
-            {
-                _hitKlotz = ownerRef.owner.GetKlotzFromTriangleIndex(hit.triangleIndex);
-            }
-        }
+            _viewedKlotz = selection.viewedKlotz;
+            _viewedPosition = selection.viewedPosition;
 
-        if (_hitKlotz != null)
-        {
-            _highlightBox.transform.position = _hitKlotz.position;
-            _highlightBox.transform.localScale = _hitKlotz.size;
+            _highlightBox.transform.position = _viewedKlotz.worldPosition;
+            _highlightBox.transform.localScale = _viewedKlotz.worldSize;
             _highlightBox.SetActive(true);
         }
         else
         {
+            _viewedKlotz = null;
+            _viewedPosition = _viewedPosition = Vector3.zero;
+
             _highlightBox.SetActive(false);
+        }
+
+        HandleMouseActions(selection);
+    }
+
+    private Selection GetSelection()
+    {
+        Vector3 screenCenter = new(Screen.width / 2, Screen.height / 2, 0);
+        Ray ray = Camera.main.ScreenPointToRay(screenCenter);
+        // Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        if (!Physics.Raycast(ray, out RaycastHit hit, 8))
+            return null;
+
+        if (!hit.collider.gameObject.TryGetComponent<TerrainChunk.OwnerRef>(out TerrainChunk.OwnerRef ownerRef))
+            return null;
+
+        return new Selection()
+        {
+            viewedPosition = hit.point,
+            viewedChunk = ownerRef.owner,
+            viewedKlotz = ownerRef.owner.GetKlotzFromTriangleIndex(hit.triangleIndex),
+        };
+    }
+
+    private void HandleMouseActions(Selection selection)
+    {
+        if (Input.GetMouseButtonDown(0)) // 0 is the left mouse button
+        {
+            _actIsHolding = true;
+            _actHoldTime = 0f;
+        }
+
+        if (Input.GetMouseButtonUp(0)) // Release the mouse button
+        {
+            _actIsHolding = false;
+            _actHoldTime = 0f;
+        }
+
+        if (_actIsHolding)
+        {
+            _actHoldTime += Time.deltaTime;
+            if (_actHoldTime >= RequiredHoldTime)
+            {
+                if (selection != null)
+                {
+                    Debug.Log("Action!");
+                    selection.viewedChunk.TakeKlotz(selection.viewedKlotz.innerChunkCoords);
+                }
+
+                _actIsHolding = false; // Reset to avoid repeated triggers
+                _actHoldTime -= RequiredHoldTime;
+            }
         }
     }
 
@@ -52,8 +107,8 @@ public class PlayerSelection : MonoBehaviour
         style.normal.textColor = Color.black;
 
         GUI.Label(new Rect(5, 150, 500, 150),
-            $"Hit: {_hitPosition}\n" +
-            $"Klotz: {_hitKlotz?.type}\n",
+            $"Hit: {_viewedPosition}\n" +
+            $"Type: {_viewedKlotz?.type}\n",
             style);
     }
 
@@ -82,8 +137,8 @@ public class PlayerSelection : MonoBehaviour
 
             LineRenderer lr = lineObj.AddComponent<LineRenderer>();
             lr.material = new Material(Shader.Find("Sprites/Default")); // Using a simple shader
-            lr.startColor = Color.yellow;
-            lr.endColor = Color.yellow;
+            lr.startColor = Color.black;
+            lr.endColor = Color.black;
             lr.startWidth = 0.03f;
             lr.endWidth = 0.03f;
             lr.positionCount = 2;

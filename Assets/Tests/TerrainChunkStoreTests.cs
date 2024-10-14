@@ -19,7 +19,7 @@ public class TerrainChunkStoreTests : IAsyncTerrainOps
         Assert.AreEqual(_firstReqCoords, new Vector3Int(42, 42, 42));
     }
 
-    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldVersion)
+    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldLocalVersion)
     {
 
     }
