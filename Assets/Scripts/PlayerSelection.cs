@@ -13,7 +13,7 @@ public class PlayerSelection : MonoBehaviour
     private class Selection
     {
         public Vector3 viewedPosition;
-        public TerrainChunk viewedChunk;
+        public ClientChunk viewedChunk;
         public Klotz viewedKlotz;
     }
 
@@ -59,7 +59,7 @@ public class PlayerSelection : MonoBehaviour
         if (!Physics.Raycast(ray, out RaycastHit hit, 8))
             return null;
 
-        if (!hit.collider.gameObject.TryGetComponent<TerrainChunk.OwnerRef>(out TerrainChunk.OwnerRef ownerRef))
+        if (!hit.collider.gameObject.TryGetComponent<ClientChunk.OwnerRef>(out ClientChunk.OwnerRef ownerRef))
             return null;
 
         return new Selection()

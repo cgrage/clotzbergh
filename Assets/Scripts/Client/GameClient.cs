@@ -5,17 +5,17 @@ using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
 
-public interface IAsyncTerrainOps
+public interface IClientSideOps
 {
-    void RequestWorldData(Vector3Int coords);
-    void RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
+    void RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
 }
 
-public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
+public class GameClient : MonoBehaviour, IClientSideOps
 {
     public string Hostname = "localhost";
     public int Port = 3000;
     public float MoveThreshold = 2;
+    public int MeshThreadCount = 4;
     public Transform Viewer;
     public Material Material;
 
@@ -33,21 +33,19 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     private bool _wasConnected = false;
 
     private readonly CancellationTokenSource _runCancelTS = new();
-    private readonly TerrainChunkStore _terrainChunkStore = new();
-    private readonly BlockingCollection<Action<WebSocket>> _worldRequestQueue = new();
+    private readonly ClientChunkStore _chunkStore = new();
+    private readonly BlockingCollection<Action<WebSocket>> _connectionThreadActionQueue = new();
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
     private readonly MeshGenerator _meshGenerator = new();
-
-    private const int MeshThreadCount = 4;
 
     /// <summary>
     /// Called by Unity
     /// </summary>
     void Start()
     {
-        _terrainChunkStore.ParentObject = transform;
-        _terrainChunkStore.AsyncTerrainOps = this;
-        _terrainChunkStore.KlotzMat = Material;
+        _chunkStore.ParentObject = transform;
+        _chunkStore.AsyncTerrainOps = this;
+        _chunkStore.KlotzMat = Material;
 
         _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
         _connectionThread.Start();
@@ -89,11 +87,12 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
                 _viewerPosition = Viewer.position;
 
                 Debug.Log($"Viewer moved to chunk ${newCoords}");
-                _terrainChunkStore.OnViewerMoved(newCoords);
+                _chunkStore.OnViewerMoved(newCoords);
+                SendPayerPosUpdate(newCoords);
             }
 
             // update after "on moved" so that world can be requested on first frame
-            _terrainChunkStore.OnUpdate();
+            _chunkStore.OnUpdate();
         }
 
         _wasConnected = _isConnected;
@@ -108,8 +107,8 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         GUI.Label(new Rect(5, 5, 500, 150),
             $"Pos: {Viewer.position}\n" +
             $"Coord: {viewerChunkCoords}\n" +
-            $"Chk Count: {_terrainChunkStore.ChunkCount}\n" +
-            $"Act Count: {_terrainChunkStore.ActiveChunkCount}",
+            $"Chk Count: {_chunkStore.ChunkCount}\n" +
+            $"Act Count: {_chunkStore.ActiveChunkCount}",
             style);
     }
 
@@ -118,7 +117,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
     /// </summary>
     void ConnectionThreadMain()
     {
-        string url = string.Format("ws://{0}:{1}/terrain", Hostname, Port);
+        string url = string.Format("ws://{0}:{1}/intercom", Hostname, Port);
         using var ws = new WebSocket(url);
         ws.OnMessage += OnDataReceivedAsync;
 
@@ -134,7 +133,7 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
             while (!_runCancelTS.Token.IsCancellationRequested)
             {
-                var action = _worldRequestQueue.Take(_runCancelTS.Token);
+                var action = _connectionThreadActionQueue.Take(_runCancelTS.Token);
                 action(ws);
             }
         }
@@ -183,14 +182,14 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
 
     void OnDataReceivedAsync(object sender, MessageEventArgs e)
     {
-        var cmd = TerrainProto.Command.FromBytes(e.RawData);
+        var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
         // Debug.LogFormat("Client received command '{0}'", cmd.Code);
 
         switch (cmd.Code)
         {
-            case TerrainProto.Command.CodeValue.ChuckData:
-                var realCmd = (TerrainProto.ChunkDataCommand)cmd;
-                ToMainThread(() => { _terrainChunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk); });
+            case IntercomProtocol.Command.CodeValue.ChuckData:
+                var realCmd = (IntercomProtocol.ChunkDataCommand)cmd;
+                ToMainThread(() => { _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk); });
                 break;
         }
     }
@@ -218,34 +217,34 @@ public class TerrainClient : MonoBehaviour, IAsyncTerrainOps
         Debug.LogFormat("Closed client");
     }
 
-    void IAsyncTerrainOps.RequestWorldData(Vector3Int coords)
+    private void SendPayerPosUpdate(Vector3Int coords)
     {
-        _worldRequestQueue.Add((ws) =>
+        _connectionThreadActionQueue.Add((ws) =>
         {
-            TerrainProto.GetChunkCommand cmd = new(coords);
+            IntercomProtocol.PlayerPosUpdateCommand cmd = new(coords);
             ws.Send(cmd.ToBytes());
         });
     }
 
     private readonly struct MeshRequest
     {
-        private readonly TerrainChunk owner;
+        private readonly ClientChunk owner;
         private readonly int lod;
         private readonly ulong worldLocalVersion;
 
-        public MeshRequest(TerrainChunk owner, int lod, ulong worldLocalVersion)
+        public MeshRequest(ClientChunk owner, int lod, ulong worldLocalVersion)
         {
             this.owner = owner;
             this.lod = lod;
             this.worldLocalVersion = worldLocalVersion;
         }
 
-        public readonly TerrainChunk Owner => owner;
+        public readonly ClientChunk Owner => owner;
         public readonly int Lod => lod;
         public readonly ulong WorldLocalVersion => worldLocalVersion;
     }
 
-    void IAsyncTerrainOps.RequestMeshCalc(TerrainChunk owner, WorldChunk world, int lod, ulong worldLocalVersion)
+    void IClientSideOps.RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion)
     {
         _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
     }

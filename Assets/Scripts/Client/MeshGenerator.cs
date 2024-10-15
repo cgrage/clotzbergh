@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Generates the meshes. When called on <c>GenerateTerrainMesh</c> it generates 
-/// the mesh for a <c>TerrainChunk</c> and its inner <c>WorldChunk</c>.
-/// Uses the neighbors of the <c>TerrainChunk</c> to find adjacent world 
+/// the mesh for a <c>ClientChunk</c> and its inner <c>WorldChunk</c>.
+/// Uses the neighbors of the <c>ClientChunk</c> to find adjacent world 
 /// information to draw the mesh correctly.
 /// For overlapping Klotzes the general rule is that the chunk with the root
 /// <c>SubKlotz</c> owns the Klotz (that is the <c>SubKlotz</c> with the sub-
@@ -21,21 +21,21 @@ public class MeshGenerator
     /// <summary>
     /// 
     /// </summary>
-    public VoxelMeshBuilder GenerateTerrainMesh(TerrainChunk terrainChunk, int lod)
+    public VoxelMeshBuilder GenerateTerrainMesh(ClientChunk chunk, int lod)
     {
         if (lod < 0 || lod > 4)
             throw new ArgumentOutOfRangeException("lod", "lod must be 0 to 4");
 
-        WorldChunk worldChunk = terrainChunk.World;
+        WorldChunk worldChunk = chunk.World;
         if (worldChunk == null)
             return null;
 
         int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
-        WorldStitcher stitcher = new(terrainChunk);
+        WorldStitcher stitcher = new(chunk);
         VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
 
         builder.AddVoxelCoords = lod == 0;
-        builder.SetColor(ColorFromHash(terrainChunk.Id.GetHashCode()));
+        builder.SetColor(ColorFromHash(chunk.Id.GetHashCode()));
 
         for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
         {
@@ -101,7 +101,7 @@ public class WorldStitcher
     private readonly WorldChunk _neighborZM1;
     private readonly WorldChunk _neighborZP1;
 
-    public WorldStitcher(TerrainChunk chunk)
+    public WorldStitcher(ClientChunk chunk)
     {
         _worldChunk = chunk.World;
         _neighborXM1 = chunk.NeighborXM1?.World;

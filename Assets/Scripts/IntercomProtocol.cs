@@ -1,17 +1,13 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using Unity.CodeEditor;
 using UnityEngine;
 
-public static class TerrainProto
+public static class IntercomProtocol
 {
     public abstract class Command
     {
         public enum CodeValue : byte
         {
-            GetChunk = 1,
+            PlayerPosUpdate = 1,
             ChuckData = 2,
         }
 
@@ -50,23 +46,23 @@ public static class TerrainProto
             CodeValue code = (CodeValue)reader.ReadByte();
             return code switch
             {
-                CodeValue.GetChunk => new GetChunkCommand(reader),
+                CodeValue.PlayerPosUpdate => new PlayerPosUpdateCommand(reader),
                 CodeValue.ChuckData => new ChunkDataCommand(reader),
                 _ => throw new IOException("Invalid command"),
             };
         }
     }
 
-    public class GetChunkCommand : Command
+    public class PlayerPosUpdateCommand : Command
     {
         public Vector3Int Coord { get; private set; }
 
-        public GetChunkCommand(Vector3Int coord) : base(CodeValue.GetChunk)
+        public PlayerPosUpdateCommand(Vector3Int coord) : base(CodeValue.PlayerPosUpdate)
         {
             Coord = coord;
         }
 
-        public GetChunkCommand(BinaryReader reader) : base(CodeValue.GetChunk)
+        public PlayerPosUpdateCommand(BinaryReader reader) : base(CodeValue.PlayerPosUpdate)
         {
             Coord = new Vector3Int(
                 reader.ReadInt32(),
