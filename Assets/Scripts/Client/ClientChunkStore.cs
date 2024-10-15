@@ -2,16 +2,16 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TerrainChunkStore
+public class ClientChunkStore
 {
     public Transform ParentObject { get; set; }
-    public IAsyncTerrainOps AsyncTerrainOps { get; set; }
+    public IClientSideOps AsyncTerrainOps { get; set; }
     public Material KlotzMat { get; set; }
 
-    private readonly Dictionary<Vector3Int, TerrainChunk> _dict = new();
+    private readonly Dictionary<Vector3Int, ClientChunk> _dict = new();
 
     // _activeChunks is sorted by their priority
-    private readonly List<TerrainChunk> _activeChunks = new();
+    private readonly List<ClientChunk> _activeChunks = new();
 
     public int ChunkCount { get => _dict.Count; }
     public int ActiveChunkCount { get => _activeChunks.Count; }
@@ -25,10 +25,8 @@ public class TerrainChunkStore
 
         foreach (var chunk in _activeChunks)
         {
-            if (reqCount < 5 && chunk.RequestWorldIfNeeded())
+            if (reqCount < 20 && chunk.RequestMeshUpdatesIfNeeded())
                 reqCount++;
-
-            chunk.RequestMeshUpdatesIfNeeded();
         }
     }
 
@@ -46,7 +44,7 @@ public class TerrainChunkStore
         int zStart = Math.Max(newCoords.z - loadDist, WorldDef.Limits.MinCoordsZ);
         int zEnd = Math.Min(newCoords.z + loadDist, WorldDef.Limits.MaxCoordsZ);
 
-        // HashSet<TerrainChunk> killList = new(_activeChunks);
+        // HashSet<ClientChunk> killList = new(_activeChunks);
 
         for (int z = zStart; z <= zEnd; z++)
         {
@@ -95,30 +93,30 @@ public class TerrainChunkStore
     }
 
     /// <summary>
-    /// Tries to find the <c>TerrainChunk</c> with the given coords. If it cannot be found the <c>TerrainChunk</c> is 
+    /// Tries to find the <c>ClientChunk</c> with the given coords. If it cannot be found the <c>ClientChunk</c> is 
     /// created.
-    /// This method shall be the only method that creates <c>TerrainChunk</c>s.
+    /// This method shall be the only method that creates <c>ClientChunk</c>s.
     /// This method is expected to be run on main thread.
     /// </summary>
-    private TerrainChunk GetOrCreate(Vector3Int coords)
+    private ClientChunk GetOrCreate(Vector3Int coords)
     {
         // try to find the existing
-        if (_dict.TryGetValue(coords, out TerrainChunk thisChunk))
+        if (_dict.TryGetValue(coords, out ClientChunk thisChunk))
             return thisChunk;
 
         // nothing found there. we need a new one.
         // Debug.Log($"Create new terrain chunk ${coords}");
 
-        thisChunk = new TerrainChunk(coords, ParentObject, AsyncTerrainOps, KlotzMat);
+        thisChunk = new ClientChunk(coords, ParentObject, AsyncTerrainOps, KlotzMat);
         _dict.Add(coords, thisChunk);
 
         // find the neighbors
-        _dict.TryGetValue(new Vector3Int(coords.x - 1, coords.y, coords.z), out TerrainChunk neighborXM1);
-        _dict.TryGetValue(new Vector3Int(coords.x + 1, coords.y, coords.z), out TerrainChunk neighborXP1);
-        _dict.TryGetValue(new Vector3Int(coords.x, coords.y - 1, coords.z), out TerrainChunk neighborYM1);
-        _dict.TryGetValue(new Vector3Int(coords.x, coords.y + 1, coords.z), out TerrainChunk neighborYP1);
-        _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z - 1), out TerrainChunk neighborZM1);
-        _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z + 1), out TerrainChunk neighborZP1);
+        _dict.TryGetValue(new Vector3Int(coords.x - 1, coords.y, coords.z), out ClientChunk neighborXM1);
+        _dict.TryGetValue(new Vector3Int(coords.x + 1, coords.y, coords.z), out ClientChunk neighborXP1);
+        _dict.TryGetValue(new Vector3Int(coords.x, coords.y - 1, coords.z), out ClientChunk neighborYM1);
+        _dict.TryGetValue(new Vector3Int(coords.x, coords.y + 1, coords.z), out ClientChunk neighborYP1);
+        _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z - 1), out ClientChunk neighborZM1);
+        _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z + 1), out ClientChunk neighborZP1);
 
         // and link the neighbors
         if (neighborXM1 != null) { thisChunk.NeighborXM1 = neighborXM1; neighborXM1.NeighborXP1 = thisChunk; }

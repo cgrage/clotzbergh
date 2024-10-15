@@ -66,7 +66,6 @@
   <ItemGroup>
     <Compile Include="Assets\Tests\WorldChunkTests.cs" />
     <Compile Include="Assets\Tests\PerformanceTests.cs" />
-    <Compile Include="Assets\Tests\TerrainChunkStoreTests.cs" />
     <Compile Include="Assets\Tests\SerializationTests.cs" />
     <Compile Include="Assets\Tests\KlotzTests.cs" />
   </ItemGroup>

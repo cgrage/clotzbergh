@@ -218,7 +218,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 202f065a6c0d77848abe0b6113a1db24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  terrain: {fileID: 785459301}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -431,7 +430,7 @@ GameObject:
   - component: {fileID: 785459302}
   - component: {fileID: 785459301}
   m_Layer: 0
-  m_Name: Terrain
+  m_Name: GameClient
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -572,7 +571,7 @@ GameObject:
   - component: {fileID: 1464593528}
   - component: {fileID: 1464593527}
   m_Layer: 0
-  m_Name: WorldServer
+  m_Name: GameServer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

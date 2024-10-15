@@ -39,7 +39,7 @@ public class PerformanceTests
 
             worlds = TimeAndLog("DeserializeWorld", () => DeserializeWorld(data));
 
-            TerrainChunk[,,] terrains = TimeAndLog("CreateTerrainChunks", () => CreateTerrainChunks(worlds));
+            ClientChunk[,,] terrains = TimeAndLog("CreateClientChunks", () => CreateClientChunks(worlds));
 
             VoxelMeshBuilder[,,] meshes = TimeAndLog("GenerateMeshes", () => GenerateMeshes(terrains));
 
@@ -135,9 +135,9 @@ public class PerformanceTests
         return worlds;
     }
 
-    private TerrainChunk[,,] CreateTerrainChunks(WorldChunk[,,] worlds)
+    private ClientChunk[,,] CreateClientChunks(WorldChunk[,,] worlds)
     {
-        TerrainChunk[,,] terrains = new TerrainChunk[
+        ClientChunk[,,] terrains = new ClientChunk[
            worlds.GetLength(0), worlds.GetLength(1), worlds.GetLength(2)];
 
         for (int x = 0; x < worlds.GetLength(0); x++)
@@ -155,7 +155,7 @@ public class PerformanceTests
         return terrains;
     }
 
-    private VoxelMeshBuilder[,,] GenerateMeshes(TerrainChunk[,,] terrains)
+    private VoxelMeshBuilder[,,] GenerateMeshes(ClientChunk[,,] terrains)
     {
         MeshGenerator meshGen = new();
         VoxelMeshBuilder[,,] meshes = new VoxelMeshBuilder[
@@ -175,7 +175,7 @@ public class PerformanceTests
         return meshes;
     }
 
-    private TerrainChunk[,,] SetMeshes(TerrainChunk[,,] terrains, VoxelMeshBuilder[,,] meshes)
+    private ClientChunk[,,] SetMeshes(ClientChunk[,,] terrains, VoxelMeshBuilder[,,] meshes)
     {
         for (int x = 0; x < terrains.GetLength(0); x++)
         {

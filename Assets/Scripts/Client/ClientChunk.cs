@@ -1,13 +1,13 @@
 using System.Threading;
 using UnityEngine;
 
-public class TerrainChunk
+public class ClientChunk
 {
     private readonly string _id;
     private readonly Vector3Int _coords;
     private readonly int _ownerThreadId;
     private readonly GameObject _gameObject;
-    private readonly IAsyncTerrainOps _asyncOps;
+    private readonly IClientSideOps _asyncOps;
 
     private readonly MeshRenderer _meshRenderer;
     private readonly MeshFilter _meshFilter;
@@ -22,7 +22,6 @@ public class TerrainChunk
     /// It even goes up when the neighbors _worldLocalVersion changes.
     /// </summary>
     private ulong _worldLocalVersion = 0;
-    private bool _currentWorldRequested = false;
     private int _currentLevelOfDetail = -1;
     private int _loadPriority = 1000; // less is higher priority
 
@@ -31,16 +30,16 @@ public class TerrainChunk
     public Vector3Int Coords => _coords;
     public int LoadPriority => _loadPriority;
 
-    public TerrainChunk NeighborXM1 { get; set; }
-    public TerrainChunk NeighborXP1 { get; set; }
-    public TerrainChunk NeighborYM1 { get; set; }
-    public TerrainChunk NeighborYP1 { get; set; }
-    public TerrainChunk NeighborZM1 { get; set; }
-    public TerrainChunk NeighborZP1 { get; set; }
+    public ClientChunk NeighborXM1 { get; set; }
+    public ClientChunk NeighborXP1 { get; set; }
+    public ClientChunk NeighborYM1 { get; set; }
+    public ClientChunk NeighborYP1 { get; set; }
+    public ClientChunk NeighborZM1 { get; set; }
+    public ClientChunk NeighborZP1 { get; set; }
 
     public class OwnerRef : MonoBehaviour
     {
-        public TerrainChunk owner;
+        public ClientChunk owner;
     }
 
     class LevelOfDetailSpecificData
@@ -51,7 +50,7 @@ public class TerrainChunk
         public ulong requestedWorldLocalVersion = 0;
     }
 
-    public TerrainChunk(Vector3Int coords, Transform parent, IAsyncTerrainOps asyncOps, Material material)
+    public ClientChunk(Vector3Int coords, Transform parent, IClientSideOps asyncOps, Material material)
     {
         _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
         _coords = coords;
@@ -74,20 +73,6 @@ public class TerrainChunk
         {
             _lodSpecificData[i] = new LevelOfDetailSpecificData();
         }
-    }
-
-    public bool RequestWorldIfNeeded()
-    {
-        if (_currentWorld != null)
-            return false;
-
-        if (_currentWorldRequested)
-            return false;
-
-        // Debug.Log($"Request world for ${_coords} (Prio: {_loadPriority})");
-        _asyncOps?.RequestWorldData(_coords);
-        _currentWorldRequested = true;
-        return true;
     }
 
     public void CleanUp()
@@ -220,7 +205,7 @@ public class TerrainChunk
         if (Thread.CurrentThread.ManagedThreadId == _ownerThreadId)
             return;
 
-        throw new System.Exception("TerrainChunk updated by wrong thread!");
+        throw new System.Exception("ClientChunk updated by wrong thread!");
     }
 
     private Klotz GetKlotzAt(Vector3Int subKlotzCoords)
