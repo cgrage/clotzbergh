@@ -67,9 +67,11 @@
     <Compile Include="Assets\Scripts\Client\GameClient.cs" />
     <Compile Include="Assets\Scripts\PlayerSelection.cs" />
     <Compile Include="Assets\Scripts\Server\GameServer.cs" />
+    <Compile Include="Assets\Scripts\Server\HelperTypes.cs" />
     <Compile Include="Assets\Scripts\Client\ClientChunkStore.cs" />
     <Compile Include="Assets\Scripts\WorldChunk.cs" />
     <Compile Include="Assets\Scripts\Client\ClientChunk.cs" />
+    <Compile Include="Assets\Scripts\Server\WorldMap.cs" />
     <Compile Include="Assets\Scripts\WorldDef.cs" />
     <Compile Include="Assets\Scripts\Klotz.cs" />
     <Compile Include="Assets\Scripts\IntercomProtocol.cs" />

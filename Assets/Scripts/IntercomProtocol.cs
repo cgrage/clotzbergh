@@ -20,20 +20,14 @@ public static class IntercomProtocol
 
         public byte[] ToBytes()
         {
-            byte[] byteArray;
+            using MemoryStream memoryStream = new();
+            // using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress);
+            using BinaryWriter writer = new(memoryStream);
 
-            using (MemoryStream memoryStream = new())
-            {
-                using (BinaryWriter writer = new(memoryStream))
-                {
-                    writer.Write((byte)Code);
-                    Serialize(writer);
-                }
+            writer.Write((byte)Code);
+            Serialize(writer);
 
-                byteArray = memoryStream.ToArray();
-            }
-
-            return byteArray;
+            return memoryStream.ToArray();
         }
 
         protected abstract void Serialize(BinaryWriter w);
@@ -41,6 +35,7 @@ public static class IntercomProtocol
         public static Command FromBytes(byte[] data)
         {
             using MemoryStream memoryStream = new(data);
+            // using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
             using BinaryReader reader = new(memoryStream);
 
             CodeValue code = (CodeValue)reader.ReadByte();
@@ -81,11 +76,13 @@ public static class IntercomProtocol
     public class ChunkDataCommand : Command
     {
         public Vector3Int Coord;
+        public ulong Version;
         public WorldChunk Chunk;
 
-        public ChunkDataCommand(Vector3Int coord, WorldChunk chunk) : base(CodeValue.ChuckData)
+        public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CodeValue.ChuckData)
         {
             Coord = coord;
+            Version = version;
             Chunk = chunk;
         }
 
@@ -95,6 +92,7 @@ public static class IntercomProtocol
                 r.ReadInt32(),
                 r.ReadInt32(),
                 r.ReadInt32());
+            Version = r.ReadUInt64();
             Chunk = WorldChunk.Deserialize(r);
         }
 
@@ -103,6 +101,7 @@ public static class IntercomProtocol
             w.Write(Coord.x);
             w.Write(Coord.y);
             w.Write(Coord.z);
+            w.Write(Version);
             Chunk.Serialize(w);
         }
     }

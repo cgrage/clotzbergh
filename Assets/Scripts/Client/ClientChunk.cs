@@ -17,6 +17,7 @@ public class ClientChunk
 
     private bool _isCleanedUp = false;
     private WorldChunk _currentWorld;
+    private ulong _currentWorldServerVersion = 0;
     /// <summary>
     /// The _worldLocalVersion is a purely local counter. 
     /// It even goes up when the neighbors _worldLocalVersion changes.
@@ -83,13 +84,18 @@ public class ClientChunk
         _isCleanedUp = true;
     }
 
-    public void OnWorldUpdate(WorldChunk world)
+    public void OnWorldUpdate(ulong version, WorldChunk world)
     {
         if (_isCleanedUp)
             return;
 
+        // needs to be newer than what we have
+        if (version <= _currentWorldServerVersion)
+            return;
+
         // store the data
         _currentWorld = world;
+        _currentWorldServerVersion = version;
         IncWorldLocalVersion();
 
         // update neighbors (TODO: Only if required?)

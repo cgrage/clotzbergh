@@ -87,9 +87,9 @@ public class ClientChunkStore
         // }
     }
 
-    public void OnWorldChunkReceived(Vector3Int coords, WorldChunk chunk)
+    public void OnWorldChunkReceived(Vector3Int coords, ulong version, WorldChunk chunk)
     {
-        GetOrCreate(coords).OnWorldUpdate(chunk);
+        GetOrCreate(coords).OnWorldUpdate(version, chunk);
     }
 
     /// <summary>

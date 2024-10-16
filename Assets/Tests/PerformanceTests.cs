@@ -147,7 +147,7 @@ public class PerformanceTests
                 for (int z = 0; z < worlds.GetLength(2); z++)
                 {
                     terrains[x, y, z] = new(new(x, y, z), null, null, null);
-                    terrains[x, y, z].OnWorldUpdate(worlds[x, y, z]);
+                    terrains[x, y, z].OnWorldUpdate(1, worlds[x, y, z]);
                 }
             }
         }

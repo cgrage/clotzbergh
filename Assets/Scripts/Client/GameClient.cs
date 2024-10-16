@@ -38,6 +38,8 @@ public class GameClient : MonoBehaviour, IClientSideOps
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
     private readonly MeshGenerator _meshGenerator = new();
 
+    private int _receivedChunkCount = 0;
+
     /// <summary>
     /// Called by Unity
     /// </summary>
@@ -108,7 +110,9 @@ public class GameClient : MonoBehaviour, IClientSideOps
             $"Pos: {Viewer.position}\n" +
             $"Coord: {viewerChunkCoords}\n" +
             $"Chk Count: {_chunkStore.ChunkCount}\n" +
-            $"Act Count: {_chunkStore.ActiveChunkCount}",
+            $"Act Count: {_chunkStore.ActiveChunkCount}\n" +
+            $"Rec-Chunk: {_receivedChunkCount}\n" +
+            $"Time: {Time.time:0.00}\n",
             style);
     }
 
@@ -189,7 +193,11 @@ public class GameClient : MonoBehaviour, IClientSideOps
         {
             case IntercomProtocol.Command.CodeValue.ChuckData:
                 var realCmd = (IntercomProtocol.ChunkDataCommand)cmd;
-                ToMainThread(() => { _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Chunk); });
+                ToMainThread(() =>
+                 {
+                     _receivedChunkCount++;
+                     _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Version, realCmd.Chunk);
+                 });
                 break;
         }
     }
