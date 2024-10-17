@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -38,7 +39,13 @@ public class GameClient : MonoBehaviour, IClientSideOps
     private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
     private readonly MeshGenerator _meshGenerator = new();
 
-    private int _receivedChunkCount = 0;
+    private ulong _receivedBytes = 0;
+    private ulong _receivedBytesLastSec = 0;
+    private ulong _receivedBytesPerSecLastSec;
+    private ulong _receivedChunks = 0;
+    private ulong _receivedChunksLastSec = 0;
+    private ulong _receivedChunksPerSecLastSec;
+
 
     /// <summary>
     /// Called by Unity
@@ -58,6 +65,8 @@ public class GameClient : MonoBehaviour, IClientSideOps
             _meshThreads.Add(thread);
             thread.Start();
         }
+
+        StartCoroutine(TimerCoroutine());
     }
 
     void Update()
@@ -100,19 +109,35 @@ public class GameClient : MonoBehaviour, IClientSideOps
         _wasConnected = _isConnected;
     }
 
+    IEnumerator TimerCoroutine()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(1.0f);
+
+            _receivedBytesPerSecLastSec = _receivedBytes - _receivedBytesLastSec;
+            _receivedChunksPerSecLastSec = _receivedChunks - _receivedChunksLastSec;
+
+            _receivedBytesLastSec = _receivedBytes;
+            _receivedChunksLastSec = _receivedChunks;
+        }
+    }
+
     void OnGUI()
     {
         GUIStyle style = new() { fontSize = 16 };
         style.normal.textColor = Color.black;
 
         Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
-        GUI.Label(new Rect(5, 5, 500, 150),
+        GUI.Label(new Rect(5, 5, 500, 200),
             $"Pos: {Viewer.position}\n" +
             $"Coord: {viewerChunkCoords}\n" +
             $"Chk Count: {_chunkStore.ChunkCount}\n" +
             $"Act Count: {_chunkStore.ActiveChunkCount}\n" +
-            $"Rec-Chunk: {_receivedChunkCount}\n" +
-            $"Time: {Time.time:0.00}\n",
+            $"Rec.Chunks (total): {_receivedChunks}\n" +
+            $"Rec.Chunks (1/s): {_receivedChunksPerSecLastSec}\n" +
+            $"Rec.MByte (total): {_receivedBytes / 1024 / 1024}\n" +
+            $"Rec.KByte (1/s): {_receivedBytesPerSecLastSec / 1024}",
             style);
     }
 
@@ -186,6 +211,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
 
     void OnDataReceivedAsync(object sender, MessageEventArgs e)
     {
+        _receivedBytes += (ulong)e.RawData.Length;
         var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
         // Debug.LogFormat("Client received command '{0}'", cmd.Code);
 
@@ -195,7 +221,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
                 var realCmd = (IntercomProtocol.ChunkDataCommand)cmd;
                 ToMainThread(() =>
                  {
-                     _receivedChunkCount++;
+                     _receivedChunks++;
                      _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Version, realCmd.Chunk);
                  });
                 break;
