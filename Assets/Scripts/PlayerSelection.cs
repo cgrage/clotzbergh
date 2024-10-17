@@ -106,7 +106,7 @@ public class PlayerSelection : MonoBehaviour
         GUIStyle style = new() { fontSize = 16 };
         style.normal.textColor = Color.black;
 
-        GUI.Label(new Rect(5, 150, 500, 150),
+        GUI.Label(new Rect(5, 200, 500, 200),
             $"Hit: {_viewedPosition}\n" +
             $"Type: {_viewedKlotz?.type}\n",
             style);

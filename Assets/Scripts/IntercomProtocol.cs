@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using UnityEngine;
 
 public static class IntercomProtocol
@@ -21,11 +22,12 @@ public static class IntercomProtocol
         public byte[] ToBytes()
         {
             using MemoryStream memoryStream = new();
-            // using GZipStream gzipStream = new(memoryStream, CompressionMode.Compress);
-            using BinaryWriter writer = new(memoryStream);
-
-            writer.Write((byte)Code);
-            Serialize(writer);
+            using (GZipStream gzipStream = new(memoryStream, CompressionMode.Compress))
+            using (BinaryWriter writer = new(gzipStream))
+            {
+                writer.Write((byte)Code);
+                Serialize(writer);
+            }
 
             return memoryStream.ToArray();
         }
@@ -35,8 +37,8 @@ public static class IntercomProtocol
         public static Command FromBytes(byte[] data)
         {
             using MemoryStream memoryStream = new(data);
-            // using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
-            using BinaryReader reader = new(memoryStream);
+            using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
+            using BinaryReader reader = new(gzipStream);
 
             CodeValue code = (CodeValue)reader.ReadByte();
             return code switch
