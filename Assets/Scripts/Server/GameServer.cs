@@ -15,6 +15,8 @@ public interface IServerSideOps
     void RemovePlayer(PlayerId id);
 
     WorldChunkUpdate GetNextChunkUpdate(PlayerId id);
+
+    void PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords);
 }
 
 public class GameServer : MonoBehaviour, IServerSideOps
@@ -151,6 +153,11 @@ public class GameServer : MonoBehaviour, IServerSideOps
         return _worldMap.GetNextChunkUpdate(id);
     }
 
+    void IServerSideOps.PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+    {
+        _worldMap.PlayerTakeKlotz(id, chunkCoords, innerChunkCoords);
+    }
+
     private class ClientHandler : WebSocketBehavior
     {
         public IServerSideOps ops;
@@ -185,9 +192,19 @@ public class GameServer : MonoBehaviour, IServerSideOps
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
-            // Debug.LogFormat("Server received command '{0}'", cmd.Code);
+            try
+            {
+                HandleCommand(IntercomProtocol.Command.FromBytes(e.RawData));
+                // Debug.LogFormat("Server received command '{0}'", cmd.Code);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
 
+        private void HandleCommand(IntercomProtocol.Command cmd)
+        {
             if (!_initialCoordsReceived && cmd is not IntercomProtocol.PlayerPosUpdateCommand)
                 throw new Exception("First command must be player pos update command");
 
@@ -202,6 +219,16 @@ public class GameServer : MonoBehaviour, IServerSideOps
                 }
 
                 ops.PlayerMoved(_playerId, posCmd.Coord);
+            }
+            else if (cmd is IntercomProtocol.TakeKlotzCommand)
+            {
+                var takeCmd = cmd as IntercomProtocol.TakeKlotzCommand;
+                ops.PlayerTakeKlotz(_playerId,
+                    takeCmd.ChunkCoord, takeCmd.InnerChunkCoord);
+            }
+            else
+            {
+                // ?
             }
         }
 

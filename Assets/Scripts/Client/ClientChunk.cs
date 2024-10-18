@@ -228,7 +228,7 @@ public class ClientChunk
 
         return new()
         {
-            innerChunkCoords = rootPos,
+            rootCoords = rootPos,
             worldPosition = pos,
             worldSize = size,
             type = k.Type,
@@ -249,6 +249,6 @@ public class ClientChunk
 
     public void TakeKlotz(Vector3Int innerChunkCoords)
     {
-        // _asyncOps?.RequestWorldData
+        _asyncOps?.TakeKlotz(_coords, innerChunkCoords);
     }
 }

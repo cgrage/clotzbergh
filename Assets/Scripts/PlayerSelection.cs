@@ -89,14 +89,8 @@ public class PlayerSelection : MonoBehaviour
             _actHoldTime += Time.deltaTime;
             if (_actHoldTime >= RequiredHoldTime)
             {
-                if (selection != null)
-                {
-                    Debug.Log("Action!");
-                    selection.viewedChunk.TakeKlotz(selection.viewedKlotz.innerChunkCoords);
-                }
-
-                _actIsHolding = false; // Reset to avoid repeated triggers
-                _actHoldTime -= RequiredHoldTime;
+                selection?.viewedChunk.TakeKlotz(selection.viewedKlotz.rootCoords);
+                _actHoldTime = 0f;
             }
         }
     }
