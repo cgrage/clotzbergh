@@ -8,7 +8,10 @@ using WebSocketSharp.Server;
 
 public interface IServerSideOps
 {
-    PlayerId AddPlayer(Vector3Int initialCoords);
+    PlayerId AddPlayer();
+
+    void PlayerMoved(PlayerId id, Vector3Int newCoords);
+
     void RemovePlayer(PlayerId id);
 
     WorldChunkUpdate GetNextChunkUpdate(PlayerId id);
@@ -22,7 +25,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
     private readonly List<Thread> _threads = new();
     private readonly BlockingCollection<Action<IServerSideOps>> _requestQueue = new();
     private readonly WorldMap _worldMap = new();
-    private readonly ConcurrentDictionary<PlayerId, PlayerData> _playerData = new();
+    private readonly ConcurrentDictionary<PlayerId, ConnectionData> _playerData = new();
 
     private WebSocketServer _wss;
 
@@ -115,30 +118,32 @@ public class GameServer : MonoBehaviour, IServerSideOps
         catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
     }
 
-    PlayerId IServerSideOps.AddPlayer(Vector3Int initialCoords)
+    PlayerId IServerSideOps.AddPlayer()
     {
         int playerIdValue = 0;
         Interlocked.Increment(ref _nextPlayerId);
 
         PlayerId playerId = new(playerIdValue++);
-        PlayerData data = new()
-        {
-            // Handler = handler
-        };
+        ConnectionData data = new() { };
 
         if (!_playerData.TryAdd(playerId, data))
         {
             throw new Exception("Failed to add player.");
         }
 
-        _worldMap.AddPlayer(playerId, initialCoords);
+        _worldMap.AddPlayer(playerId);
         return playerId;
+    }
+
+    void IServerSideOps.PlayerMoved(PlayerId id, Vector3Int newCoords)
+    {
+        _worldMap.PlayerMoved(id, newCoords);
     }
 
     void IServerSideOps.RemovePlayer(PlayerId id)
     {
         _worldMap.RemovePlayer(id);
-        _playerData.TryRemove(id, out PlayerData value);
+        _playerData.TryRemove(id, out _);
     }
 
     WorldChunkUpdate IServerSideOps.GetNextChunkUpdate(PlayerId id)
@@ -151,32 +156,29 @@ public class GameServer : MonoBehaviour, IServerSideOps
         public IServerSideOps ops;
 
         private volatile bool _isClosed = false;
-        private bool _isLoggedOn = false;
+        private bool _initialCoordsReceived = false;
         private PlayerId _playerId;
         private Thread _clientUpdaterThread;
 
         protected override void OnOpen()
         {
-            // 
+            _playerId = ops.AddPlayer();
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
             _isClosed = true;
+            ops.RemovePlayer(_playerId);
 
-            if (_isLoggedOn)
+            if (_clientUpdaterThread != null)
             {
-                ops.RemovePlayer(_playerId);
-
                 if (!_clientUpdaterThread.Join(TimeSpan.FromSeconds(1)))
                     _clientUpdaterThread.Abort();
             }
         }
 
-        private void OnLoggedIn()
+        private void OnInitialCoordsReceived()
         {
-            _isLoggedOn = true;
-
             _clientUpdaterThread = new Thread(ClientUpdaterThreadMain) { Name = $"ClientUpdaterThreadMain ID={_playerId}" };
             _clientUpdaterThread.Start();
         }
@@ -186,15 +188,20 @@ public class GameServer : MonoBehaviour, IServerSideOps
             var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
             // Debug.LogFormat("Server received command '{0}'", cmd.Code);
 
-            if (!_isLoggedOn && cmd is not IntercomProtocol.PlayerPosUpdateCommand)
+            if (!_initialCoordsReceived && cmd is not IntercomProtocol.PlayerPosUpdateCommand)
                 throw new Exception("First command must be player pos update command");
 
             if (cmd is IntercomProtocol.PlayerPosUpdateCommand)
             {
                 var posCmd = cmd as IntercomProtocol.PlayerPosUpdateCommand;
 
-                _playerId = ops.AddPlayer(posCmd.Coord);
-                OnLoggedIn();
+                if (!_initialCoordsReceived)
+                {
+                    OnInitialCoordsReceived();
+                    _initialCoordsReceived = true;
+                }
+
+                ops.PlayerMoved(_playerId, posCmd.Coord);
             }
         }
 
