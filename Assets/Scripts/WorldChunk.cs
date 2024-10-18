@@ -107,6 +107,48 @@ public class WorldChunk
         return chunk;
     }
 
+    public void PlaceKlotz(KlotzType type, Vector3Int root, KlotzDirection dir)
+    {
+        Vector3Int size = KlotzKB.KlotzSize(type);
+
+        for (int subZ = 0; subZ < size.z; subZ++)
+        {
+            for (int subX = 0; subX < size.x; subX++)
+            {
+                for (int subY = 0; subY < size.y; subY++)
+                {
+                    Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
+                        root, new(subX, subY, subZ), dir);
+
+                    Set(coords, new SubKlotz(KlotzType.Brick4x2, dir, subX, subY, subZ));
+                }
+            }
+        }
+    }
+
+    public void RemoveKlotz(Vector3Int klotzCoords)
+    {
+        SubKlotz k = Get(klotzCoords);
+        if (!k.IsRootSubKlotz)
+            return;
+
+        Vector3Int size = KlotzKB.KlotzSize(k.Type);
+
+        for (int subZ = 0; subZ < size.z; subZ++)
+        {
+            for (int subX = 0; subX < size.x; subX++)
+            {
+                for (int subY = 0; subY < size.y; subY++)
+                {
+                    Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
+                        klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
+
+                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0));
+                }
+            }
+        }
+    }
+
     public static Vector3Int PositionToChunkCoords(Vector3 position)
     {
         return new(

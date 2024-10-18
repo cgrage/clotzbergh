@@ -115,6 +115,11 @@ public readonly struct SubKlotz
         get { return (raw16bit >> 0) & 0x7; }
     }
 
+    public readonly Vector3Int SubKlotzIndex
+    {
+        get { return new(SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+    }
+
     public readonly bool IsClear
     {
         get { return KlotzKB.IsSubKlotzClear(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
@@ -130,10 +135,7 @@ public readonly struct SubKlotz
     /// </summary>
     public readonly Vector3Int RootPos(Vector3Int myPos)
     {
-        return new(
-            myPos.x - SubKlotzIndexX,
-            myPos.y - SubKlotzIndexY,
-            myPos.z - SubKlotzIndexZ);
+        return TranslateCoordsWithSubIndexToRootCoord(myPos, SubKlotzIndex, Direction);
     }
 
     public static SubKlotz Deserialize(BinaryReader r)
@@ -145,6 +147,18 @@ public readonly struct SubKlotz
     {
         w.Write(raw16bit);
     }
+
+    public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
+    {
+        // TODO!
+        return rootCoords + subIndex;
+    }
+
+    public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coord, Vector3Int subIndex, KlotzDirection dir)
+    {
+        // TODO!
+        return coord - subIndex;
+    }
 }
 
 /// <summary>
@@ -155,7 +169,7 @@ public class Klotz
     /// <summary>
     /// 
     /// </summary>
-    public Vector3Int innerChunkCoords;
+    public Vector3Int rootCoords;
 
     /// <summary>
     /// 

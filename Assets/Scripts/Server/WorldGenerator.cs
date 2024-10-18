@@ -33,34 +33,10 @@ public class WorldGenerator
             }
         }
 
-        PlaceBrick4x2(chunk, 14, 39, 15, KlotzDirection.ToPosX);
-        // PlacePlate1x1(chunk, 14, 39, 14, KlotzDirection.ToNegX);
-        // PlacePlate1x1(chunk, 14, 39, 17, KlotzDirection.ToNegX);
-        // PlacePlate1x1(chunk, 17, 39, 14, KlotzDirection.ToNegX);
-        // PlacePlate1x1(chunk, 17, 39, 17, KlotzDirection.ToNegX);
-
+        //chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(14, 39, 15), (KlotzDirection)((chunkCoords.x + chunkCoords.y + chunkCoords.z) % 4));
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(14, 39, 15), KlotzDirection.ToPosX);
         return chunk;
     }
-
-    private static void PlaceBrick4x2(WorldChunk chunk, int x, int y, int z, KlotzDirection dir)
-    {
-        for (int subZ = 0; subZ < 2; subZ++)
-        {
-            for (int subX = 0; subX < 4; subX++)
-            {
-                for (int subY = 0; subY < 3; subY++)
-                {
-                    chunk.Set(x + subX, y + subY, z + subZ,
-                        new SubKlotz(KlotzType.Brick4x2, dir, subX, subY, subZ));
-                }
-            }
-        }
-    }
-    private static void PlacePlate1x1(WorldChunk chunk, int x, int y, int z, KlotzDirection dir)
-    {
-        chunk.Set(x, y, z, new SubKlotz(KlotzType.Plate1x1, dir, 0, 0, 0));
-    }
-
 
     public Mesh GeneratePreviewMesh(int dist)
     {

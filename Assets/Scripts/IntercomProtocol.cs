@@ -10,6 +10,7 @@ public static class IntercomProtocol
         {
             PlayerPosUpdate = 1,
             ChuckData = 2,
+            TakeKlotz = 3,
         }
 
         public CodeValue Code { get; private set; }
@@ -45,6 +46,7 @@ public static class IntercomProtocol
             {
                 CodeValue.PlayerPosUpdate => new PlayerPosUpdateCommand(reader),
                 CodeValue.ChuckData => new ChunkDataCommand(reader),
+                CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
                 _ => throw new IOException("Invalid command"),
             };
         }
@@ -52,14 +54,16 @@ public static class IntercomProtocol
 
     public class PlayerPosUpdateCommand : Command
     {
+        const CodeValue CommandCode = CodeValue.PlayerPosUpdate;
+
         public Vector3Int Coord { get; private set; }
 
-        public PlayerPosUpdateCommand(Vector3Int coord) : base(CodeValue.PlayerPosUpdate)
+        public PlayerPosUpdateCommand(Vector3Int coord) : base(CommandCode)
         {
             Coord = coord;
         }
 
-        public PlayerPosUpdateCommand(BinaryReader reader) : base(CodeValue.PlayerPosUpdate)
+        public PlayerPosUpdateCommand(BinaryReader reader) : base(CommandCode)
         {
             Coord = new Vector3Int(
                 reader.ReadInt32(),
@@ -77,18 +81,20 @@ public static class IntercomProtocol
 
     public class ChunkDataCommand : Command
     {
+        const CodeValue CommandCode = CodeValue.ChuckData;
+
         public Vector3Int Coord;
         public ulong Version;
         public WorldChunk Chunk;
 
-        public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CodeValue.ChuckData)
+        public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CommandCode)
         {
             Coord = coord;
             Version = version;
             Chunk = chunk;
         }
 
-        public ChunkDataCommand(BinaryReader r) : base(CodeValue.ChuckData)
+        public ChunkDataCommand(BinaryReader r) : base(CommandCode)
         {
             Coord = new Vector3Int(
                 r.ReadInt32(),
@@ -105,6 +111,42 @@ public static class IntercomProtocol
             w.Write(Coord.z);
             w.Write(Version);
             Chunk.Serialize(w);
+        }
+    }
+
+    public class TakeKlotzCommand : Command
+    {
+        const CodeValue CommandCode = CodeValue.TakeKlotz;
+
+        public Vector3Int ChunkCoord;
+        public Vector3Int InnerChunkCoord;
+
+        public TakeKlotzCommand(Vector3Int coord, Vector3Int innerChunkCoord) : base(CommandCode)
+        {
+            ChunkCoord = coord;
+            InnerChunkCoord = innerChunkCoord;
+        }
+
+        public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
+        {
+            ChunkCoord = new Vector3Int(
+                r.ReadInt32(),
+                r.ReadInt32(),
+                r.ReadInt32());
+            InnerChunkCoord = new Vector3Int(
+                r.ReadInt32(),
+                r.ReadInt32(),
+                r.ReadInt32());
+        }
+
+        protected override void Serialize(BinaryWriter w)
+        {
+            w.Write(ChunkCoord.x);
+            w.Write(ChunkCoord.y);
+            w.Write(ChunkCoord.z);
+            w.Write(InnerChunkCoord.x);
+            w.Write(InnerChunkCoord.y);
+            w.Write(InnerChunkCoord.z);
         }
     }
 }

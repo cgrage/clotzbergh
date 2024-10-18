@@ -72,4 +72,13 @@ public class WorldMap
             Chunk = worldState.Chunk,
         };
     }
+
+    public void PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+    {
+        // Debug.Log($"ServerMap: PlayerTakeKlotz ${id} ${chunkCoords} ${innerChunkCoords}");
+        WorldChunkState worldState = GetWorldState(chunkCoords);
+
+        worldState.Chunk.RemoveKlotz(innerChunkCoords);
+        worldState.Version++;
+    }
 }

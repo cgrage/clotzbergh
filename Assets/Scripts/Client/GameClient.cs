@@ -9,6 +9,7 @@ using WebSocketSharp;
 public interface IClientSideOps
 {
     void RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
+    void TakeKlotz(Vector3Int chunkCoords, Vector3Int innerChunkCoords);
 }
 
 public class GameClient : MonoBehaviour, IClientSideOps
@@ -220,10 +221,10 @@ public class GameClient : MonoBehaviour, IClientSideOps
             case IntercomProtocol.Command.CodeValue.ChuckData:
                 var realCmd = (IntercomProtocol.ChunkDataCommand)cmd;
                 ToMainThread(() =>
-                 {
-                     _receivedChunks++;
-                     _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Version, realCmd.Chunk);
-                 });
+                {
+                    _receivedChunks++;
+                    _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Version, realCmd.Chunk);
+                });
                 break;
         }
     }
@@ -281,5 +282,14 @@ public class GameClient : MonoBehaviour, IClientSideOps
     void IClientSideOps.RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion)
     {
         _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
+    }
+
+    void IClientSideOps.TakeKlotz(Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+    {
+        _connectionThreadActionQueue.Add((ws) =>
+        {
+            IntercomProtocol.TakeKlotzCommand cmd = new(chunkCoords, innerChunkCoords);
+            ws.Send(cmd.ToBytes());
+        });
     }
 }
