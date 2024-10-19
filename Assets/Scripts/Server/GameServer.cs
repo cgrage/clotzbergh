@@ -194,8 +194,10 @@ public class GameServer : MonoBehaviour, IServerSideOps
         {
             try
             {
-                HandleCommand(IntercomProtocol.Command.FromBytes(e.RawData));
+                var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
                 // Debug.LogFormat("Server received command '{0}'", cmd.Code);
+
+                HandleCommand(cmd);
             }
             catch (Exception ex)
             {

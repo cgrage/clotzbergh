@@ -56,18 +56,14 @@ public class WorldMap
     {
         _playerStates.TryGetValue(id, out PlayerWorldMapState playerState);
 
-        Vector3Int? next = playerState.GetNextToUpdate((at) => GetWorldState(at).Version);
+        Vector3Int? next = playerState.GetNextAndSetUpdated((at) => GetWorldState(at).Version);
         if (!next.HasValue)
             return null;
 
-        Vector3Int coords = next.Value;
-        playerState.SetSentOutVersion(coords, 1);
-
-        WorldChunkState worldState = GetWorldState(coords);
-
+        WorldChunkState worldState = GetWorldState(next.Value);
         return new()
         {
-            Coords = coords,
+            Coords = next.Value,
             Version = worldState.Version,
             Chunk = worldState.Chunk,
         };

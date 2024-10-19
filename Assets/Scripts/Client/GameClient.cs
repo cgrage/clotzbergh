@@ -288,6 +288,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
     {
         _connectionThreadActionQueue.Add((ws) =>
         {
+            // Debug.Log($"Client: TakeKlotz {chunkCoords}.{innerChunkCoords}");
             IntercomProtocol.TakeKlotzCommand cmd = new(chunkCoords, innerChunkCoords);
             ws.Send(cmd.ToBytes());
         });

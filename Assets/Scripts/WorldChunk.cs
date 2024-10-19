@@ -25,7 +25,7 @@ public class WorldChunk
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     _klotzData[x, y, z] = new SubKlotz(
-                        KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
+                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
         }
@@ -45,7 +45,7 @@ public class WorldChunk
                          z > WorldDef.ChunkSubDivsZ / 4 && z < 3 * WorldDef.ChunkSubDivsZ / 4;
 
                     if (inCore) _klotzData[x, y, z] = new SubKlotz(
-                        KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0);
+                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0);
                 }
             }
         }
@@ -107,7 +107,7 @@ public class WorldChunk
         return chunk;
     }
 
-    public void PlaceKlotz(KlotzType type, Vector3Int root, KlotzDirection dir)
+    public void PlaceKlotz(KlotzType type, KlotzColor color, Vector3Int root, KlotzDirection dir)
     {
         Vector3Int size = KlotzKB.KlotzSize(type);
 
@@ -120,7 +120,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
                         root, new(subX, subY, subZ), dir);
 
-                    Set(coords, new SubKlotz(KlotzType.Brick4x2, dir, subX, subY, subZ));
+                    Set(coords, new SubKlotz(KlotzType.Brick4x2, color, dir, subX, subY, subZ));
                 }
             }
         }
@@ -129,8 +129,18 @@ public class WorldChunk
     public void RemoveKlotz(Vector3Int klotzCoords)
     {
         SubKlotz k = Get(klotzCoords);
+
         if (!k.IsRootSubKlotz)
+        {
+            Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (not a root).");
             return;
+        }
+
+        if (k.IsAir)
+        {
+            Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (air).");
+            return;
+        }
 
         Vector3Int size = KlotzKB.KlotzSize(k.Type);
 
@@ -143,7 +153,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
                         klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
 
-                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0));
+                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
                 }
             }
         }

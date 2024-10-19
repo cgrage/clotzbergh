@@ -93,20 +93,19 @@ public class PlayerWorldMapState
         _chunks.Sort((a, b) => a.Priority.CompareTo(b.Priority));
     }
 
-    public Vector3Int? GetNextToUpdate(Func<Vector3Int, ulong> worldVersionFunc)
+    public Vector3Int? GetNextAndSetUpdated(Func<Vector3Int, ulong> worldVersionFunc)
     {
         foreach (var chunk in _chunks)
         {
-            if (chunk.SentOutVersion < worldVersionFunc(chunk.Coords))
+            ulong worldVersion = worldVersionFunc(chunk.Coords);
+            if (chunk.SentOutVersion < worldVersion)
+            {
+                chunk.SentOutVersion = worldVersion;
                 return chunk.Coords;
+            }
         }
 
         return null;
-    }
-
-    public void SetSentOutVersion(Vector3Int value, ulong version)
-    {
-        _chunkData[value].SentOutVersion = version;
     }
 }
 
