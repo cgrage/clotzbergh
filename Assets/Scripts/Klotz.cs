@@ -17,6 +17,17 @@ public enum KlotzDirection
     ToNegZ = 3,
 }
 
+public enum KlotzColor
+{
+    White = 0,
+    Gray = 1,
+    Black = 2,
+    Red = 3,
+    Blue = 4,
+    Yellow = 5,
+    Green = 6,
+}
+
 public static class KlotzKB
 {
     /// <summary>
@@ -46,28 +57,30 @@ public static class KlotzKB
 /// <summary>
 /// The base voxel for the terrain.
 /// 
-/// KlotzType             ->  5 bit
+/// KlotzType (0..255)    ->  8 bit
+/// Color (0..31)         ->  5 bit
 /// Orientation (N/E/S/W) ->  2 bit
 /// SubKlotzIndexX (0..7) ->  3 bit
 /// SubKlotzIndexY (0..7) ->  3 bit
 /// SubKlotzIndexZ (0..7) ->  3 bit
 /// --------------------------------
-/// Sum                       16 bit
+/// Sum                       24 bit
 /// 
 /// </summary>
 public readonly struct SubKlotz
 {
-    private readonly ushort raw16bit;
+    private readonly uint raw24bit;
 
-    public SubKlotz(ushort u16)
+    public SubKlotz(uint u32)
     {
-        raw16bit = u16;
+        raw24bit = u32;
     }
 
-    public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    public SubKlotz(KlotzType type, KlotzColor color, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
-        raw16bit = (ushort)(
-            ((int)type & 0x1f) << 11 |
+        raw24bit = (uint)(
+            ((int)type & 0xff) << 16 |
+            ((int)color & 0x1f) << 11 |
             ((int)dir & 0x3) << 9 |
             (subIdxX & 0x7) << 6 |
             (subIdxY & 0x7) << 3 |
@@ -76,37 +89,48 @@ public readonly struct SubKlotz
 
     public readonly KlotzType Type
     {
-        // bits: xxxxx00000000000
-        get { return (KlotzType)(raw16bit >> 11); }
+        // bits: xxxxxxxx0000000000000000
+        get { return (KlotzType)(raw24bit >> 16); }
+    }
+
+    public readonly KlotzColor Color
+    {
+        // bits: 00000000xxxxx00000000000
+        get { return (KlotzColor)((raw24bit >> 11) & 0x1f); }
     }
 
     public readonly KlotzDirection Direction
     {
-        // bits: 00000xx000000000
-        get { return (KlotzDirection)((raw16bit >> 9) & 0x3); }
+        // bits: 0000000000000xx000000000
+        get { return (KlotzDirection)((raw24bit >> 9) & 0x3); }
     }
 
     public readonly int SubKlotzIndexX
     {
-        // bits: 0000000xxx000000
-        get { return (raw16bit >> 6) & 0x7; }
+        // bits: 000000000000000xxx000000
+        get { return (int)((raw24bit >> 6) & 0x7); }
     }
 
     public readonly int SubKlotzIndexY
     {
-        // bits: 0000000000xxx000
-        get { return (raw16bit >> 3) & 0x7; }
+        // bits: 000000000000000000xxx000
+        get { return (int)((raw24bit >> 3) & 0x7); }
     }
 
     public readonly int SubKlotzIndexZ
     {
-        // bits: 0000000000000xxx
-        get { return (raw16bit >> 0) & 0x7; }
+        // bits: 000000000000000000000xxx
+        get { return (int)((raw24bit >> 0) & 0x7); }
     }
 
     public readonly Vector3Int SubKlotzIndex
     {
         get { return new(SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+    }
+
+    public readonly bool IsAir
+    {
+        get { return Type == KlotzType.Air; }
     }
 
     public readonly bool IsClear
@@ -116,7 +140,7 @@ public readonly struct SubKlotz
 
     public readonly bool IsRootSubKlotz
     {
-        get { return (raw16bit & 0x1ff) == 0; }
+        get { return (raw24bit & 0x1ff) == 0; }
     }
 
     /// <summary>
@@ -129,12 +153,17 @@ public readonly struct SubKlotz
 
     public static SubKlotz Deserialize(BinaryReader r)
     {
-        return new SubKlotz(r.ReadUInt16());
+        return new SubKlotz(
+            (((uint)r.ReadByte()) << 16) |
+            (((uint)r.ReadByte()) << 8) |
+            (((uint)r.ReadByte()) << 0));
     }
 
     public readonly void Serialize(BinaryWriter w)
     {
-        w.Write(raw16bit);
+        w.Write((byte)((raw24bit >> 16) & 0xff));
+        w.Write((byte)((raw24bit >> 08) & 0xff));
+        w.Write((byte)((raw24bit >> 00) & 0xff));
     }
 
     public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)

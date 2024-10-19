@@ -23,24 +23,24 @@ public class WorldGenerator
 
                     if (scaledY > height)
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }
         }
 
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, KlotzColor.Green, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
 
         return chunk;
     }
