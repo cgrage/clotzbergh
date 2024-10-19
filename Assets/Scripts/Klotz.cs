@@ -32,17 +32,6 @@ public static class KlotzKB
         };
     }
 
-    /// <summary>
-    /// Return the size of the Klotz when placed in direction <c>d</c>.
-    /// </summary>
-    public static Vector3Int KlotzSize(KlotzType t, KlotzDirection d)
-    {
-        Vector3Int result = KlotzSize(t);
-        if (d == KlotzDirection.ToPosZ || d == KlotzDirection.ToNegZ)
-            (result.z, result.x) = (result.x, result.z);
-        return result;
-    }
-
     public static bool IsSubKlotzClear(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
     {
         return t switch
@@ -150,14 +139,50 @@ public readonly struct SubKlotz
 
     public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
     {
-        // TODO!
-        return rootCoords + subIndex;
+        return dir switch
+        {
+            KlotzDirection.ToPosX => new(rootCoords.x + subIndex.x, rootCoords.y + subIndex.y, rootCoords.z + subIndex.z),
+            KlotzDirection.ToNegX => new(rootCoords.x - subIndex.x, rootCoords.y + subIndex.y, rootCoords.z - subIndex.z),
+            KlotzDirection.ToPosZ => new(rootCoords.x - subIndex.z, rootCoords.y + subIndex.y, rootCoords.z + subIndex.x),
+            KlotzDirection.ToNegZ => new(rootCoords.x + subIndex.z, rootCoords.y + subIndex.y, rootCoords.z - subIndex.x),
+            _ => throw new ArgumentException("Invalid direction")
+        };
     }
 
     public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coord, Vector3Int subIndex, KlotzDirection dir)
     {
-        // TODO!
-        return coord - subIndex;
+        return dir switch
+        {
+            KlotzDirection.ToPosX => new(coord.x - subIndex.x, coord.y - subIndex.y, coord.z - subIndex.z),
+            KlotzDirection.ToNegX => new(coord.x + subIndex.x, coord.y - subIndex.y, coord.z + subIndex.z),
+            KlotzDirection.ToPosZ => new(coord.x + subIndex.z, coord.y - subIndex.y, coord.z - subIndex.x),
+            KlotzDirection.ToNegZ => new(coord.x - subIndex.z, coord.y - subIndex.y, coord.z + subIndex.x),
+            _ => throw new ArgumentException("Invalid direction")
+        };
+    }
+
+    public static Vector3 TranslateSubKlotzCoordToWorldLocation(Vector3Int rootCoords, KlotzDirection dir)
+    {
+        return dir switch
+        {
+            KlotzDirection.ToPosX => Vector3.Scale(rootCoords + new Vector3Int(0, 0, 0), WorldDef.SubKlotzSize),
+            KlotzDirection.ToPosZ => Vector3.Scale(rootCoords + new Vector3Int(1, 0, 0), WorldDef.SubKlotzSize),
+            KlotzDirection.ToNegX => Vector3.Scale(rootCoords + new Vector3Int(1, 0, 1), WorldDef.SubKlotzSize),
+            KlotzDirection.ToNegZ => Vector3.Scale(rootCoords + new Vector3Int(0, 0, 1), WorldDef.SubKlotzSize),
+            _ => throw new ArgumentException("Invalid direction")
+        };
+    }
+
+    public static Quaternion KlotzDirectionToQuaternion(KlotzDirection dir)
+    {
+        return dir switch
+        {
+            KlotzDirection.ToPosX => Quaternion.AngleAxis(0, Vector3.up),
+            KlotzDirection.ToPosZ => Quaternion.AngleAxis(-90, Vector3.up),
+            KlotzDirection.ToNegX => Quaternion.AngleAxis(-180, Vector3.up),
+            KlotzDirection.ToNegZ => Quaternion.AngleAxis(-270, Vector3.up),
+            _ => throw new ArgumentException("Invalid direction")
+        };
     }
 }
 
@@ -184,5 +209,15 @@ public class Klotz
     /// <summary>
     /// 
     /// </summary>
+    public Quaternion worldRotation;
+
+    /// <summary>
+    /// 
+    /// </summary>
     public KlotzType type;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public bool isFreeToTake;
 }

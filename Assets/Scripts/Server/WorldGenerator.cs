@@ -33,8 +33,15 @@ public class WorldGenerator
             }
         }
 
-        //chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(14, 39, 15), (KlotzDirection)((chunkCoords.x + chunkCoords.y + chunkCoords.z) % 4));
-        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(14, 39, 15), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick4x2, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
+
         return chunk;
     }
 

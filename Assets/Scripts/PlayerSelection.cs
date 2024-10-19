@@ -35,8 +35,10 @@ public class PlayerSelection : MonoBehaviour
             _viewedKlotz = selection.viewedKlotz;
             _viewedPosition = selection.viewedPosition;
 
+            SetSelectionBoxColor(_viewedKlotz.isFreeToTake ? Color.green : Color.red);
             _highlightBox.transform.position = _viewedKlotz.worldPosition;
             _highlightBox.transform.localScale = _viewedKlotz.worldSize;
+            _highlightBox.transform.rotation = _viewedKlotz.worldRotation;
             _highlightBox.SetActive(true);
         }
         else
@@ -106,40 +108,45 @@ public class PlayerSelection : MonoBehaviour
             style);
     }
 
+    private void SetSelectionBoxColor(Color color)
+    {
+        LineRenderer lr = _highlightBox.GetComponent<LineRenderer>();
+        lr.startColor = color;
+        lr.endColor = color;
+    }
+
     private static GameObject CreateHighlightCube()
     {
         GameObject box = new("Highlight Box");
 
         // Define the vertices of the cuboid
         Vector3[] vertices = {
-            new (0, 0, 0), new (1, 0, 0), new (1, 1, 0), new (0, 1, 0),
-            new (0, 0, 1), new (1, 0, 1), new (1, 1, 1), new (0, 1, 1)
+            new (0, 0, 0), new (1, 0, 0), new (1, 0, 1), new (0, 0, 1), // Bottom vertices
+            new (0, 1, 0), new (1, 1, 0), new (1, 1, 1), new (0, 1, 1), // Top vertices
         };
 
         // Define the edges of the cuboid
-        int[,] edges = {
-            { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 },
-            { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 },
-            { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
+        int[] positions = {
+            0, 1, 2, 3, 0, // Bottom
+            4, 5, 6, 7, 4, // Top
+            5, 1, 2, 6, 7, 3 // Sticky
         };
 
-        // Create a LineRenderer for each edge
-        for (int i = 0; i < edges.GetLength(0); i++)
-        {
-            GameObject lineObj = new("Line");
-            lineObj.transform.SetParent(box.transform);
+        // Create a single LineRenderer for all edges
+        LineRenderer lr = box.AddComponent<LineRenderer>();
+        lr.material = new Material(Shader.Find("Sprites/Default")); // Using a simple shader
+        lr.startColor = Color.black;
+        lr.endColor = Color.black;
+        lr.startWidth = 0.03f;
+        lr.endWidth = 0.03f;
+        lr.positionCount = positions.Length;
+        lr.useWorldSpace = false; // Ensure local space rendering
+        lr.numCapVertices = 2; // Add anti-aliasing to the lines
 
-            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
-            lr.material = new Material(Shader.Find("Sprites/Default")); // Using a simple shader
-            lr.startColor = Color.black;
-            lr.endColor = Color.black;
-            lr.startWidth = 0.03f;
-            lr.endWidth = 0.03f;
-            lr.positionCount = 2;
-            lr.SetPosition(0, vertices[edges[i, 0]]);
-            lr.SetPosition(1, vertices[edges[i, 1]]);
-            lr.useWorldSpace = false; // Ensure local space rendering
-            lr.numCapVertices = 2; // Add anti-aliasing to the lines
+        // Set positions for all edges
+        for (int i = 0; i < positions.Length; i++)
+        {
+            lr.SetPosition(i, vertices[positions[i]]);
         }
 
         return box;
