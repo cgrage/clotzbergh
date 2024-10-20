@@ -44,29 +44,29 @@ public class MeshGenerator
                 for (int x = 0, xi = 0; x < WorldDef.ChunkSubDivsX; x += lodSkip, xi++)
                 {
                     SubKlotz k = worldChunk.Get(x, y, z);
-                    bool clear = k.IsClear;
-                    if (clear)
+                    bool opaque = k.IsOpaque;
+                    if (!opaque)
                         continue; // later this will be more complex, I guess.
 
-                    bool clearXM1 = stitcher.IsKnownClearAt(x - lodSkip, y, z);
-                    bool clearXP1 = stitcher.IsKnownClearAt(x + lodSkip, y, z);
-                    bool clearYM1 = stitcher.IsKnownClearAt(x, y - lodSkip, z);
-                    bool clearYP1 = stitcher.IsKnownClearAt(x, y + lodSkip, z);
-                    bool clearZM1 = stitcher.IsKnownClearAt(x, y, z - lodSkip);
-                    bool clearZP1 = stitcher.IsKnownClearAt(x, y, z + lodSkip);
+                    bool opaqueXM1 = stitcher.IsKnownOpaqueAt(x - lodSkip, y, z);
+                    bool opaqueXP1 = stitcher.IsKnownOpaqueAt(x + lodSkip, y, z);
+                    bool opaqueYM1 = stitcher.IsKnownOpaqueAt(x, y - lodSkip, z);
+                    bool opaqueYP1 = stitcher.IsKnownOpaqueAt(x, y + lodSkip, z);
+                    bool opaqueZM1 = stitcher.IsKnownOpaqueAt(x, y, z - lodSkip);
+                    bool opaqueZP1 = stitcher.IsKnownOpaqueAt(x, y, z + lodSkip);
 
-                    if (!clearXM1 && !clearXP1 && !clearYM1 && !clearYP1 && !clearZM1 && !clearZP1)
+                    if (opaqueXM1 && opaqueXP1 && opaqueYM1 && opaqueYP1 && opaqueZM1 && opaqueZP1)
                         continue;
 
                     builder.MoveTo(xi, yi, zi);
                     builder.SetColorVariantFromPosition(k.RootPos(new(x, y, z)));
 
-                    if (clearXM1) builder.AddFaceXM1();
-                    if (clearXP1) builder.AddFaceXP1();
-                    if (clearYM1) builder.AddFaceYM1();
-                    if (clearYP1) builder.AddFaceYP1();
-                    if (clearZM1) builder.AddFaceZM1();
-                    if (clearZP1) builder.AddFaceZP1();
+                    if (!opaqueXM1) builder.AddFaceXM1();
+                    if (!opaqueXP1) builder.AddFaceXP1();
+                    if (!opaqueYM1) builder.AddFaceYM1();
+                    if (!opaqueYP1) builder.AddFaceYP1();
+                    if (!opaqueZM1) builder.AddFaceZM1();
+                    if (!opaqueZP1) builder.AddFaceZP1();
                 }
             }
         }
@@ -128,13 +128,13 @@ public class WorldStitcher
         else { return _worldChunk.Get(x, y, z); }
     }
 
-    public bool IsKnownClearAt(int x, int y, int z)
+    public bool IsKnownOpaqueAt(int x, int y, int z)
     {
         SubKlotz? subKlotz = At(x, y, z);
         if (!subKlotz.HasValue)
             return false;
 
-        return subKlotz.Value.IsClear;
+        return subKlotz.Value.IsOpaque;
     }
 }
 
