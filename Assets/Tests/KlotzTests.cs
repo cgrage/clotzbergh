@@ -10,15 +10,14 @@ public class KlotzTests
     {
         SubKlotz klotz;
 
-        klotz = new(KlotzType.Air, 0, KlotzDirection.ToPosX, 0, 0, 0);
+        klotz = new(KlotzType.Air, 0, KlotzDirection.ToPosX);
         Assert.AreEqual(KlotzType.Air, klotz.Type);
 
-        klotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX, 0, 0, 0);
+        klotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX);
         Assert.AreEqual(KlotzType.Plate1x1, klotz.Type);
 
-        klotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToNegZ, 1, 2, 3);
-        Assert.AreEqual(KlotzType.Brick4x2, klotz.Type);
-        Assert.AreEqual(KlotzDirection.ToNegZ, klotz.Direction);
+        klotz = new(KlotzType.Brick4x2, 1, 2, 3);
+        Assert.IsTrue(klotz.IsOpaque);
         Assert.AreEqual(1, klotz.SubKlotzIndexX);
         Assert.AreEqual(2, klotz.SubKlotzIndexY);
         Assert.AreEqual(3, klotz.SubKlotzIndexZ);
@@ -29,28 +28,18 @@ public class KlotzTests
     {
         SubKlotz subKlotz;
 
-        subKlotz = new(KlotzType.Air, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsTrue(subKlotz.IsClear);
+        subKlotz = new(KlotzType.Air, 0, KlotzDirection.ToPosX);
+        Assert.IsFalse(subKlotz.IsOpaque);
 
-        subKlotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsFalse(subKlotz.IsClear);
+        subKlotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX);
+        Assert.IsTrue(subKlotz.IsOpaque);
 
-        subKlotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsFalse(subKlotz.IsClear);
+        subKlotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToPosX);
+        Assert.IsTrue(subKlotz.IsOpaque);
     }
 
-    [Test]
-    public void SubKlotzSerialization()
+    private SubKlotz CopyBySerialization(SubKlotz orig)
     {
-        var type = KlotzType.Brick4x2;
-        var color = KlotzColor.Yellow;
-        var direction = KlotzDirection.ToPosZ;
-        var indexX = 3;
-        var indexY = 4;
-        var indexZ = 5;
-
-        SubKlotz orig = new(type, color, direction, indexX, indexY, indexZ);
-        SubKlotz copy;
         byte[] bytes;
 
         using (MemoryStream memoryStream = new())
@@ -69,13 +58,38 @@ public class KlotzTests
         {
             using (BinaryReader reader = new(memoryStream))
             {
-                copy = SubKlotz.Deserialize(reader);
+                return SubKlotz.Deserialize(reader);
             }
         }
+    }
+
+    [Test]
+    public void SubKlotzSerialization1()
+    {
+        var type = KlotzType.Plate1x1;
+        var color = KlotzColor.Yellow;
+        var direction = KlotzDirection.ToPosZ;
+
+        SubKlotz orig = new(type, color, direction);
+        SubKlotz copy = CopyBySerialization(orig);
 
         Assert.AreEqual(type, copy.Type);
         Assert.AreEqual(color, copy.Color);
         Assert.AreEqual(direction, copy.Direction);
+    }
+
+    [Test]
+    public void SubKlotzSerialization2()
+    {
+        var type = KlotzType.Brick4x2;
+        var indexX = 3;
+        var indexY = 4;
+        var indexZ = 5;
+
+        SubKlotz orig = new(type, indexX, indexY, indexZ);
+        SubKlotz copy = CopyBySerialization(orig);
+
+        Assert.IsTrue(copy.IsOpaque);
         Assert.AreEqual(indexX, copy.SubKlotzIndexX);
         Assert.AreEqual(indexY, copy.SubKlotzIndexY);
         Assert.AreEqual(indexZ, copy.SubKlotzIndexZ);

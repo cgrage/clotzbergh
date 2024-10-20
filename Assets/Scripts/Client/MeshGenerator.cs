@@ -59,7 +59,7 @@ public class MeshGenerator
                         continue;
 
                     builder.MoveTo(xi, yi, zi);
-                    builder.SetColorVariantFromPosition(k.RootPos(new(x, y, z)));
+                    builder.SetColorVariantFromPosition(k.CalcRootCoords(new(x, y, z)));
 
                     if (clearXM1) builder.AddFaceXM1();
                     if (clearXP1) builder.AddFaceXP1();

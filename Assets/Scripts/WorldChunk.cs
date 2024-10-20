@@ -25,7 +25,7 @@ public class WorldChunk
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     _klotzData[x, y, z] = new SubKlotz(
-                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0);
+                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX);
                 }
             }
         }
@@ -45,7 +45,7 @@ public class WorldChunk
                          z > WorldDef.ChunkSubDivsZ / 4 && z < 3 * WorldDef.ChunkSubDivsZ / 4;
 
                     if (inCore) _klotzData[x, y, z] = new SubKlotz(
-                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0);
+                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX);
                 }
             }
         }
@@ -120,7 +120,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
                         root, new(subX, subY, subZ), dir);
 
-                    Set(coords, new SubKlotz(KlotzType.Brick4x2, color, dir, subX, subY, subZ));
+                    Set(coords, new SubKlotz(type, subX, subY, subZ));
                 }
             }
         }
@@ -153,7 +153,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
                         klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
 
-                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
+                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0));
                 }
             }
         }

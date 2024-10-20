@@ -52,75 +52,136 @@ public static class KlotzKB
             _ => true,
         };
     }
+
+    public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
+    {
+        return !IsSubKlotzClear(t, subIdxX, subIdxY, subIdxZ);
+    }
+}
+
+public enum SubKlotzKind
+{
+    Root = 0,
+    NonRoot = 1,
 }
 
 /// <summary>
 /// The base voxel for the terrain.
 /// 
-/// KlotzType (0..255)    ->  8 bit
-/// Color (0..31)         ->  5 bit
-/// Orientation (N/E/S/W) ->  2 bit
-/// SubKlotzIndexX (0..7) ->  3 bit
-/// SubKlotzIndexY (0..7) ->  3 bit
-/// SubKlotzIndexZ (0..7) ->  3 bit
+/// Root Block:
+/// SubKlotzKind
+/// Kind (=Root)           ->  1 bit
+/// Type (0..255)          ->  8 bit
+/// Color (0..31)          ->  5 bit
+/// Orientation (N/E/S/W)  ->  2 bit
 /// --------------------------------
-/// Sum                       24 bit
+/// Sum                       16 bit
+/// 
+/// Non-Root Block:
+/// Kind (=NonRoot)        ->  1 bit
+/// IsOpaque (0=false)     ->  1 bit
+/// Reserved               ->  2 bit
+/// SubKlotzIndexX (0..15) ->  4 bit
+/// SubKlotzIndexY (0..15) ->  4 bit
+/// SubKlotzIndexZ (0..15) ->  4 bit
+/// --------------------------------
+/// Sum                       16 bit
 /// 
 /// </summary>
 public readonly struct SubKlotz
 {
-    private readonly uint raw24bit;
+    private readonly uint rawBits;
 
-    public SubKlotz(uint u32)
+    public SubKlotz(uint raw)
     {
-        raw24bit = u32;
+        rawBits = raw;
     }
 
-    public SubKlotz(KlotzType type, KlotzColor color, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    public SubKlotz(KlotzType type, KlotzColor color, KlotzDirection dir)
     {
-        raw24bit = (uint)(
-            ((int)type & 0xff) << 16 |
-            ((int)color & 0x1f) << 11 |
-            ((int)dir & 0x3) << 9 |
-            (subIdxX & 0x7) << 6 |
-            (subIdxY & 0x7) << 3 |
-            (subIdxZ & 0x7) << 0);
+        rawBits = (uint)(
+            ((int)SubKlotzKind.Root & 0x1) << 15 |
+            ((int)type & 0xff) << 7 |
+            ((int)color & 0x1f) << 2 |
+            ((int)dir & 0x3) << 0);
+    }
+
+    public SubKlotz(bool isOpaque, int subIdxX, int subIdxY, int subIdxZ)
+    {
+        rawBits = (uint)(
+            ((int)SubKlotzKind.NonRoot & 0x1) << 15 |
+            (isOpaque ? 1 : 0) << 14 |
+            (subIdxX & 0xf) << 8 |
+            (subIdxY & 0xf) << 4 |
+            (subIdxZ & 0xf) << 0);
+    }
+
+    public SubKlotz(KlotzType type, int subIdxX, int subIdxY, int subIdxZ)
+        : this(KlotzKB.IsSubKlotzOpaque(type, subIdxX, subIdxY, subIdxZ), subIdxX, subIdxY, subIdxZ) { }
+
+    public readonly bool IsRootSubKlotz
+    {
+        get { return (rawBits & 0x8000) == 0; }
     }
 
     public readonly KlotzType Type
     {
-        // bits: xxxxxxxx0000000000000000
-        get { return (KlotzType)(raw24bit >> 16); }
+        // bits: 0xxxxxxxx0000000
+        get
+        {
+            if (!IsRootSubKlotz) throw new InvalidOperationException("Type of NonRoot-Block requested");
+            return (KlotzType)((rawBits >> 7) & 0xff);
+        }
     }
 
     public readonly KlotzColor Color
     {
-        // bits: 00000000xxxxx00000000000
-        get { return (KlotzColor)((raw24bit >> 11) & 0x1f); }
+        // bits: 000000000xxxxx00
+        get
+        {
+            if (!IsRootSubKlotz) throw new InvalidOperationException("Color of NonRoot-Block requested");
+            return (KlotzColor)((rawBits >> 2) & 0x1f);
+        }
     }
 
     public readonly KlotzDirection Direction
     {
-        // bits: 0000000000000xx000000000
-        get { return (KlotzDirection)((raw24bit >> 9) & 0x3); }
+        // bits: 00000000000000xx
+        get
+        {
+            if (!IsRootSubKlotz) throw new InvalidOperationException("Direction of NonRoot-Block requested");
+            return (KlotzDirection)((rawBits >> 0) & 0x3);
+        }
     }
 
     public readonly int SubKlotzIndexX
     {
-        // bits: 000000000000000xxx000000
-        get { return (int)((raw24bit >> 6) & 0x7); }
+        // bits: 0000xxxx00000000
+        get
+        {
+            if (IsRootSubKlotz) throw new InvalidOperationException("SubKlotzIndexX of Root-Block requested");
+            return (int)((rawBits >> 8) & 0xf);
+        }
     }
 
     public readonly int SubKlotzIndexY
     {
-        // bits: 000000000000000000xxx000
-        get { return (int)((raw24bit >> 3) & 0x7); }
+        // bits: 00000000xxxx0000
+        get
+        {
+            if (IsRootSubKlotz) throw new InvalidOperationException("SubKlotzIndexY of Root-Block requested");
+            return (int)((rawBits >> 4) & 0xf);
+        }
     }
 
     public readonly int SubKlotzIndexZ
     {
-        // bits: 000000000000000000000xxx
-        get { return (int)((raw24bit >> 0) & 0x7); }
+        // bits: 000000000000xxxx
+        get
+        {
+            if (IsRootSubKlotz) throw new InvalidOperationException("SubKlotzIndexZ of Root-Block requested");
+            return (int)((rawBits >> 0) & 0xf);
+        }
     }
 
     public readonly Vector3Int SubKlotzIndex
@@ -135,35 +196,38 @@ public readonly struct SubKlotz
 
     public readonly bool IsClear
     {
-        get { return KlotzKB.IsSubKlotzClear(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+        get { return !IsOpaque; }
     }
 
-    public readonly bool IsRootSubKlotz
+    public readonly bool IsOpaque
     {
-        get { return (raw24bit & 0x1ff) == 0; }
+
+        get
+        {
+            if (IsRootSubKlotz) return KlotzKB.IsSubKlotzOpaque(Type, 0, 0, 0);
+            else return (rawBits & 0x4000) != 0;
+        }
     }
 
     /// <summary>
     /// Calculates the position of the RootSubKlotz based on the position of this SubKlotz.
     /// </summary>
-    public readonly Vector3Int RootPos(Vector3Int myPos)
+    public readonly Vector3Int CalcRootCoords(Vector3Int myPos)
     {
-        return TranslateCoordsWithSubIndexToRootCoord(myPos, SubKlotzIndex, Direction);
+        if (IsRootSubKlotz)
+            return myPos;
+
+        return myPos - SubKlotzIndex;
     }
 
     public static SubKlotz Deserialize(BinaryReader r)
     {
-        return new SubKlotz(
-            (((uint)r.ReadByte()) << 16) |
-            (((uint)r.ReadByte()) << 8) |
-            (((uint)r.ReadByte()) << 0));
+        return new SubKlotz(r.ReadUInt16());
     }
 
     public readonly void Serialize(BinaryWriter w)
     {
-        w.Write((byte)((raw24bit >> 16) & 0xff));
-        w.Write((byte)((raw24bit >> 08) & 0xff));
-        w.Write((byte)((raw24bit >> 00) & 0xff));
+        w.Write((ushort)rawBits);
     }
 
     public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)

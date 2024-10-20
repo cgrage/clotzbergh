@@ -220,9 +220,10 @@ public class ClientChunk
             return null;
 
         SubKlotz k = _currentWorld.Get(subKlotzCoords);
-        Vector3Int rootCoords = k.RootPos(subKlotzCoords);
+        Vector3Int rootCoords = k.CalcRootCoords(subKlotzCoords);
 
-        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(rootCoords, k.Direction);
+        Vector3Int husel = SubKlotz.TranslateCoordsWithSubIndexToRootCoord(myPos, SubKlotzIndex, Direction);
+        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(husel, k.Direction);
         Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(_coords);
         Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(k.Type), WorldDef.SubKlotzSize);
         Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(k.Direction);
