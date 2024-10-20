@@ -43,13 +43,12 @@ public static class KlotzKB
         };
     }
 
-    public static bool IsSubKlotzClear(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
+    public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
     {
         return t switch
         {
-            KlotzType.Plate1x1 => false,
-            KlotzType.Brick4x2 => false,
-            _ => true,
+            KlotzType.Air => false,
+            _ => true
         };
     }
 }
@@ -69,16 +68,16 @@ public static class KlotzKB
 /// </summary>
 public readonly struct SubKlotz
 {
-    private readonly uint raw24bit;
+    private readonly uint rawBits;
 
     public SubKlotz(uint u32)
     {
-        raw24bit = u32;
+        rawBits = u32;
     }
 
     public SubKlotz(KlotzType type, KlotzColor color, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
-        raw24bit = (uint)(
+        rawBits = (uint)(
             ((int)type & 0xff) << 16 |
             ((int)color & 0x1f) << 11 |
             ((int)dir & 0x3) << 9 |
@@ -90,37 +89,37 @@ public readonly struct SubKlotz
     public readonly KlotzType Type
     {
         // bits: xxxxxxxx0000000000000000
-        get { return (KlotzType)(raw24bit >> 16); }
+        get { return (KlotzType)(rawBits >> 16); }
     }
 
     public readonly KlotzColor Color
     {
         // bits: 00000000xxxxx00000000000
-        get { return (KlotzColor)((raw24bit >> 11) & 0x1f); }
+        get { return (KlotzColor)((rawBits >> 11) & 0x1f); }
     }
 
     public readonly KlotzDirection Direction
     {
         // bits: 0000000000000xx000000000
-        get { return (KlotzDirection)((raw24bit >> 9) & 0x3); }
+        get { return (KlotzDirection)((rawBits >> 9) & 0x3); }
     }
 
     public readonly int SubKlotzIndexX
     {
         // bits: 000000000000000xxx000000
-        get { return (int)((raw24bit >> 6) & 0x7); }
+        get { return (int)((rawBits >> 6) & 0x7); }
     }
 
     public readonly int SubKlotzIndexY
     {
         // bits: 000000000000000000xxx000
-        get { return (int)((raw24bit >> 3) & 0x7); }
+        get { return (int)((rawBits >> 3) & 0x7); }
     }
 
     public readonly int SubKlotzIndexZ
     {
         // bits: 000000000000000000000xxx
-        get { return (int)((raw24bit >> 0) & 0x7); }
+        get { return (int)((rawBits >> 0) & 0x7); }
     }
 
     public readonly Vector3Int SubKlotzIndex
@@ -133,14 +132,14 @@ public readonly struct SubKlotz
         get { return Type == KlotzType.Air; }
     }
 
-    public readonly bool IsClear
+    public readonly bool IsOpaque
     {
-        get { return KlotzKB.IsSubKlotzClear(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+        get { return KlotzKB.IsSubKlotzOpaque(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
     }
 
     public readonly bool IsRootSubKlotz
     {
-        get { return (raw24bit & 0x1ff) == 0; }
+        get { return (rawBits & 0x1ff) == 0; }
     }
 
     /// <summary>
@@ -161,9 +160,9 @@ public readonly struct SubKlotz
 
     public readonly void Serialize(BinaryWriter w)
     {
-        w.Write((byte)((raw24bit >> 16) & 0xff));
-        w.Write((byte)((raw24bit >> 08) & 0xff));
-        w.Write((byte)((raw24bit >> 00) & 0xff));
+        w.Write((byte)((rawBits >> 16) & 0xff));
+        w.Write((byte)((rawBits >> 08) & 0xff));
+        w.Write((byte)((rawBits >> 00) & 0xff));
     }
 
     public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)

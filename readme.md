@@ -22,3 +22,6 @@ Game-play:
 
 Deployment:
 - How to bundle the game?
+
+Learn:
+- https://github.com/mxgmn/WaveFunctionCollapse

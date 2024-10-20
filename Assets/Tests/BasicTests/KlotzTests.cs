@@ -30,13 +30,13 @@ public class KlotzTests
         SubKlotz subKlotz;
 
         subKlotz = new(KlotzType.Air, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsTrue(subKlotz.IsClear);
+        Assert.IsFalse(subKlotz.IsOpaque);
 
         subKlotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsFalse(subKlotz.IsClear);
+        Assert.IsTrue(subKlotz.IsOpaque);
 
         subKlotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToPosX, 0, 0, 0);
-        Assert.IsFalse(subKlotz.IsClear);
+        Assert.IsTrue(subKlotz.IsOpaque);
     }
 
     [Test]
