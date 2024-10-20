@@ -48,12 +48,12 @@ public class MeshGenerator
                     if (!opaque)
                         continue; // later this will be more complex, I guess.
 
-                    bool opaqueXM1 = stitcher.IsKnownOpaqueAt(x - lodSkip, y, z);
-                    bool opaqueXP1 = stitcher.IsKnownOpaqueAt(x + lodSkip, y, z);
-                    bool opaqueYM1 = stitcher.IsKnownOpaqueAt(x, y - lodSkip, z);
-                    bool opaqueYP1 = stitcher.IsKnownOpaqueAt(x, y + lodSkip, z);
-                    bool opaqueZM1 = stitcher.IsKnownOpaqueAt(x, y, z - lodSkip);
-                    bool opaqueZP1 = stitcher.IsKnownOpaqueAt(x, y, z + lodSkip);
+                    bool opaqueXM1 = stitcher.IsOpaqueOrUnknownAt(x - lodSkip, y, z);
+                    bool opaqueXP1 = stitcher.IsOpaqueOrUnknownAt(x + lodSkip, y, z);
+                    bool opaqueYM1 = stitcher.IsOpaqueOrUnknownAt(x, y - lodSkip, z);
+                    bool opaqueYP1 = stitcher.IsOpaqueOrUnknownAt(x, y + lodSkip, z);
+                    bool opaqueZM1 = stitcher.IsOpaqueOrUnknownAt(x, y, z - lodSkip);
+                    bool opaqueZP1 = stitcher.IsOpaqueOrUnknownAt(x, y, z + lodSkip);
 
                     if (opaqueXM1 && opaqueXP1 && opaqueYM1 && opaqueYP1 && opaqueZM1 && opaqueZP1)
                         continue;
@@ -128,11 +128,11 @@ public class WorldStitcher
         else { return _worldChunk.Get(x, y, z); }
     }
 
-    public bool IsKnownOpaqueAt(int x, int y, int z)
+    public bool IsOpaqueOrUnknownAt(int x, int y, int z)
     {
         SubKlotz? subKlotz = At(x, y, z);
         if (!subKlotz.HasValue)
-            return false;
+            return true;
 
         return subKlotz.Value.IsOpaque;
     }
