@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class WorldMap
 {
-    private readonly WorldGenerator _generator = new();
+    private readonly WorldGenerator _generator = WorldGenerator.Default;
     private readonly ConcurrentDictionary<Vector3Int, WorldChunkState> _worldState = new();
     private readonly ConcurrentDictionary<PlayerId, PlayerWorldMapState> _playerStates = new();
 

@@ -117,10 +117,10 @@ public class WorldChunk
             {
                 for (int subY = 0; subY < size.y; subY++)
                 {
-                    Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
+                    Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         root, new(subX, subY, subZ), dir);
 
-                    Set(coords, new SubKlotz(KlotzType.Brick4x2, color, dir, subX, subY, subZ));
+                    Set(coords, new SubKlotz(type, color, dir, subX, subY, subZ));
                 }
             }
         }
@@ -150,7 +150,7 @@ public class WorldChunk
             {
                 for (int subY = 0; subY < size.y; subY++)
                 {
-                    Vector3Int coords = SubKlotz.TranslateSubIndexToRealCoord(
+                    Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
 
                     Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));

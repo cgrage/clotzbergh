@@ -5,8 +5,21 @@ using UnityEngine;
 public enum KlotzType
 {
     Air = 0,
-    Plate1x1,
-    Brick4x2,
+    Plate1x1, Plate1x2, Plate1x3, Plate1x4, Plate1x6, Plate1x8,
+    Plate2x2, Plate2x3, Plate2x4, Plate2x6, Plate2x8,
+    Plate4x4, Plate4x6, Plate4x8,
+    Plate6x6, Plate6x8,
+    Plate8x8,
+    // CornerPlate1x2x2, CornerPlate2x4x4,
+    /*
+    Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
+    Tile2x2, Tile2x3, Tile2x4,
+    // CornerTile1x2x2,
+    */
+    Brick1x1, Brick1x2, Brick1x3, Brick1x4, Brick1x6, Brick1x8,
+    Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
+    Brick4x6,
+    // CornerBrick1x2x2,
 }
 
 public enum KlotzDirection
@@ -38,8 +51,37 @@ public static class KlotzKB
         return t switch
         {
             KlotzType.Plate1x1 => new(1, 1, 1),
-            KlotzType.Brick4x2 => new(4, 3, 2),
-            _ => Vector3Int.zero,
+            KlotzType.Plate1x2 => new(2, 1, 1),
+            KlotzType.Plate1x3 => new(3, 1, 1),
+            KlotzType.Plate1x4 => new(4, 1, 1),
+            KlotzType.Plate1x6 => new(6, 1, 1),
+            KlotzType.Plate1x8 => new(8, 1, 1),
+            KlotzType.Plate2x2 => new(2, 1, 2),
+            KlotzType.Plate2x3 => new(3, 1, 2),
+            KlotzType.Plate2x4 => new(4, 1, 2),
+            KlotzType.Plate2x6 => new(6, 1, 2),
+            KlotzType.Plate2x8 => new(8, 1, 2),
+            KlotzType.Plate4x4 => new(4, 1, 4),
+            KlotzType.Plate4x6 => new(6, 1, 4),
+            KlotzType.Plate4x8 => new(8, 1, 4),
+            KlotzType.Plate6x6 => new(6, 1, 6),
+            KlotzType.Plate6x8 => new(8, 1, 6),
+            KlotzType.Plate8x8 => new(8, 1, 8),
+            KlotzType.Brick1x1 => new(1, 3, 1),
+            KlotzType.Brick1x2 => new(2, 3, 1),
+            KlotzType.Brick1x3 => new(3, 3, 1),
+            KlotzType.Brick1x4 => new(4, 3, 1),
+            KlotzType.Brick1x6 => new(6, 3, 1),
+            KlotzType.Brick1x8 => new(8, 3, 1),
+            KlotzType.Brick2x2 => new(2, 3, 2),
+            KlotzType.Brick2x3 => new(3, 3, 2),
+            KlotzType.Brick2x4 => new(4, 3, 2),
+            KlotzType.Brick2x6 => new(6, 3, 2),
+            KlotzType.Brick2x8 => new(8, 3, 2),
+            KlotzType.Brick4x6 => new(6, 3, 4),
+
+            KlotzType.Air => Vector3Int.zero,
+            _ => throw new Exception($"Unknown size for type {t}")
         };
     }
 
@@ -51,6 +93,17 @@ public static class KlotzKB
             _ => true
         };
     }
+
+    public static readonly KlotzType[] AllGroundTypes = {
+        KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4, KlotzType.Plate1x6, KlotzType.Plate1x8,
+        KlotzType.Plate2x2, KlotzType.Plate2x3, KlotzType.Plate2x4, KlotzType.Plate2x6, KlotzType.Plate2x8,
+        KlotzType.Plate4x4, KlotzType.Plate4x6, KlotzType.Plate4x8,
+        KlotzType.Plate6x6, KlotzType.Plate6x8,
+        KlotzType.Plate8x8,
+        KlotzType.Brick1x1, KlotzType.Brick1x2, KlotzType.Brick1x3, KlotzType.Brick1x4, KlotzType.Brick1x6, KlotzType.Brick1x8,
+        KlotzType.Brick2x2, KlotzType.Brick2x3, KlotzType.Brick2x4, KlotzType.Brick2x6, KlotzType.Brick2x8,
+        KlotzType.Brick4x6,
+    };
 }
 
 /// <summary>
@@ -64,6 +117,8 @@ public static class KlotzKB
 /// SubKlotzIndexZ (0..7) ->  3 bit
 /// --------------------------------
 /// Sum                       24 bit
+/// 
+/// TODO: Rename to Kloxel?
 /// 
 /// </summary>
 public readonly struct SubKlotz
@@ -165,7 +220,7 @@ public readonly struct SubKlotz
         w.Write((byte)((rawBits >> 00) & 0xff));
     }
 
-    public static Vector3Int TranslateSubIndexToRealCoord(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
+    public static Vector3Int TranslateSubIndexToCoords(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
     {
         return dir switch
         {
