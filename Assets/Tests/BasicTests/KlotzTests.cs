@@ -16,8 +16,8 @@ public class KlotzTests
         klotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.AreEqual(KlotzType.Plate1x1, klotz.Type);
 
-        klotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToNegZ, 1, 2, 3);
-        Assert.AreEqual(KlotzType.Brick4x2, klotz.Type);
+        klotz = new(KlotzType.Brick2x4, 0, KlotzDirection.ToNegZ, 1, 2, 3);
+        Assert.AreEqual(KlotzType.Brick2x4, klotz.Type);
         Assert.AreEqual(KlotzDirection.ToNegZ, klotz.Direction);
         Assert.AreEqual(1, klotz.SubKlotzIndexX);
         Assert.AreEqual(2, klotz.SubKlotzIndexY);
@@ -35,14 +35,14 @@ public class KlotzTests
         subKlotz = new(KlotzType.Plate1x1, 0, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.IsTrue(subKlotz.IsOpaque);
 
-        subKlotz = new(KlotzType.Brick4x2, 0, KlotzDirection.ToPosX, 0, 0, 0);
+        subKlotz = new(KlotzType.Brick2x4, 0, KlotzDirection.ToPosX, 0, 0, 0);
         Assert.IsTrue(subKlotz.IsOpaque);
     }
 
     [Test]
     public void SubKlotzSerialization()
     {
-        var type = KlotzType.Brick4x2;
+        var type = KlotzType.Brick2x4;
         var color = KlotzColor.Yellow;
         var direction = KlotzDirection.ToPosZ;
         var indexX = 3;

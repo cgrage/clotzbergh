@@ -1,7 +1,5 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Random = System.Random;
 
 public class HeightMap
 {
@@ -15,7 +13,7 @@ public class HeightMap
 
     public HeightMap(int octaves = DefaultOctaves, int seed = 0)
     {
-        System.Random rnd = new(seed);
+        Random rnd = new(seed);
 
         _octaveOffsets = new Vector2[octaves];
         for (int i = 0; i < octaves; i++)
