@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
@@ -22,10 +21,6 @@ public interface IServerSideOps
 public class GameServer : MonoBehaviour, IServerSideOps
 {
     private static int _nextPlayerId = 1;
-
-    private readonly CancellationTokenSource _runCancelTS = new();
-    private readonly List<Thread> _threads = new();
-    private readonly BlockingCollection<Action<IServerSideOps>> _requestQueue = new();
     private readonly WorldMap _worldMap = new();
     private readonly ConcurrentDictionary<PlayerId, ConnectionData> _playerData = new();
 
@@ -34,8 +29,6 @@ public class GameServer : MonoBehaviour, IServerSideOps
     public int ServerPort = 3000;
 
     public bool ShowPreview = false;
-
-    public int MainThreadCount = 1;
 
     // Start is called before the first frame update
     void Start()
@@ -56,7 +49,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
             Debug.LogFormat("Server start at {0} failed with exception (see above)", url);
         }
 
-        StartMainThreads();
+        _worldMap.StartGeneratorThreads();
     }
 
     void OnDestroy()
@@ -67,7 +60,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
             Debug.LogFormat("Server stopped");
         }
 
-        StopMainThreads();
+        _worldMap.StopMainThreads();
     }
 
     void OnDrawGizmos()
@@ -77,47 +70,6 @@ public class GameServer : MonoBehaviour, IServerSideOps
             Gizmos.color = Color.green;
             Gizmos.DrawMesh(_worldMap.GeneratePreviewMesh(128));
         }
-    }
-
-    private void StartMainThreads()
-    {
-        Debug.LogFormat("Server starting threads...");
-
-        for (int i = 0; i < MainThreadCount; i++)
-        {
-            var thread = new Thread(TerrainThreadMain) { Name = $"ServerMainThread{i}" };
-            _threads.Add(thread);
-            thread.Start();
-        }
-
-        Debug.LogFormat("Server thread started");
-    }
-
-    private void StopMainThreads()
-    {
-        Debug.LogFormat("Server threads closing...");
-        _runCancelTS.Cancel();
-
-        foreach (var thread in _threads)
-        {
-            if (!thread.Join(TimeSpan.FromSeconds(1)))
-                thread.Abort();
-        }
-
-        Debug.LogFormat("Server thread stopped");
-    }
-
-    void TerrainThreadMain()
-    {
-        try
-        {
-            while (!_runCancelTS.Token.IsCancellationRequested)
-            {
-                Action<IServerSideOps> action = _requestQueue.Take(_runCancelTS.Token);
-                action(this);
-            }
-        }
-        catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
     }
 
     PlayerId IServerSideOps.AddPlayer()
