@@ -31,12 +31,6 @@ public class WorldChunkUpdate
     public WorldChunk Chunk { get; set; }
 }
 
-public class WorldChunkState
-{
-    public ulong Version { get; set; }
-    public WorldChunk Chunk { get; set; }
-}
-
 public class PlayerWorldMapState
 {
     public Vector3Int PlayerLocation { get; set; }

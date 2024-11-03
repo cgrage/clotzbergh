@@ -12,6 +12,7 @@ public abstract class WorldGenerator
     public abstract WorldChunk GetChunk(Vector3Int chunkCoords);
 
     public static WorldGenerator Default { get; private set; } = new MicroBlockWorldGenerator();
+    //public static WorldGenerator Default { get; private set; } = new WaveFunctionCollapseGenerator();
 
     protected WorldGenerator()
     {
@@ -148,6 +149,9 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
             }
             else
             {
+                if (generalType == GeneralVoxelType.AirOrGround)
+                    PossibleTypes.Add(KlotzType.Air);
+
                 PossibleTypes.AddRange(KlotzKB.AllGroundTypes);
             }
         }
@@ -257,7 +261,7 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
             }
         }
 
-        if (voxel.PossibleTypes.Count == 1)
+        if (voxel.PossibleTypes.Count <= 2)
         {
             Collapse(new(x, y, z));
         }
@@ -295,23 +299,42 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
         if (rootVoxel.IsCollapsed)
             return;
 
-        KlotzType type = rootVoxel.PossibleTypes.Last();
-        KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
-        Vector3Int size = KlotzKB.KlotzSize(type);
+        KlotzType type;
 
-        for (int subZ = 0; subZ < size.z; subZ++)
+        if (rootVoxel.PossibleTypes.Count == 1)
         {
-            for (int subX = 0; subX < size.x; subX++)
+            type = rootVoxel.PossibleTypes[0];
+        }
+        else
+        {
+            int index = Random.Next(rootVoxel.PossibleTypes.Count - 2, rootVoxel.PossibleTypes.Count); // 50:50 chance
+            type = rootVoxel.PossibleTypes[index];
+        }
+
+        if (type == KlotzType.Air)
+        {
+            rootVoxel.CollapsedType = new SubKlotz(type, 0, 0, 0, 0, 0);
+            _nonCollapsed.Remove(rootCoords);
+        }
+        else
+        {
+            KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
+            Vector3Int size = KlotzKB.KlotzSize(type);
+
+            for (int subZ = 0; subZ < size.z; subZ++)
             {
-                for (int subY = 0; subY < size.y; subY++)
+                for (int subX = 0; subX < size.x; subX++)
                 {
-                    Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
-                        rootCoords, new(subX, subY, subZ), dir);
+                    for (int subY = 0; subY < size.y; subY++)
+                    {
+                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                            rootCoords, new(subX, subY, subZ), dir);
 
-                    SubKlotzVoxelSuperPosition voxel = _positions[coords.x, coords.y, coords.z];
-                    voxel.CollapsedType = new SubKlotz(type, KlotzColor.Blue, dir, subX, subY, subZ);
+                        SubKlotzVoxelSuperPosition voxel = _positions[coords.x, coords.y, coords.z];
+                        voxel.CollapsedType = new SubKlotz(type, KlotzColor.Blue, dir, subX, subY, subZ);
 
-                    _nonCollapsed.Remove(coords);
+                        _nonCollapsed.Remove(coords);
+                    }
                 }
             }
         }
