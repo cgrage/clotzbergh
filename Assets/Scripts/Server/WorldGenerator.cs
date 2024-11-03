@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Random = System.Random;
 
@@ -79,6 +78,14 @@ public abstract class WorldGenerator
             y >= WorldDef.ChunkSubDivsY ||
             z >= WorldDef.ChunkSubDivsZ;
     }
+
+    /// <summary>
+    /// Stupid little helper
+    /// </summary>
+    protected static KlotzColor ColorFromPos(int x, int y, int z)
+    {
+        return (KlotzColor)((x + y + z) % (int)KlotzColor.LastUsed);
+    }
 }
 
 public class MicroBlockWorldGenerator : WorldGenerator
@@ -100,24 +107,24 @@ public class MicroBlockWorldGenerator : WorldGenerator
                     int y = chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                     if (y > groundStart)
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, ColorFromPos(ix, ix, iy), KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }
         }
 
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.Green, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
 
         return chunk;
     }

@@ -18,8 +18,7 @@ Shader "PlasteShader"
             struct appdata
             {
                 float4 vertex : POSITION;
-                float3 normal : NORMAL;
-                float4 color : COLOR;
+                float2 uv : TEXCOORD0; // Using uv.x for the color and uv.y for the side
             };
 
             struct v2f
@@ -27,7 +26,6 @@ Shader "PlasteShader"
                 float4 pos : SV_POSITION;
                 float3 normal : TEXCOORD0;
                 float4 color : COLOR;
-                float3 worldPos : TEXCOORD1;
             };
 
             float4 _MainLightColor;
@@ -36,9 +34,25 @@ Shader "PlasteShader"
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.normal = mul(unity_ObjectToWorld, float4(v.normal, 0.0)).xyz;
-                o.color = v.color;
+                o.normal = float3(0, 1, 0);
+
+                uint color = (((uint)v.uv.x) >> 3) & 0x1F;
+                /**/ if (color == 0) o.color = float4(1, 1, 1, 1); // White
+                else if (color == 1) o.color = float4(0.5, 0.5, 0.5, 1); // Gray
+                else if (color == 2) o.color = float4(0, 0, 0, 1); // Black
+                else if (color == 3) o.color = float4(1, 0, 0, 1); // Red
+                else if (color == 4) o.color = float4(0, 0, 1, 1); // Blue
+                else if (color == 5) o.color = float4(1, 1, 0, 1); // Yellow
+                else if (color == 6) o.color = float4(0, 1, 0, 1); // Green
+
+                uint side = (((uint)v.uv.x) >> 0) & 0x7;
+                /**/ if (side == 0) o.normal = float3(-1,  0,  0); // Left
+                else if (side == 1) o.normal = float3( 1,  0,  0); // Right
+                else if (side == 2) o.normal = float3( 0, -1,  0); // Bottom
+                else if (side == 3) o.normal = float3( 0,  1,  0); // Top
+                else if (side == 4) o.normal = float3( 0,  0, -1); // Back
+                else if (side == 5) o.normal = float3( 0,  0,  1); // Front
+
                 return o;
             }
 
