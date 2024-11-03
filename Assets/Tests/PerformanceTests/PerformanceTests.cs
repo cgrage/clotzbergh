@@ -64,7 +64,7 @@ public class PerformanceTests
 
     private WorldChunk[,,] GenerateWorld(int radiusX, int radiusY, int radiusZ)
     {
-        WorldGenerator generator = WorldGenerator.Default;
+        WorldGenerator generator = new();
         WorldChunk[,,] worlds = new WorldChunk[
             2 * radiusX + 1,
             2 * radiusY + 1,

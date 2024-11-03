@@ -2,21 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
 
-public abstract class WorldGenerator
+public class WorldGenerator
 {
-    protected Random Random { get; private set; }
+    protected HeightMap HeightMap { get; } = new();
 
-    protected HeightMap HeightMap { get; private set; }
-
-    public abstract WorldChunk GetChunk(Vector3Int chunkCoords);
-
-    public static WorldGenerator Default { get; private set; } = new MicroBlockWorldGenerator();
-    //public static WorldGenerator Default { get; private set; } = new WaveFunctionCollapseGenerator();
-
-    protected WorldGenerator()
+    public WorldChunk GetChunk(Vector3Int chunkCoords)
     {
-        Random = new(0);
-        HeightMap = new();
+        // ChunkGenerator gen = new MicroBlockWorldGenerator(chunkCoords, HeightMap);
+        ChunkGenerator gen = new WaveFunctionCollapseGenerator(chunkCoords, HeightMap);
+
+        return gen.Generate();
     }
 
     public Mesh GeneratePreviewMesh(int dist)
@@ -64,6 +59,26 @@ public abstract class WorldGenerator
         mesh.RecalculateNormals();
         return mesh;
     }
+}
+
+public abstract class ChunkGenerator
+{
+    private static readonly object RandomCreationLock = new();
+
+    protected Random Random { get; private set; }
+
+    protected Vector3Int ChunkCoords { get; private set; }
+
+    protected HeightMap HeightMap { get; private set; }
+
+    public ChunkGenerator(Vector3Int chunkCoords, HeightMap heightMap)
+    {
+        lock (RandomCreationLock) { Random = new(); }
+        ChunkCoords = chunkCoords;
+        HeightMap = heightMap;
+    }
+
+    public abstract WorldChunk Generate();
 
     protected bool IsOutOfBounds(Vector3Int coords)
     {
@@ -80,17 +95,20 @@ public abstract class WorldGenerator
     }
 
     /// <summary>
-    /// Stupid little helper
+    /// Little helper
     /// </summary>
-    protected static KlotzColor ColorFromPos(int x, int y, int z)
+    protected KlotzColor NextRandColor()
     {
-        return (KlotzColor)((x + y + z) % (int)KlotzColor.LastUsed);
+        return (KlotzColor)Random.Next(0, (int)KlotzColor.NextFree);
     }
 }
 
-public class MicroBlockWorldGenerator : WorldGenerator
+public class MicroBlockWorldGenerator : ChunkGenerator
 {
-    public override WorldChunk GetChunk(Vector3Int chunkCoords)
+    public MicroBlockWorldGenerator(Vector3Int chunkCoords, HeightMap heightMap)
+        : base(chunkCoords, heightMap) { }
+
+    public override WorldChunk Generate()
     {
         var chunk = WorldChunk.CreateEmpty();
 
@@ -98,39 +116,39 @@ public class MicroBlockWorldGenerator : WorldGenerator
         {
             for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
             {
-                int x = chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                int z = chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
                 int groundStart = Mathf.RoundToInt(HeightMap.At(x, z) / WorldDef.SubKlotzSize.y);
 
                 for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                 {
-                    int y = chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                    int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                     if (y > groundStart)
                     {
                         chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, ColorFromPos(ix, ix, iy), KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, NextRandColor(), KlotzDirection.ToPosX, 0, 0, 0));
                     }
                 }
             }
         }
 
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, KlotzColor.White, new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
 
         return chunk;
     }
 }
 
-public class WaveFunctionCollapseGenerator : WorldGenerator
+public class WaveFunctionCollapseGenerator : ChunkGenerator
 {
     private readonly SubKlotzVoxelSuperPosition[,,] _positions;
     private readonly List<Vector3Int> _nonCollapsed;
@@ -170,16 +188,17 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
         public bool IsCollapsed { get { return CollapsedType.HasValue; } }
     }
 
-    public WaveFunctionCollapseGenerator()
+    public WaveFunctionCollapseGenerator(Vector3Int chunkCoords, HeightMap heightMap)
+        : base(chunkCoords, heightMap)
     {
         _positions = new SubKlotzVoxelSuperPosition[
             WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
         _nonCollapsed = new();
     }
 
-    public override WorldChunk GetChunk(Vector3Int chunkCoords)
+    public override WorldChunk Generate()
     {
-        Initialize(chunkCoords);
+        Initialize();
         RecalculateSuperpositions(Vector3Int.zero, WorldDef.ChunkSubDivs);
 
         while (_nonCollapsed.Count > 0)
@@ -204,19 +223,19 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
         return chunk;
     }
 
-    public void Initialize(Vector3Int chunkCoords)
+    public void Initialize()
     {
         for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
         {
             for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
             {
-                int x = chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                int z = chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
                 int groundStart = Mathf.RoundToInt(HeightMap.At(x, z) / WorldDef.SubKlotzSize.y);
 
                 for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                 {
-                    int y = chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                    int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                     if (y > groundStart)
                     {
                         _positions[ix, iy, iz] = new SubKlotzVoxelSuperPosition(GeneralVoxelType.Air);
@@ -327,6 +346,7 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
         {
             KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
             Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzColor color = NextRandColor();
 
             for (int subZ = 0; subZ < size.z; subZ++)
             {
@@ -338,7 +358,7 @@ public class WaveFunctionCollapseGenerator : WorldGenerator
                             rootCoords, new(subX, subY, subZ), dir);
 
                         SubKlotzVoxelSuperPosition voxel = _positions[coords.x, coords.y, coords.z];
-                        voxel.CollapsedType = new SubKlotz(type, KlotzColor.Blue, dir, subX, subY, subZ);
+                        voxel.CollapsedType = new SubKlotz(type, color, dir, subX, subY, subZ);
 
                         _nonCollapsed.Remove(coords);
                     }
