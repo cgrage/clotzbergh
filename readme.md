@@ -16,8 +16,9 @@ Code:
   - Casing for names of public fields
 
 Game-play:
-- Add colors to klotzes
-- Klotz-Hoover
+- ~~Add colors to klotzes~~
+- Add per klotz color variants
+- Klotz-Staubsauger
 - Multiplayer: Update server about real position (often)
 
 Deployment:

@@ -32,10 +32,10 @@ public class MeshGenerator
 
         int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
         WorldStitcher stitcher = new(chunk);
-        VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
-
-        builder.AddVoxelCoords = lod == 0;
-        builder.SetColor(ColorFromHash(chunk.Id.GetHashCode()));
+        VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip)
+        {
+            AddVoxelCoords = lod == 0
+        };
 
         for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
         {
@@ -59,31 +59,19 @@ public class MeshGenerator
                         continue;
 
                     builder.MoveTo(xi, yi, zi);
-                    builder.SetColorVariantFromPosition(k.RootPos(new(x, y, z)));
+                    builder.SetColor(k.Color);
 
-                    if (!opaqueXM1) builder.AddFaceXM1();
-                    if (!opaqueXP1) builder.AddFaceXP1();
-                    if (!opaqueYM1) builder.AddFaceYM1();
-                    if (!opaqueYP1) builder.AddFaceYP1();
-                    if (!opaqueZM1) builder.AddFaceZM1();
-                    if (!opaqueZP1) builder.AddFaceZP1();
+                    if (!opaqueXM1) builder.AddLeftFace();
+                    if (!opaqueXP1) builder.AddRightFace();
+                    if (!opaqueYM1) builder.AddBottomFace();
+                    if (!opaqueYP1) builder.AddTopFace();
+                    if (!opaqueZM1) builder.AddBackFace();
+                    if (!opaqueZP1) builder.AddFrontFace();
                 }
             }
         }
 
         return builder;
-    }
-
-    /// <summary>
-    /// Stupid little helper
-    /// </summary>
-    private static Color32 ColorFromHash(int hash)
-    {
-        System.Random random = new(hash);
-        byte r = (byte)random.Next(256);
-        byte g = (byte)random.Next(256);
-        byte b = (byte)random.Next(256);
-        return new Color32(r, g, b, 255);
     }
 }
 
@@ -141,68 +129,27 @@ public class WorldStitcher
 public class MeshBuilder
 {
     public List<Vector3> Vertices { get; private set; }
-    public List<Color32> Colors { get; private set; }
-    public List<Vector3> Normals { get; private set; }
     public List<int> Triangles { get; private set; }
+    public List<Vector2> Flags { get; private set; }
 
     public MeshBuilder(int estimatedVertexCount = 0, int estimatedTriangleCount = 0)
     {
         Vertices = new(estimatedVertexCount);
-        Colors = new List<Color32>(estimatedVertexCount);
-        Normals = new List<Vector3>(estimatedVertexCount);
         Triangles = new List<int>(capacity: estimatedTriangleCount * 3);
+        Flags = new List<Vector2>(estimatedVertexCount);
     }
 
-    public MeshBuilder(Vector3[] vertices, Color32[] colors, Vector3[] normals, int[] triangles)
+    public MeshBuilder(Vector3[] vertices, int[] triangles, Vector2[] flags)
     {
         Vertices = new(vertices);
-        Colors = new(colors);
-        Normals = new(normals);
         Triangles = new(triangles);
+        Flags = new(flags);
     }
 
-    public static MeshBuilder FromCuboid(Vector3 pos, Vector3 size, Color32 color)
+    public static Vector2 BuildVertexFlags(KlotzColor color, KlotzSide side)
     {
-        float x1 = pos.x, y1 = pos.y, z1 = pos.z;
-        float x2 = x1 + size.x, y2 = y1 + size.y, z2 = z1 + size.z;
-
-        Vector3[] vertices = {
-            new(x1, y1, z1), new(x1, y2, z1), new(x1, y2, z2), new(x1, y1, z2), // Left face
-            new(x2, y1, z1), new(x2, y2, z1), new(x2, y2, z2), new(x2, y1, z2), // Right face
-            new(x1, y1, z1), new(x1, y1, z2), new(x2, y1, z2), new(x2, y1, z1), // Bottom face
-            new(x1, y2, z1), new(x1, y2, z2), new(x2, y2, z2), new(x2, y2, z1), // Top face
-            new(x1, y1, z1), new(x2, y1, z1), new(x2, y2, z1), new(x1, y2, z1), // Back face
-            new(x1, y1, z2), new(x2, y1, z2), new(x2, y2, z2), new(x1, y2, z2), // Front face
-        };
-
-        Color32[] colors = {
-            color, color, color, color,
-            color, color, color, color,
-            color, color, color, color,
-            color, color, color, color,
-            color, color, color, color,
-            color, color, color, color,
-        };
-
-        Vector3[] normals = {
-            new(-1,  0,  0), new(-1,  0,  0), new(-1,  0,  0), new(-1,  0,  0), // Left face
-            new( 1,  0,  0), new( 1,  0,  0), new( 1,  0,  0), new( 1,  0,  0), // Right face
-            new( 0, -1,  0), new( 0, -1,  0), new( 0, -1,  0), new( 0, -1,  0), // Bottom face
-            new( 0,  1,  0), new( 0,  1,  0), new( 0,  1,  0), new( 0,  1,  0), // Top face
-            new( 0,  0, -1), new( 0,  0, -1), new( 0,  0, -1), new( 0,  0, -1), // Back face
-            new( 0,  0,  1), new( 0,  0,  1), new( 0,  0,  1), new( 0,  0,  1), // Front face
-        };
-
-        int[] triangles = {
-            00+0, 00+2, 00+1,   00+0, 00+3, 00+2, // Left face
-            04+0, 04+1, 04+2,   04+0, 04+2, 04+3, // Right face
-            08+0, 08+2, 08+1,   08+0, 08+3, 08+2, // Bottom face
-            12+0, 12+1, 12+2,   12+0, 12+2, 12+3, // Top face
-            16+0, 16+2, 16+1,   16+0, 16+3, 16+2, // Back face
-            20+0, 20+1, 20+2,   20+0, 20+2, 20+3, // Front face
-        };
-
-        return new MeshBuilder(vertices, colors, normals, triangles);
+        float x = (((int)color) << 3) | ((int)side);
+        return new Vector2(x, 0);
     }
 
     public void AddTriangle(int a, int b, int c)
@@ -217,9 +164,9 @@ public class MeshBuilder
         Mesh mesh = new()
         {
             vertices = Vertices.ToArray(),
-            colors32 = Colors.ToArray(),
             triangles = Triangles.ToArray(),
-            normals = Normals.ToArray(),
+            uv = Flags.ToArray(),
+
         };
 
         return mesh;
@@ -230,13 +177,11 @@ public class VoxelMeshBuilder : MeshBuilder
 {
     private readonly Vector3 _segmentSize;
 
-    private Color32 _mainColor, _colorVariant;
+    private KlotzColor _color;
 
     private float _x1, _x2, _y1, _y2, _z1, _z2;
 
     private Vector3Int _currentCoords;
-
-    private readonly float[] _colorAdjustmentLookup = new float[64];
 
     public bool AddVoxelCoords { get; set; } = true;
 
@@ -248,12 +193,7 @@ public class VoxelMeshBuilder : MeshBuilder
     public VoxelMeshBuilder(Vector3 size, Vector3Int subDivs)
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
-        _mainColor = Color.magenta;
-        _colorVariant = Color.magenta;
-
-        System.Random random = new();
-        for (int i = 0; i < _colorAdjustmentLookup.Length; i++)
-            _colorAdjustmentLookup[i] = (float)(random.NextDouble() * 2 - 1) * 0.2f;
+        _color = KlotzColor.White;
 
         VoxelCoords = new();
     }
@@ -269,100 +209,90 @@ public class VoxelMeshBuilder : MeshBuilder
         _z2 = _z1 + _segmentSize.z;
     }
 
-    public void SetColor(Color32 color)
+    public void SetColor(KlotzColor color)
     {
-        _mainColor = color;
-        _colorVariant = color;
-    }
-
-    public void SetColorVariantFromPosition(Vector3Int pos)
-    {
-        int i = (pos.x + pos.y + pos.z) % 64;
-        float adjustmentFactor = _colorAdjustmentLookup[i];
-
-        // Adjust color values
-        byte r = (byte)Mathf.Clamp(_mainColor.r + (_mainColor.r * adjustmentFactor), 0, 255);
-        byte g = (byte)Mathf.Clamp(_mainColor.g + (_mainColor.g * adjustmentFactor), 0, 255);
-        byte b = (byte)Mathf.Clamp(_mainColor.b + (_mainColor.b * adjustmentFactor), 0, 255);
-
-        _colorVariant = new Color32(r, g, b, _mainColor.a);
+        _color = color;
     }
 
     /// <summary>
     /// A.K.A. the left face
     /// </summary>
-    public void AddFaceXM1(bool reverse = false)
+    public void AddLeftFace()
     {
-        AddFace(new(_x1, _y1, _z1), new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x1, _y1, _z2),
-            new(-1, 0, 0), reverse);
+        AddFace(
+            new(_x1, _y1, _z2), new(_x1, _y2, _z2), new(_x1, _y2, _z1), new(_x1, _y1, _z1),
+            KlotzSide.Left);
     }
 
     /// <summary>
     /// A.K.A. the right face
     /// </summary>
-    public void AddFaceXP1(bool reverse = false)
+    public void AddRightFace()
     {
-        AddFace(new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
-            new(1, 0, 0), !reverse);
+        AddFace(
+            new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
+            KlotzSide.Right);
     }
 
     /// <summary>
     /// A.K.A. the bottom face
     /// </summary>
-    public void AddFaceYM1(bool reverse = false)
+    public void AddBottomFace()
     {
-        AddFace(new(_x1, _y1, _z1), new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y1, _z1),
-            new(0, -1, 0), reverse);
+        AddFace(
+            new(_x2, _y1, _z1), new(_x2, _y1, _z2), new(_x1, _y1, _z2), new(_x1, _y1, _z1),
+            KlotzSide.Bottom);
     }
 
     /// <summary>
     /// A.K.A. the top face
     /// </summary>
-    public void AddFaceYP1(bool reverse = false)
+    public void AddTopFace()
     {
-        AddFace(new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
-            new(0, 1, 0), !reverse);
+        AddFace(
+            new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
+            KlotzSide.Top);
     }
 
     /// <summary>
     /// A.K.A. the back face
     /// </summary>
-    public void AddFaceZM1(bool reverse = false)
+    public void AddBackFace()
     {
-        AddFace(new(_x1, _y1, _z1), new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x1, _y2, _z1),
-            new(0, 0, -1), reverse);
+        AddFace(
+            new(_x1, _y2, _z1), new(_x2, _y2, _z1), new(_x2, _y1, _z1), new(_x1, _y1, _z1),
+            KlotzSide.Back);
     }
 
     /// <summary>
     /// A.K.A. the front face
     /// </summary>
-    public void AddFaceZP1(bool reverse = false)
+    public void AddFrontFace()
     {
-        AddFace(new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
-            new(0, 0, 1), !reverse);
+        AddFace(
+            new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
+            KlotzSide.Front);
     }
 
     /// <summary>
     /// Adds a face to the current mesh (-builder)
     /// </summary>
-    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, Vector3 normal, bool clockwise)
+    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side)
     {
         int v0 = Vertices.Count;
 
-        Vertices.Add(corner1); Vertices.Add(corner2); Vertices.Add(corner3); Vertices.Add(corner4);
-        Colors.Add(_colorVariant); Colors.Add(_colorVariant); Colors.Add(_colorVariant); Colors.Add(_colorVariant);
-        Normals.Add(normal); Normals.Add(normal); Normals.Add(normal); Normals.Add(normal);
+        Vertices.Add(corner1);
+        Vertices.Add(corner2);
+        Vertices.Add(corner3);
+        Vertices.Add(corner4);
 
-        if (clockwise)
-        {
-            Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
-            Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);
-        }
-        else
-        {
-            Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 1);
-            Triangles.Add(v0 + 0); Triangles.Add(v0 + 3); Triangles.Add(v0 + 2);
-        }
+        Flags.Add(BuildVertexFlags(_color, side));
+        Flags.Add(BuildVertexFlags(_color, side));
+        Flags.Add(BuildVertexFlags(_color, side));
+        Flags.Add(BuildVertexFlags(_color, side));
+
+        Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
+        Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);
 
         VoxelCoords.Add(_currentCoords); VoxelCoords.Add(_currentCoords);
     }

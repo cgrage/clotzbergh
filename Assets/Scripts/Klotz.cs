@@ -39,6 +39,18 @@ public enum KlotzColor
     Blue = 4,
     Yellow = 5,
     Green = 6,
+    NextFree = 7,
+    Maximum = 31
+}
+
+public enum KlotzSide
+{
+    Left = 0,
+    Right = 1,
+    Bottom = 2,
+    Top = 3,
+    Back = 4,
+    Front = 5
 }
 
 public static class KlotzKB
