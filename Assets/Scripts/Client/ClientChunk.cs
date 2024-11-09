@@ -214,7 +214,7 @@ public class ClientChunk
         throw new System.Exception("ClientChunk updated by wrong thread!");
     }
 
-    private Klotz GetKlotzAt(Vector3Int subKlotzCoords)
+    private KlotzWorldData GetKlotzAt(Vector3Int subKlotzCoords)
     {
         if (_currentWorld == null)
             return null;
@@ -238,7 +238,7 @@ public class ClientChunk
         };
     }
 
-    public Klotz GetKlotzFromTriangleIndex(int triangleIndex)
+    public KlotzWorldData GetKlotzFromTriangleIndex(int triangleIndex)
     {
         if (_currentLevelOfDetail != 0)
             return null;

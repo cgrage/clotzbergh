@@ -53,6 +53,21 @@ public enum KlotzSide
     Front = 5
 }
 
+public readonly struct KlotzVariant
+{
+    private readonly byte value;
+
+    public static readonly KlotzVariant Default = new();
+
+    public KlotzVariant(byte value) { this.value = value; }
+
+    // Explicit cast to byte
+    public static explicit operator byte(KlotzVariant variant) { return variant.value; }
+
+    // Explicit cast to int
+    public static explicit operator int(KlotzVariant variant) { return variant.value; }
+}
+
 public static class KlotzKB
 {
     /// <summary>
@@ -121,14 +136,24 @@ public static class KlotzKB
 /// <summary>
 /// The base voxel for the terrain.
 /// 
-/// KlotzType (0..255)    ->  8 bit
-/// Color (0..31)         ->  5 bit
-/// Orientation (N/E/S/W) ->  2 bit
-/// SubKlotzIndexX (0..7) ->  3 bit
-/// SubKlotzIndexY (0..7) ->  3 bit
-/// SubKlotzIndexZ (0..7) ->  3 bit
+/// Root Block:
+/// Kind (=Root)           ->  1 bit
+/// Type (0..255)          ->  8 bit
+/// Color (0..63)          ->  6 bit
+/// Variant (0..127)       ->  7 bit
+/// Orientation (N/E/S/W)  ->  2 bit
 /// --------------------------------
 /// Sum                       24 bit
+/// 
+/// Non-Root Block:
+/// Kind (=NonRoot)        ->  1 bit
+/// IsOpaque (0=false)     ->  1 bit
+/// Orientation (N/E/S/W)  ->  2 bit
+/// SubKlotzIndexX (0..15) ->  4 bit
+/// SubKlotzIndexY (0..15) ->  4 bit
+/// SubKlotzIndexZ (0..15) ->  4 bit
+/// --------------------------------
+/// Sum                       16 bit
 /// 
 /// TODO: Rename to Kloxel?
 /// 
@@ -163,6 +188,11 @@ public readonly struct SubKlotz
     {
         // bits: 00000000xxxxx00000000000
         get { return (KlotzColor)((rawBits >> 11) & 0x1f); }
+    }
+
+    public readonly KlotzVariant Variant
+    {
+        get { return KlotzVariant.Default; }
     }
 
     public readonly KlotzDirection Direction
@@ -204,9 +234,14 @@ public readonly struct SubKlotz
         get { return KlotzKB.IsSubKlotzOpaque(Type, SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
     }
 
-    public readonly bool IsRootSubKlotz
+    public readonly bool IsRoot
     {
         get { return (rawBits & 0x1ff) == 0; }
+    }
+
+    public readonly bool IsRootAndNotAir
+    {
+        get { return IsRoot && !IsAir; }
     }
 
     /// <summary>
@@ -230,6 +265,11 @@ public readonly struct SubKlotz
         w.Write((byte)((rawBits >> 16) & 0xff));
         w.Write((byte)((rawBits >> 08) & 0xff));
         w.Write((byte)((rawBits >> 00) & 0xff));
+    }
+
+    public Klotz ToKlotz(int x, int y, int z)
+    {
+        return new Klotz(x, y, z, Type, Color, Direction);
     }
 
     public static Vector3Int TranslateSubIndexToCoords(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
@@ -283,8 +323,94 @@ public readonly struct SubKlotz
 
 /// <summary>
 /// 
+/// raw bits 1:
+/// Coords-X (0..31)       ->  5 bit
+/// Coords-Y (0..79)       ->  7 bit
+/// Coords-Z (0..31)       ->  5 bit
+/// Color (0..63)          ->  6 bit
+/// Variant (-64..63)      ->  7 bit
+/// Orientation (N/E/S/W)  ->  2 bit
+/// --------------------------------
+/// Sum                       32 bit
+/// 
+/// raw bits 2:
+/// Type (0..255)          ->  8 bit
+/// --------------------------------
+/// Sum                        8 bit
+/// 
 /// </summary>
-public class Klotz
+public readonly struct Klotz
+{
+    private readonly uint rawBits1;
+    private readonly byte rawBits2;
+
+    public Klotz(uint u32, byte u8)
+    {
+        rawBits1 = u32;
+        rawBits2 = u8;
+    }
+
+    public Klotz(int x, int y, int z, KlotzType type, KlotzColor color, KlotzDirection dir)
+    {
+        rawBits1 = (uint)(
+            (x & 0x1f) << 27 |
+            (y & 0x7f) << 20 |
+            (z & 0x1f) << 15 |
+            ((int)color & 0x3f) << 9 |
+            //
+            ((int)dir & 0x3) << 0);
+
+        rawBits2 = (byte)type;
+    }
+
+    public readonly KlotzType Type
+    {
+        get { return (KlotzType)rawBits2; }
+    }
+
+    public readonly KlotzColor Color
+    {
+        get { return (KlotzColor)((rawBits1 >> 9) & 0x3f); }
+    }
+
+    public readonly KlotzDirection Direction
+    {
+        get { return (KlotzDirection)((rawBits1 >> 0) & 0x3); }
+    }
+
+    public readonly int CoordsX
+    {
+        get { return (int)((rawBits1 >> 27) & 0x1f); }
+    }
+
+    public readonly int CoordsY
+    {
+        get { return (int)((rawBits1 >> 20) & 0x7f); }
+    }
+
+    public readonly int CoordsZ
+    {
+        get { return (int)((rawBits1 >> 15) & 0x1f); }
+    }
+
+    public readonly Vector3Int Coords
+    {
+        get { return new(CoordsX, CoordsY, CoordsZ); }
+    }
+
+    public static Klotz Deserialize(BinaryReader r)
+    {
+        return new Klotz(r.ReadUInt32(), r.ReadByte());
+    }
+
+    public readonly void Serialize(BinaryWriter w)
+    {
+        w.Write(rawBits1);
+        w.Write(rawBits2);
+    }
+}
+
+public class KlotzWorldData
 {
     /// <summary>
     /// 

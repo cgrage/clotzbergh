@@ -18,7 +18,7 @@ Code:
 Game-play:
 - ~~Add colors to klotzes~~
 - Add per klotz color variants
-- Klotz-Staubsauger
+- Multi-klotz collection
 - Multiplayer: Update server about real position (often)
 
 Deployment:
