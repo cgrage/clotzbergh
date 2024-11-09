@@ -33,13 +33,15 @@ public enum KlotzDirection
 public enum KlotzColor
 {
     White = 0,
-    Gray = 1,
+    Grey = 1,
     Black = 2,
     Red = 3,
     Blue = 4,
     Yellow = 5,
     Green = 6,
-    NextFree = 7,
+    Azure = 7,
+    Orange = 8,
+    NextFree = 9,
     Maximum = 31
 }
 
@@ -243,9 +245,7 @@ public readonly struct SubKlotz
     {
         get
         {
-#if DO_CHECKS
             if (IsRoot) return (KlotzDirection)((_rawBits >> 22) & 0x3);
-#endif
             return (KlotzDirection)((_rawBits >> 2) & 0x3);
         }
     }

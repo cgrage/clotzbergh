@@ -50,12 +50,14 @@ Shader "PlasteShader"
                 float4 baseColor;
 
                 /**/ if (colorEnum == 0) baseColor = float4(1, 1, 1, 1); // White
-                else if (colorEnum == 1) baseColor = float4(0.5, 0.5, 0.5, 1); // Gray
+                else if (colorEnum == 1) baseColor = float4(0.5, 0.5, 0.5, 1); // Grey
                 else if (colorEnum == 2) baseColor = float4(0, 0, 0, 1); // Black
                 else if (colorEnum == 3) baseColor = float4(1, 0, 0, 1); // Red
                 else if (colorEnum == 4) baseColor = float4(0, 0, 1, 1); // Blue
                 else if (colorEnum == 5) baseColor = float4(1, 1, 0, 1); // Yellow
                 else if (colorEnum == 6) baseColor = float4(0, 1, 0, 1); // Green
+                else if (colorEnum == 7) baseColor = float4(0, 0.5, 1, 1); // Azure
+                else if (colorEnum == 8) baseColor = float4(1, 0.5, 0, 1); // Orange
                 else  baseColor = float4(1, 1, 1, 1);  // Default to white
 
                 // Apply color variation based on variant (0 to 127)
