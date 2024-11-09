@@ -219,13 +219,22 @@ public class ClientChunk
         if (_currentWorld == null)
             return null;
 
-        SubKlotz k = _currentWorld.Get(subKlotzCoords);
-        Vector3Int rootCoords = k.RootPos(subKlotzCoords);
+        SubKlotz subKlotz = _currentWorld.Get(subKlotzCoords);
+        Vector3Int rootCoords = subKlotz.RootPos(subKlotzCoords);
 
-        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(rootCoords, k.Direction);
+        WorldStitcher stitcher = new(this);
+        SubKlotz? root = stitcher.At(rootCoords);
+
+        if (!root.HasValue)
+            return null;
+
+        KlotzType type = root.Value.Type;
+        KlotzDirection dir = root.Value.Direction;
+
+        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(rootCoords, dir);
         Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(_coords);
-        Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(k.Type), WorldDef.SubKlotzSize);
-        Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(k.Direction);
+        Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(type), WorldDef.SubKlotzSize);
+        Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(dir);
 
         return new()
         {
@@ -233,7 +242,7 @@ public class ClientChunk
             worldPosition = pos,
             worldSize = size,
             worldRotation = rotation,
-            type = k.Type,
+            type = type,
             isFreeToTake = true,
         };
     }

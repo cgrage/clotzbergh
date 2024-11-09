@@ -18,6 +18,8 @@ public class SerializationTests
     {
         WorldChunk orig = new();
         orig.CoreFill(startPercent, endPercent);
+        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)127, new Vector3Int(10, 10, 10), KlotzDirection.ToNegZ);
+        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)14, new Vector3Int(20, 20, 20), KlotzDirection.ToNegX);
 
         WorldChunk copy = SerializeDeserialize(orig);
 
@@ -27,14 +29,26 @@ public class SerializationTests
             {
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
-                    SubKlotz k1 = orig.Get(x, y, z);
-                    SubKlotz k2 = copy.Get(x, y, z);
+                    SubKlotz kOrig = orig.Get(x, y, z);
+                    SubKlotz kCopy = copy.Get(x, y, z);
 
-                    Assert.AreEqual(k1.Type, k2.Type);
-                    Assert.AreEqual(k1.Direction, k2.Direction);
-                    Assert.AreEqual(k1.SubKlotzIndexX, k2.SubKlotzIndexX);
-                    Assert.AreEqual(k1.SubKlotzIndexY, k2.SubKlotzIndexY);
-                    Assert.AreEqual(k1.SubKlotzIndexZ, k2.SubKlotzIndexZ);
+                    Assert.AreEqual(kOrig.IsRoot, kCopy.IsRoot, $"copy differs at ({x}, {y}, {z}) | {kOrig} != {kCopy}");
+
+                    if (kOrig.IsRoot)
+                    {
+                        Assert.AreEqual(kOrig.Type, kCopy.Type, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.Color, kCopy.Color, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.Variant, kCopy.Variant, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.Direction, kCopy.Direction, $"copy differs at ({x}, {y}, {z})");
+                    }
+                    else
+                    {
+                        Assert.AreEqual(kOrig.Direction, kCopy.Direction, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.IsOpaque, kCopy.IsOpaque, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.SubKlotzIndexX, kCopy.SubKlotzIndexX, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.SubKlotzIndexY, kCopy.SubKlotzIndexY, $"copy differs at ({x}, {y}, {z})");
+                        Assert.AreEqual(kOrig.SubKlotzIndexZ, kCopy.SubKlotzIndexZ, $"copy differs at ({x}, {y}, {z})");
+                    }
                 }
             }
         }

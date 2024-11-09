@@ -157,8 +157,8 @@ public class MeshBuilder
 
     public static Vector2 BuildVertexFlags(KlotzSide side, KlotzColor color, KlotzVariant variant)
     {
-        float x = (((int)color) << 3) | ((int)side);
-        float y = (int)variant;
+        float x = (((uint)color) << 3) | ((uint)side);
+        float y = (uint)variant;
         return new Vector2(x, y);
     }
 
@@ -206,7 +206,7 @@ public class VoxelMeshBuilder : MeshBuilder
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
         _color = KlotzColor.White;
-        _variant = KlotzVariant.Default;
+        _variant = KlotzVariant.Zero;
 
         VoxelCoords = new();
     }
