@@ -29,7 +29,7 @@ public class WorldChunk
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
                     Set(x, y, z, new SubKlotz(
-                        KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0));
+                        KlotzType.Plate1x1, KlotzColor.White, KlotzVariant.Zero, KlotzDirection.ToPosX));
                 }
             }
         }
@@ -50,11 +50,11 @@ public class WorldChunk
 
                     if (inCore)
                     {
-                        Set(x, y, z, new SubKlotz(KlotzType.Plate1x1, KlotzColor.White, KlotzDirection.ToPosX, 0, 0, 0));
+                        Set(x, y, z, new SubKlotz(KlotzType.Plate1x1, KlotzColor.White, KlotzVariant.Zero, KlotzDirection.ToPosX));
                     }
                     else
                     {
-                        Set(x, y, z, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
+                        Set(x, y, z, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
                     }
                 }
             }
@@ -176,10 +176,10 @@ public class WorldChunk
 
     public void PlaceKlotz(Klotz klotz)
     {
-        PlaceKlotz(klotz.Type, klotz.Color, klotz.Coords, klotz.Direction);
+        PlaceKlotz(klotz.Type, klotz.Color, klotz.Variant, klotz.Coords, klotz.Direction);
     }
 
-    public void PlaceKlotz(KlotzType type, KlotzColor color, Vector3Int rootCoords, KlotzDirection dir)
+    public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, Vector3Int rootCoords, KlotzDirection dir)
     {
         Vector3Int size = KlotzKB.KlotzSize(type);
 
@@ -192,7 +192,14 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         rootCoords, new(subX, subY, subZ), dir);
 
-                    Set(coords, new SubKlotz(type, color, dir, subX, subY, subZ));
+                    if (subX == 0 && subY == 0 && subZ == 0)
+                    {
+                        Set(coords, new SubKlotz(type, color, variant, dir));
+                    }
+                    else
+                    {
+                        Set(coords, new SubKlotz(type, dir, subX, subY, subZ));
+                    }
                 }
             }
         }
@@ -225,7 +232,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
 
-                    Set(coords, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
+                    Set(coords, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
                 }
             }
         }

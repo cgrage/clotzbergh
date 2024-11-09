@@ -101,6 +101,15 @@ public abstract class ChunkGenerator
     {
         return (KlotzColor)Random.Next(0, (int)KlotzColor.NextFree);
     }
+
+    /// <summary>
+    /// Little helper
+    /// </summary>
+    protected KlotzVariant NextRandVariant()
+    {
+        return (KlotzVariant)(uint)Random.Next(0, KlotzVariant.MaxValue + 1);
+    }
+
 }
 
 public class MicroBlockWorldGenerator : ChunkGenerator
@@ -125,24 +134,24 @@ public class MicroBlockWorldGenerator : ChunkGenerator
                     int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                     if (y > groundStart)
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, NextRandColor(), KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.White, NextRandVariant(), KlotzDirection.ToPosX));
                     }
                 }
             }
         }
 
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
-        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
+        chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
 
         return chunk;
     }
@@ -170,7 +179,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
             if (generalType == GeneralVoxelType.Air)
             {
-                CollapsedType = new SubKlotz(KlotzType.Air, 0, 0, 0, 0, 0);
+                CollapsedType = new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0);
             }
             else
             {
@@ -340,7 +349,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
         if (type == KlotzType.Air)
         {
-            rootVoxel.CollapsedType = new SubKlotz(type, 0, 0, 0, 0, 0);
+            rootVoxel.CollapsedType = new SubKlotz(type, 0, KlotzVariant.Zero, 0);
             _nonCollapsed.Remove(rootCoords);
         }
         else
@@ -348,6 +357,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
             KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
             Vector3Int size = KlotzKB.KlotzSize(type);
             KlotzColor color = NextRandColor();
+            KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.z; subZ++)
             {
@@ -359,7 +369,15 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
                             rootCoords, new(subX, subY, subZ), dir);
 
                         SubKlotzVoxelSuperPosition voxel = _positions[coords.x, coords.y, coords.z];
-                        voxel.CollapsedType = new SubKlotz(type, color, dir, subX, subY, subZ);
+
+                        if (subX == 0 && subY == 0 && subZ == 0)
+                        {
+                            voxel.CollapsedType = new SubKlotz(type, color, variant, dir);
+                        }
+                        else
+                        {
+                            voxel.CollapsedType = new SubKlotz(type, dir, subX, subY, subZ);
+                        }
 
                         _nonCollapsed.Remove(coords);
                     }
