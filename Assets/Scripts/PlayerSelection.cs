@@ -3,7 +3,7 @@ using UnityEngine;
 public class PlayerSelection : MonoBehaviour
 {
     private Vector3 _viewedPosition = Vector3.zero;
-    private Klotz _viewedKlotz = null;
+    private KlotzWorldData _viewedKlotz = null;
     private GameObject _highlightBox = null;
 
     private bool _actIsHolding;
@@ -14,7 +14,7 @@ public class PlayerSelection : MonoBehaviour
     {
         public Vector3 viewedPosition;
         public ClientChunk viewedChunk;
-        public Klotz viewedKlotz;
+        public KlotzWorldData viewedKlotz;
     }
 
     // Start is called before the first frame update

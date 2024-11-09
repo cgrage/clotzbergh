@@ -1,33 +1,25 @@
 using System.IO;
 using NUnit.Framework;
+using UnityEngine;
 
 public class SerializationTests
 {
     [Test]
     public void SerializeWorldChunk()
     {
-        WorldChunk orig = WorldChunk.CreateCoreFilled();
-        WorldChunk copy;
+        SerializeWorldChunk(0, 100);
+        SerializeWorldChunk(5, 95);
+        SerializeWorldChunk(10, 90);
+        SerializeWorldChunk(25, 75);
+        SerializeWorldChunk(50, 50);
+    }
 
-        byte[] data;
+    public void SerializeWorldChunk(int startPercent, int endPercent)
+    {
+        WorldChunk orig = new();
+        orig.CoreFill(startPercent, endPercent);
 
-        using MemoryStream ws = new();
-        {
-            using (BinaryWriter w = new(ws))
-            {
-                orig.Serialize(w);
-            }
-
-            data = ws.ToArray();
-        }
-
-        using MemoryStream rs = new(data);
-        {
-            using BinaryReader r = new(rs);
-            {
-                copy = WorldChunk.Deserialize(r);
-            }
-        }
+        WorldChunk copy = SerializeDeserialize(orig);
 
         for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
@@ -44,6 +36,35 @@ public class SerializationTests
                     Assert.AreEqual(k1.SubKlotzIndexY, k2.SubKlotzIndexY);
                     Assert.AreEqual(k1.SubKlotzIndexZ, k2.SubKlotzIndexZ);
                 }
+            }
+        }
+    }
+
+    public WorldChunk SerializeDeserialize(WorldChunk orig)
+    {
+        byte[] data;
+
+        using MemoryStream ws = new();
+        {
+            using (BinaryWriter w = new(ws))
+            {
+                orig.Serialize(w);
+            }
+
+            data = ws.ToArray();
+        }
+
+        using MemoryStream rs = new(data);
+        {
+            using BinaryReader r = new(rs);
+            {
+                uint bits = r.ReadUInt32();
+                bool asList = (bits & (1 << 31)) != 0;
+                int klotzCount = (int)(bits & ~(1 << 31));
+                Debug.Log($"Introspect: klotzCount={klotzCount}, asList={asList}, size={data.Length}");
+
+                rs.Position = 0; // reset
+                return WorldChunk.Deserialize(r);
             }
         }
     }

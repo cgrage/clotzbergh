@@ -58,8 +58,13 @@ public class MeshGenerator
                     if (opaqueXM1 && opaqueXP1 && opaqueYM1 && opaqueYP1 && opaqueZM1 && opaqueZP1)
                         continue;
 
+                    SubKlotz? kRoot = stitcher.At(k.RootPos(new Vector3Int(x, y, z)));
+                    if (!kRoot.HasValue)
+                        continue; // can't access the root sub-klotz
+
                     builder.MoveTo(xi, yi, zi);
-                    builder.SetColor(k.Color);
+                    builder.SetColor(kRoot.Value.Color);
+                    builder.SetVariant(kRoot.Value.Variant);
 
                     if (!opaqueXM1) builder.AddLeftFace();
                     if (!opaqueXP1) builder.AddRightFace();
@@ -100,7 +105,6 @@ public class WorldStitcher
         _neighborZP1 = chunk.NeighborZP1?.World;
     }
 
-
     public SubKlotz? At(int x, int y, int z)
     {
         const int MAX_X = WorldDef.ChunkSubDivsX;
@@ -114,6 +118,11 @@ public class WorldStitcher
         else if (z < 0) { return _neighborZM1?.Get(x, y, z + MAX_Z); }
         else if (z >= MAX_Z) { return _neighborZP1?.Get(x, y, z - MAX_Z); }
         else { return _worldChunk.Get(x, y, z); }
+    }
+
+    public SubKlotz? At(Vector3Int coords)
+    {
+        return At(coords.x, coords.y, coords.z);
     }
 
     public bool IsOpaqueOrUnknownAt(int x, int y, int z)
@@ -146,10 +155,11 @@ public class MeshBuilder
         Flags = new(flags);
     }
 
-    public static Vector2 BuildVertexFlags(KlotzColor color, KlotzSide side)
+    public static Vector2 BuildVertexFlags(KlotzSide side, KlotzColor color, KlotzVariant variant)
     {
         float x = (((int)color) << 3) | ((int)side);
-        return new Vector2(x, 0);
+        float y = (int)variant;
+        return new Vector2(x, y);
     }
 
     public void AddTriangle(int a, int b, int c)
@@ -179,6 +189,8 @@ public class VoxelMeshBuilder : MeshBuilder
 
     private KlotzColor _color;
 
+    private KlotzVariant _variant;
+
     private float _x1, _x2, _y1, _y2, _z1, _z2;
 
     private Vector3Int _currentCoords;
@@ -194,6 +206,7 @@ public class VoxelMeshBuilder : MeshBuilder
     {
         _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
         _color = KlotzColor.White;
+        _variant = KlotzVariant.Default;
 
         VoxelCoords = new();
     }
@@ -212,6 +225,11 @@ public class VoxelMeshBuilder : MeshBuilder
     public void SetColor(KlotzColor color)
     {
         _color = color;
+    }
+
+    public void SetVariant(KlotzVariant variant)
+    {
+        _variant = variant;
     }
 
     /// <summary>
@@ -286,10 +304,10 @@ public class VoxelMeshBuilder : MeshBuilder
         Vertices.Add(corner3);
         Vertices.Add(corner4);
 
-        Flags.Add(BuildVertexFlags(_color, side));
-        Flags.Add(BuildVertexFlags(_color, side));
-        Flags.Add(BuildVertexFlags(_color, side));
-        Flags.Add(BuildVertexFlags(_color, side));
+        Flags.Add(BuildVertexFlags(side, _color, _variant));
+        Flags.Add(BuildVertexFlags(side, _color, _variant));
+        Flags.Add(BuildVertexFlags(side, _color, _variant));
+        Flags.Add(BuildVertexFlags(side, _color, _variant));
 
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);

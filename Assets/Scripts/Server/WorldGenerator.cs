@@ -8,8 +8,8 @@ public class WorldGenerator
 
     public WorldChunk GetChunk(Vector3Int chunkCoords)
     {
-        // ChunkGenerator gen = new MicroBlockWorldGenerator(chunkCoords, HeightMap);
-        ChunkGenerator gen = new WaveFunctionCollapseGenerator(chunkCoords, HeightMap);
+        ChunkGenerator gen = new MicroBlockWorldGenerator(chunkCoords, HeightMap);
+        // ChunkGenerator gen = new WaveFunctionCollapseGenerator(chunkCoords, HeightMap);
 
         return gen.Generate();
     }
@@ -110,7 +110,7 @@ public class MicroBlockWorldGenerator : ChunkGenerator
 
     public override WorldChunk Generate()
     {
-        var chunk = WorldChunk.CreateEmpty();
+        WorldChunk chunk = new();
 
         for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
         {
@@ -208,7 +208,8 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
             RecalculateSuperpositions(coords - new Vector3Int(-3, -3, -3), new(7, 7, 7));
         }
 
-        WorldChunk chunk = WorldChunk.CreateEmpty();
+        WorldChunk chunk = new();
+
         for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
         {
             for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)

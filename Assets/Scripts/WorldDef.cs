@@ -20,7 +20,7 @@ using UnityEngine;
 /// fact 80: 1, 2, 4, 5, 8, 10, 16, 20, --, 40, 80
 /// common:  1, 2, 4, -, 8, --, 16, --, --, --, --
 /// 
-/// 32*32*80 = 81.920 voxels per chunk
+/// 32*32*80 = 81,920 voxels per chunk
 /// 
 /// </summary>
 public static class WorldDef
