@@ -32,10 +32,7 @@ public class MeshGenerator
 
         int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
         WorldStitcher stitcher = new(chunk);
-        VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip)
-        {
-            AddVoxelCoords = lod == 0
-        };
+        VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
 
         for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
         {
@@ -70,7 +67,7 @@ public class MeshGenerator
                     if (!opaqueXM1) builder.AddLeftFace();
                     if (!opaqueXP1) builder.AddRightFace();
                     if (!opaqueYM1) builder.AddBottomFace();
-                    if (!opaqueYP1) builder.AddTopFace(KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
+                    if (!opaqueYP1) builder.AddTopFace(lod == 0 && KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
                     if (!opaqueZM1) builder.AddBackFace();
                     if (!opaqueZP1) builder.AddFrontFace();
                 }
@@ -195,8 +192,6 @@ public class VoxelMeshBuilder : MeshBuilder
     private float _x1, _x2, _y1, _y2, _z1, _z2;
 
     private Vector3Int _currentCoords;
-
-    public bool AddVoxelCoords { get; set; } = true;
 
     /// <summary>
     /// Can be used to look-up the voxel coords once you know the triangle index.
