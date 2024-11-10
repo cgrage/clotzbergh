@@ -140,7 +140,7 @@ public class WorldChunkTests
     {
         WorldChunk chunk = new();
         KlotzColor[] zColors = new KlotzColor[] {
-            KlotzColor.White, KlotzColor.Grey, KlotzColor.Black, KlotzColor.Red,
+            KlotzColor.White, KlotzColor.Gray, KlotzColor.Black, KlotzColor.Red,
             KlotzColor.Blue, KlotzColor.Yellow, KlotzColor.Green, KlotzColor.Azure };
 
         chunk.PlaceKlotz(KlotzType.Brick1x8, zColors[0], KlotzVariant.Zero, new(0, 0, 0), KlotzDirection.ToPosX);

@@ -33,7 +33,7 @@ public enum KlotzDirection
 public enum KlotzColor
 {
     White = 0,
-    Grey = 1,
+    Gray = 1,
     Black = 2,
     Red = 3,
     Blue = 4,
@@ -60,6 +60,12 @@ public enum KlotzSide
 public enum KlotzSideFlags
 {
     HasStuds = 1 << 1,
+}
+
+[Flags]
+public enum KlotzVertexFlags
+{
+    SideHasStuds = 1 << 1,
     ReservedFlag1 = 1 << 2,
     ReservedFlag2 = 1 << 3,
     ReservedFlag3 = 1 << 4,
@@ -73,7 +79,7 @@ public readonly struct KlotzVariant
 
     public static readonly KlotzVariant Zero = new();
 
-    public KlotzVariant(byte value) { this._value = value; }
+    public KlotzVariant(byte value) { _value = value; }
 
     // Explicit cast to int
     public static explicit operator uint(KlotzVariant variant) { return variant._value; }
