@@ -62,6 +62,7 @@ public class MeshGenerator
                     if (!kRoot.HasValue)
                         continue; // can't access the root sub-klotz
 
+                    KlotzType type = kRoot.Value.Type;
                     builder.MoveTo(xi, yi, zi);
                     builder.SetColor(kRoot.Value.Color);
                     builder.SetVariant(kRoot.Value.Variant);
@@ -69,7 +70,7 @@ public class MeshGenerator
                     if (!opaqueXM1) builder.AddLeftFace();
                     if (!opaqueXP1) builder.AddRightFace();
                     if (!opaqueYM1) builder.AddBottomFace();
-                    if (!opaqueYP1) builder.AddTopFace();
+                    if (!opaqueYP1) builder.AddTopFace(KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
                     if (!opaqueZM1) builder.AddBackFace();
                     if (!opaqueZP1) builder.AddFrontFace();
                 }
@@ -155,10 +156,10 @@ public class MeshBuilder
         Flags = new(flags);
     }
 
-    public static Vector2 BuildVertexFlags(KlotzSide side, KlotzColor color, KlotzVariant variant)
+    public static Vector2 BuildVertexFlags(KlotzSide side, KlotzSideFlags flags, KlotzColor color, KlotzVariant variant)
     {
         float x = (((uint)color) << 3) | ((uint)side);
-        float y = (uint)variant;
+        float y = (((uint)flags) << 7) | (uint)variant;
         return new Vector2(x, y);
     }
 
@@ -235,67 +236,67 @@ public class VoxelMeshBuilder : MeshBuilder
     /// <summary>
     /// A.K.A. the left face
     /// </summary>
-    public void AddLeftFace()
+    public void AddLeftFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x1, _y1, _z2), new(_x1, _y2, _z2), new(_x1, _y2, _z1), new(_x1, _y1, _z1),
-            KlotzSide.Left);
+            KlotzSide.Left, flags);
     }
 
     /// <summary>
     /// A.K.A. the right face
     /// </summary>
-    public void AddRightFace()
+    public void AddRightFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
-            KlotzSide.Right);
+            KlotzSide.Right, flags);
     }
 
     /// <summary>
     /// A.K.A. the bottom face
     /// </summary>
-    public void AddBottomFace()
+    public void AddBottomFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x2, _y1, _z1), new(_x2, _y1, _z2), new(_x1, _y1, _z2), new(_x1, _y1, _z1),
-            KlotzSide.Bottom);
+            KlotzSide.Bottom, flags);
     }
 
     /// <summary>
     /// A.K.A. the top face
     /// </summary>
-    public void AddTopFace()
+    public void AddTopFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
-            KlotzSide.Top);
+            KlotzSide.Top, flags);
     }
 
     /// <summary>
     /// A.K.A. the back face
     /// </summary>
-    public void AddBackFace()
+    public void AddBackFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x1, _y2, _z1), new(_x2, _y2, _z1), new(_x2, _y1, _z1), new(_x1, _y1, _z1),
-            KlotzSide.Back);
+            KlotzSide.Back, flags);
     }
 
     /// <summary>
     /// A.K.A. the front face
     /// </summary>
-    public void AddFrontFace()
+    public void AddFrontFace(KlotzSideFlags flags = 0)
     {
         AddFace(
             new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
-            KlotzSide.Front);
+            KlotzSide.Front, flags);
     }
 
     /// <summary>
     /// Adds a face to the current mesh (-builder)
     /// </summary>
-    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side)
+    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side, KlotzSideFlags flags)
     {
         int v0 = Vertices.Count;
 
@@ -304,10 +305,8 @@ public class VoxelMeshBuilder : MeshBuilder
         Vertices.Add(corner3);
         Vertices.Add(corner4);
 
-        Flags.Add(BuildVertexFlags(side, _color, _variant));
-        Flags.Add(BuildVertexFlags(side, _color, _variant));
-        Flags.Add(BuildVertexFlags(side, _color, _variant));
-        Flags.Add(BuildVertexFlags(side, _color, _variant));
+        Vector2 vertexFlags = BuildVertexFlags(side, flags, _color, _variant);
+        Flags.Add(vertexFlags); Flags.Add(vertexFlags); Flags.Add(vertexFlags); Flags.Add(vertexFlags);
 
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);

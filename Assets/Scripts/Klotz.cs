@@ -56,6 +56,15 @@ public enum KlotzSide
     Front = 5
 }
 
+[Flags]
+public enum KlotzSideFlags
+{
+    HasStuds = 1 << 1,
+    ReservedFlag1 = 1 << 2,
+    ReservedFlag2 = 1 << 3,
+    ReservedFlag3 = 1 << 4,
+}
+
 public readonly struct KlotzVariant
 {
     public const int MaxValue = 127;
@@ -126,6 +135,11 @@ public static class KlotzKB
         };
     }
 
+    public static bool TypeHasTopStuds(KlotzType t)
+    {
+        return true;
+    }
+
     public static readonly KlotzType[] AllGroundTypes = {
         KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4, KlotzType.Plate1x6, KlotzType.Plate1x8,
         KlotzType.Plate2x2, KlotzType.Plate2x3, KlotzType.Plate2x4, KlotzType.Plate2x6, KlotzType.Plate2x8,
@@ -151,7 +165,7 @@ public enum SubKlotzKind
 /// The base voxel for the terrain.
 /// 
 /// Root Block:
-/// Reserved               ->  1 bit
+/// IsOpaque (0=false)     ->  1 bit
 /// Variant (0..127)       ->  7 bit
 /// Color (0..63)          ->  6 bit
 /// Orientation (N/E/S/W)  ->  2 bit
@@ -186,7 +200,9 @@ public readonly struct SubKlotz
 
     public static SubKlotz Root(KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
     {
+        bool isOpaque = KlotzKB.IsSubKlotzOpaque(type, 0, 0, 0);
         return new SubKlotz(
+            (isOpaque ? 1u : 0u) << 23 |
             ((uint)variant & 0x7f) << 16 |
             ((uint)color & 0x3f) << 10 |
             ((uint)dir & 0x3) << 8 |
@@ -294,8 +310,11 @@ public readonly struct SubKlotz
     {
         get
         {
-            if (IsRoot) return KlotzKB.IsSubKlotzOpaque(Type, 0, 0, 0);
+            if (IsRoot) return ((_rawBits >> 23) & 0x1) != 0;
             else return ((_rawBits >> 1) & 0x1) != 0;
+
+            // This does the same but is not faster:
+            // return ((_rawBits & 0x800001) == 0x800000) || ((_rawBits & 0x3) == 0x3);
         }
     }
 
