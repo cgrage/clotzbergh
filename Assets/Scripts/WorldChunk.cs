@@ -115,13 +115,12 @@ public class WorldChunk
         return result;
     }
 
-    private const int AvgSizeOfFullChunk = WorldDef.ChunkSubDivsX * WorldDef.ChunkSubDivsY * WorldDef.ChunkSubDivsZ * 5 / 2; // 204,800
-    private const int SizeOfKlotz = 5;
+    private const int UseListIfFillLevelInPercent = 50; // 40,960
 
     public void Serialize(BinaryWriter w)
     {
-        int sizeOfAllKlotzes = SizeOfKlotz * _klotzCount;
-        bool asList = sizeOfAllKlotzes < AvgSizeOfFullChunk; // 40,960
+        int fillLevel = (_klotzCount * 100) / WorldDef.SubKlotzPerChunkCount;
+        bool asList = fillLevel < UseListIfFillLevelInPercent;
 
         if (asList)
         {

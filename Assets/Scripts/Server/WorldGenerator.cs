@@ -140,7 +140,7 @@ public class MicroBlockWorldGenerator : ChunkGenerator
                     {
                         chunk.Set(ix, iy, iz, SubKlotz.Root(
                             KlotzType.Plate1x1,
-                            KlotzColor.White,
+                            KlotzColor.DarkBlue,
                             NextRandVariant(),
                             KlotzDirection.ToPosX));
                     }

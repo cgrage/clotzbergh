@@ -41,7 +41,8 @@ public enum KlotzColor
     Green = 6,
     Azure = 7,
     Orange = 8,
-    NextFree = 9,
+    DarkBlue = 9,
+    NextFree = 10,
     Maximum = 31
 }
 
