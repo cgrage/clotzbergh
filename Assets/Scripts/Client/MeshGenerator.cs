@@ -140,23 +140,23 @@ public class MeshBuilder
 {
     public List<Vector3> Vertices { get; private set; }
     public List<int> Triangles { get; private set; }
-    public List<Vector2> Flags { get; private set; }
+    public List<Vector2> UvData { get; private set; }
 
     public MeshBuilder(int estimatedVertexCount = 0, int estimatedTriangleCount = 0)
     {
         Vertices = new(estimatedVertexCount);
         Triangles = new List<int>(capacity: estimatedTriangleCount * 3);
-        Flags = new List<Vector2>(estimatedVertexCount);
+        UvData = new List<Vector2>(estimatedVertexCount);
     }
 
-    public MeshBuilder(Vector3[] vertices, int[] triangles, Vector2[] flags)
+    public MeshBuilder(Vector3[] vertices, int[] triangles, Vector2[] uvData)
     {
         Vertices = new(vertices);
         Triangles = new(triangles);
-        Flags = new(flags);
+        UvData = new(uvData);
     }
 
-    public static Vector2 BuildVertexFlags(KlotzSide side, KlotzSideFlags flags, KlotzColor color, KlotzVariant variant)
+    public static Vector2 BuildVertexUvData(KlotzSide side, KlotzVertexFlags flags, KlotzColor color, KlotzVariant variant)
     {
         float x = (((uint)color) << 3) | ((uint)side);
         float y = (((uint)flags) << 7) | (uint)variant;
@@ -176,7 +176,7 @@ public class MeshBuilder
         {
             vertices = Vertices.ToArray(),
             triangles = Triangles.ToArray(),
-            uv = Flags.ToArray(),
+            uv = UvData.ToArray(),
 
         };
 
@@ -296,7 +296,7 @@ public class VoxelMeshBuilder : MeshBuilder
     /// <summary>
     /// Adds a face to the current mesh (-builder)
     /// </summary>
-    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side, KlotzSideFlags flags)
+    private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side, KlotzSideFlags sideFlags)
     {
         int v0 = Vertices.Count;
 
@@ -305,8 +305,11 @@ public class VoxelMeshBuilder : MeshBuilder
         Vertices.Add(corner3);
         Vertices.Add(corner4);
 
-        Vector2 vertexFlags = BuildVertexFlags(side, flags, _color, _variant);
-        Flags.Add(vertexFlags); Flags.Add(vertexFlags); Flags.Add(vertexFlags); Flags.Add(vertexFlags);
+        KlotzVertexFlags flags = 0;
+        if (sideFlags.HasFlag(KlotzSideFlags.HasStuds)) flags |= KlotzVertexFlags.SideHasStuds;
+
+        Vector2 vertexData = BuildVertexUvData(side, flags, _color, _variant);
+        UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData);
 
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
         Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);
