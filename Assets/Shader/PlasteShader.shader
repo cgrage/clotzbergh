@@ -62,7 +62,8 @@ Shader "PlasteShader"
             {
                 uint side = ((uint)v.uv.x) & 0x7;
                 uint colorEnum = ((uint)v.uv.x >> 3) & 0x1F;
-                uint variant = (uint)v.uv.y; // numbers are from 0 to 127
+                uint variant = ((uint)v.uv.y) & 0x7F; // numbers are from 0 to 127
+                uint sideFlags = ((uint)v.uv.y >> 7) & 0xF;
 
                 float4 baseColor = GetColor(colorEnum);
                 float variation = variant / 127.0;
