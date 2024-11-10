@@ -134,11 +134,15 @@ public class MicroBlockWorldGenerator : ChunkGenerator
                     int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                     if (y > groundStart)
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
+                        chunk.Set(ix, iy, iz, SubKlotz.Air);
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.White, NextRandVariant(), KlotzDirection.ToPosX));
+                        chunk.Set(ix, iy, iz, SubKlotz.Root(
+                            KlotzType.Plate1x1,
+                            KlotzColor.White,
+                            NextRandVariant(),
+                            KlotzDirection.ToPosX));
                     }
                 }
             }
@@ -179,7 +183,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
             if (generalType == GeneralVoxelType.Air)
             {
-                CollapsedType = new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0);
+                CollapsedType = SubKlotz.Air;
             }
             else
             {
@@ -349,7 +353,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
         if (type == KlotzType.Air)
         {
-            rootVoxel.CollapsedType = new SubKlotz(type, 0, KlotzVariant.Zero, 0);
+            rootVoxel.CollapsedType = SubKlotz.Root(type, 0, KlotzVariant.Zero, 0);
             _nonCollapsed.Remove(rootCoords);
         }
         else
@@ -372,11 +376,11 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
                         if (subX == 0 && subY == 0 && subZ == 0)
                         {
-                            voxel.CollapsedType = new SubKlotz(type, color, variant, dir);
+                            voxel.CollapsedType = SubKlotz.Root(type, color, variant, dir);
                         }
                         else
                         {
-                            voxel.CollapsedType = new SubKlotz(type, dir, subX, subY, subZ);
+                            voxel.CollapsedType = SubKlotz.NonRoot(type, dir, subX, subY, subZ);
                         }
 
                         _nonCollapsed.Remove(coords);

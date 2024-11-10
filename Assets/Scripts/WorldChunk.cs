@@ -28,8 +28,11 @@ public class WorldChunk
             {
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
-                    Set(x, y, z, new SubKlotz(
-                        KlotzType.Plate1x1, KlotzColor.White, KlotzVariant.Zero, KlotzDirection.ToPosX));
+                    Set(x, y, z, SubKlotz.Root(
+                        KlotzType.Plate1x1,
+                        KlotzColor.White,
+                        KlotzVariant.Zero,
+                        KlotzDirection.ToPosX));
                 }
             }
         }
@@ -50,11 +53,15 @@ public class WorldChunk
 
                     if (inCore)
                     {
-                        Set(x, y, z, new SubKlotz(KlotzType.Plate1x1, KlotzColor.White, KlotzVariant.Zero, KlotzDirection.ToPosX));
+                        Set(x, y, z, SubKlotz.Root(
+                            KlotzType.Plate1x1,
+                            KlotzColor.White,
+                            KlotzVariant.Zero,
+                            KlotzDirection.ToPosX));
                     }
                     else
                     {
-                        Set(x, y, z, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
+                        Set(x, y, z, SubKlotz.Air);
                     }
                 }
             }
@@ -194,11 +201,11 @@ public class WorldChunk
 
                     if (subX == 0 && subY == 0 && subZ == 0)
                     {
-                        Set(coords, new SubKlotz(type, color, variant, dir));
+                        Set(coords, SubKlotz.Root(type, color, variant, dir));
                     }
                     else
                     {
-                        Set(coords, new SubKlotz(type, dir, subX, subY, subZ));
+                        Set(coords, SubKlotz.NonRoot(type, dir, subX, subY, subZ));
                     }
                 }
             }
@@ -232,7 +239,7 @@ public class WorldChunk
                     Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
 
-                    Set(coords, new SubKlotz(KlotzType.Air, 0, KlotzVariant.Zero, 0));
+                    Set(coords, SubKlotz.Air);
                 }
             }
         }

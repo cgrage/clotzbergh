@@ -10,15 +10,15 @@ public class KlotzTests
     {
         SubKlotz klotz;
 
-        klotz = new(KlotzType.Air, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
+        klotz = SubKlotz.Root(KlotzType.Air, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
         Assert.AreEqual(true, klotz.IsRoot);
         Assert.AreEqual(KlotzType.Air, klotz.Type);
 
-        klotz = new(KlotzType.Plate1x1, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
+        klotz = SubKlotz.Root(KlotzType.Plate1x1, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
         Assert.AreEqual(true, klotz.IsRoot);
         Assert.AreEqual(KlotzType.Plate1x1, klotz.Type);
 
-        klotz = new(KlotzType.Brick2x4, KlotzDirection.ToNegZ, 1, 2, 3);
+        klotz = SubKlotz.NonRoot(KlotzType.Brick2x4, KlotzDirection.ToNegZ, 1, 2, 3);
         Assert.AreEqual(false, klotz.IsRoot);
         Assert.AreEqual(KlotzDirection.ToNegZ, klotz.Direction);
         Assert.AreEqual(1, klotz.SubKlotzIndexX);
@@ -31,19 +31,19 @@ public class KlotzTests
     {
         SubKlotz subKlotz;
 
-        subKlotz = new(KlotzType.Air, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
+        subKlotz = SubKlotz.Root(KlotzType.Air, 0, KlotzVariant.Zero, KlotzDirection.ToPosX);
         Assert.AreEqual(true, subKlotz.IsRoot);
         Assert.AreEqual(KlotzType.Air, subKlotz.Type);
         Assert.AreEqual(false, subKlotz.IsOpaque);
 
-        subKlotz = new(KlotzType.Plate1x1, KlotzColor.Black, (KlotzVariant)111, KlotzDirection.ToPosX);
+        subKlotz = SubKlotz.Root(KlotzType.Plate1x1, KlotzColor.Black, (KlotzVariant)111, KlotzDirection.ToPosX);
         Assert.AreEqual(true, subKlotz.IsRoot);
         Assert.AreEqual(KlotzType.Plate1x1, subKlotz.Type);
         Assert.AreEqual(KlotzColor.Black, subKlotz.Color);
         Assert.AreEqual((KlotzVariant)111, subKlotz.Variant);
         Assert.AreEqual(true, subKlotz.IsOpaque);
 
-        subKlotz = new(KlotzType.Brick2x4, KlotzColor.Red, (KlotzVariant)127, KlotzDirection.ToPosX);
+        subKlotz = SubKlotz.Root(KlotzType.Brick2x4, KlotzColor.Red, (KlotzVariant)127, KlotzDirection.ToPosX);
         Assert.AreEqual(true, subKlotz.IsRoot);
         Assert.AreEqual(KlotzType.Brick2x4, subKlotz.Type);
         Assert.AreEqual(KlotzColor.Red, subKlotz.Color);
@@ -59,7 +59,7 @@ public class KlotzTests
         var variant = (KlotzVariant)103;
         var direction = KlotzDirection.ToPosZ;
 
-        SubKlotz orig = new(type, color, variant, direction);
+        SubKlotz orig = SubKlotz.Root(type, color, variant, direction);
         SubKlotz copy;
         byte[] bytes;
 
@@ -98,7 +98,7 @@ public class KlotzTests
         var indexY = 4;
         var indexZ = 5;
 
-        SubKlotz orig = new(type, direction, indexX, indexY, indexZ);
+        SubKlotz orig = SubKlotz.NonRoot(type, direction, indexX, indexY, indexZ);
         SubKlotz copy;
         byte[] bytes;
 
@@ -134,7 +134,7 @@ public class KlotzTests
     {
         Klotz klotz;
 
-        klotz = new(10, 20, 30, KlotzType.Brick1x6, KlotzColor.Black, (KlotzVariant)11, KlotzDirection.ToPosZ);
+        klotz = Klotz.Create(10, 20, 30, KlotzType.Brick1x6, KlotzColor.Black, (KlotzVariant)11, KlotzDirection.ToPosZ);
         Assert.AreEqual(10, klotz.CoordsX);
         Assert.AreEqual(20, klotz.CoordsY);
         Assert.AreEqual(30, klotz.CoordsZ);
@@ -155,7 +155,7 @@ public class KlotzTests
         var variant = (KlotzVariant)127;
         var direction = KlotzDirection.ToPosZ;
 
-        Klotz orig = new(coordsX, coordsY, coordsZ, type, color, variant, direction);
+        Klotz orig = Klotz.Create(coordsX, coordsY, coordsZ, type, color, variant, direction);
         Klotz copy;
         byte[] bytes;
 
