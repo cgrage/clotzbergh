@@ -150,10 +150,11 @@ public enum SubKlotzKind
 /// The base voxel for the terrain.
 /// 
 /// Root Block:
-/// Orientation (N/E/S/W)  ->  2 bit
+/// Reserved               ->  1 bit
 /// Variant (0..127)       ->  7 bit
 /// Color (0..63)          ->  6 bit
-/// Type (0..255)          ->  8 bit
+/// Orientation (N/E/S/W)  ->  2 bit
+/// Type (0..127)          ->  7 bit
 /// Kind (=Root)           ->  1 bit
 /// --------------------------------
 /// Sum                       24 bit
@@ -175,32 +176,33 @@ public readonly struct SubKlotz
 {
     private readonly uint _rawBits;
 
-    public SubKlotz(uint u32)
+    private SubKlotz(uint u32)
     {
         _rawBits = u32;
     }
 
-    public SubKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
+    public static readonly SubKlotz Air = new(0);
+
+    public static SubKlotz Root(KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
     {
-        _rawBits =
-            ((uint)dir & 0x3) << 22 |
-            ((uint)variant & 0x7f) << 15 |
-            ((uint)color & 0x3f) << 9 |
-            ((uint)type & 0xff) << 1 |
-            (uint)SubKlotzKind.Root;
+        return new SubKlotz(
+            ((uint)variant & 0x7f) << 16 |
+            ((uint)color & 0x3f) << 10 |
+            ((uint)dir & 0x3) << 8 |
+            ((uint)type & 0x7f) << 1 |
+            (uint)SubKlotzKind.Root);
     }
 
-    public SubKlotz(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
+    public static SubKlotz NonRoot(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
     {
         bool isOpaque = KlotzKB.IsSubKlotzOpaque(type, subIdxX, subIdxY, subIdxZ);
-
-        _rawBits =
+        return new SubKlotz(
             ((uint)subIdxZ & 0xf) << 12 |
             ((uint)subIdxY & 0xf) << 8 |
             ((uint)subIdxX & 0xf) << 4 |
             ((uint)dir & 0x3) << 2 |
             (isOpaque ? 1u : 0u) << 1 |
-            ((uint)SubKlotzKind.NonRoot & 0x1) << 0;
+            ((uint)SubKlotzKind.NonRoot & 0x1) << 0);
     }
 
     public readonly bool IsRoot
@@ -215,7 +217,7 @@ public readonly struct SubKlotz
 #if DO_CHECKS
             if (!IsRoot) throw new InvalidOperationException($"Type of NonRoot-Block requested. raw=0x{_rawBits:x}");
 #endif
-            return (KlotzType)((_rawBits >> 1) & 0xff);
+            return (KlotzType)((_rawBits >> 1) & 0x7f);
         }
     }
 
@@ -226,7 +228,7 @@ public readonly struct SubKlotz
 #if DO_CHECKS
             if (!IsRoot) throw new InvalidOperationException($"Color of NonRoot-Block requested. raw=0x{_rawBits:x}");
 #endif
-            return (KlotzColor)((_rawBits >> 9) & 0x3f);
+            return (KlotzColor)((_rawBits >> 10) & 0x3f);
         }
     }
 
@@ -237,7 +239,7 @@ public readonly struct SubKlotz
 #if DO_CHECKS
             if (!IsRoot) throw new InvalidOperationException($"Variant of NonRoot-Block requested. raw=0x{_rawBits:x}");
 #endif
-            return (KlotzVariant)((_rawBits >> 15) & 0x7f);
+            return (KlotzVariant)((_rawBits >> 16) & 0x7f);
         }
     }
 
@@ -245,7 +247,7 @@ public readonly struct SubKlotz
     {
         get
         {
-            if (IsRoot) return (KlotzDirection)((_rawBits >> 22) & 0x3);
+            if (IsRoot) return (KlotzDirection)((_rawBits >> 8) & 0x3);
             return (KlotzDirection)((_rawBits >> 2) & 0x3);
         }
     }
@@ -312,6 +314,9 @@ public readonly struct SubKlotz
     public static SubKlotz Deserialize(BinaryReader r)
     {
         byte byte0 = r.ReadByte();
+        if (byte0 == 0)
+            return Air;
+
         byte byte1 = r.ReadByte();
         byte byte2 = ((byte0 & 0x1) == 0) ? r.ReadByte() : (byte)0;
 
@@ -323,6 +328,12 @@ public readonly struct SubKlotz
 
     public readonly void Serialize(BinaryWriter w)
     {
+        if (_rawBits == 0)
+        {
+            w.Write((byte)0);
+            return;
+        }
+
         w.Write((byte)((_rawBits >> 0) & 0xff));
         w.Write((byte)((_rawBits >> 8) & 0xff));
 
@@ -334,7 +345,7 @@ public readonly struct SubKlotz
 
     public Klotz ToKlotz(int x, int y, int z)
     {
-        return new Klotz(x, y, z, Type, Color, Variant, Direction);
+        return Klotz.Create(x, y, z, Type, Color, Variant, Direction);
     }
 
     public override string ToString()
@@ -411,61 +422,60 @@ public readonly struct SubKlotz
 /// </summary>
 public readonly struct Klotz
 {
-    private readonly uint rawBits1;
-    private readonly byte rawBits2;
+    private readonly uint _rawBits1;
+    private readonly byte _rawBits2;
 
-    public Klotz(uint u32, byte u8)
+    private Klotz(uint u32, byte u8)
     {
-        rawBits1 = u32;
-        rawBits2 = u8;
+        _rawBits1 = u32;
+        _rawBits2 = u8;
     }
 
-    public Klotz(int x, int y, int z, KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
+    public static Klotz Create(int x, int y, int z, KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
     {
-        rawBits1 =
+        return new Klotz(
             ((uint)x & 0x1f) << 27 |
             ((uint)y & 0x7f) << 20 |
             ((uint)z & 0x1f) << 15 |
             ((uint)color & 0x3f) << 9 |
             ((uint)variant & 0x7f) << 2 |
-            ((uint)dir & 0x3) << 0;
-
-        rawBits2 = (byte)type;
+            ((uint)dir & 0x3) << 0,
+            (byte)type);
     }
 
     public readonly KlotzType Type
     {
-        get { return (KlotzType)rawBits2; }
+        get { return (KlotzType)_rawBits2; }
     }
 
     public readonly KlotzColor Color
     {
-        get { return (KlotzColor)((rawBits1 >> 9) & 0x3f); }
+        get { return (KlotzColor)((_rawBits1 >> 9) & 0x3f); }
     }
 
     public readonly KlotzVariant Variant
     {
-        get { return (KlotzVariant)((rawBits1 >> 2) & 0x7f); }
+        get { return (KlotzVariant)((_rawBits1 >> 2) & 0x7f); }
     }
 
     public readonly KlotzDirection Direction
     {
-        get { return (KlotzDirection)((rawBits1 >> 0) & 0x3); }
+        get { return (KlotzDirection)((_rawBits1 >> 0) & 0x3); }
     }
 
     public readonly int CoordsX
     {
-        get { return (int)((rawBits1 >> 27) & 0x1f); }
+        get { return (int)((_rawBits1 >> 27) & 0x1f); }
     }
 
     public readonly int CoordsY
     {
-        get { return (int)((rawBits1 >> 20) & 0x7f); }
+        get { return (int)((_rawBits1 >> 20) & 0x7f); }
     }
 
     public readonly int CoordsZ
     {
-        get { return (int)((rawBits1 >> 15) & 0x1f); }
+        get { return (int)((_rawBits1 >> 15) & 0x1f); }
     }
 
     public readonly Vector3Int Coords
@@ -480,8 +490,8 @@ public readonly struct Klotz
 
     public readonly void Serialize(BinaryWriter w)
     {
-        w.Write(rawBits1);
-        w.Write(rawBits2);
+        w.Write(_rawBits1);
+        w.Write(_rawBits2);
     }
 }
 
