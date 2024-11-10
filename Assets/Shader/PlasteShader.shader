@@ -81,11 +81,11 @@ Shader "PlasteShader"
                 o.pos = v.vertex;
                 o.normal = GetNormal(side);
                 o.color = baseColor * (1.0 - variation * 0.1); // Vary color by up to 10%
-                o.addStuds = (vertexFlags) > 0 ? 1 : 0;
+                o.addStuds = (vertexFlags > 0) ? 1 : 0;
                 return o;
             }
 
-            [maxvertexcount(3 + 18 * 3)]
+            [maxvertexcount(3 + 8 * 9)]
             void geom(triangle v2g input[3], inout TriangleStream<g2f> triStream)
             {
                 int addStuds = 0;
@@ -101,17 +101,21 @@ Shader "PlasteShader"
                     triStream.Append(o);
                 }
 
+                triStream.RestartStrip();
+
                 if (addStuds == 0)
                     return;
 
+                float studRadius = 0.108f; // 0.0024 * 45 = 0.108
+                float studHeight = 0.0765f; // 0.0017 * 45 = 0.0765
+
+                // Calculate the longest side to determine the base vertices
                 int a, b, c;
 
-                // Compute the lengths of the sides
                 float4 side1 = input[0].pos - input[1].pos;
                 float4 side2 = input[1].pos - input[2].pos;
                 float4 side3 = input[2].pos - input[0].pos;
 
-                // Calculate the squared lengths of the sides
                 float side1LengthSq = dot(side1, side1);
                 float side2LengthSq = dot(side2, side2);
                 float side3LengthSq = dot(side3, side3);
@@ -129,35 +133,84 @@ Shader "PlasteShader"
                     a = 1, b = 2, c = 0;
                 }
 
-                float4 bottomCenter = (input[b].pos + input[c].pos) / 2;
-                float4 normal = float4(input[a].normal, 0); // all verts have same normal
-                float4 color = float4(1, 0, 1, 1); // input[0].color; // all verts have same color
-                float4 topCenter = bottomCenter + normal * 0.1; // Adjust 0.1 to control the height of the pyramid
-                int segments = 10;
-                float radius = 0.1f;
+                float3 bottomCenter = (input[b].pos.xyz + input[c].pos.xyz) / 2;
+                float3 normal = input[a].normal;
+                float4 color = input[0].color; // all verts have same color
+
+                // Generate orthogonal basis
+                float3 tangent = normalize(input[b].pos.xyz - bottomCenter);
+                float3 bitangent = normalize(cross(normal, tangent));
+
+                float3 topCenter = bottomCenter + normal * studHeight;
+                int segments = 8;
                 float angleStep = radians(180.0 / segments); // Angle step for each segment
+                float angle = 0;
+                float3 prevTopEdge = topCenter + studRadius * (cos(angle) * tangent + sin(angle) * bitangent);
+                float3 prevBottomEdge = bottomCenter + studRadius * (cos(angle) * tangent + sin(angle) * bitangent);
 
                 for (int i = 0; i < segments; i++)
                 {
-                    float angle = angleStep * i;
-                    float3 vertex1 = topCenter + float4(cos(angle), 0, sin(angle), 0) * radius;
-                    float3 vertex2 = topCenter + float4(cos(angle + angleStep), 0, sin(angle + angleStep), 0) * radius;
+                    angle += angleStep;
+                    float3 newTopEdge = topCenter + studRadius * (cos(angle) * tangent + sin(angle) * bitangent);
+                    float3 newBottomEdge = bottomCenter + studRadius * (cos(angle) * tangent + sin(angle) * bitangent);
                     g2f o;
 
-                    o.pos = UnityObjectToClipPos(topCenter);
+                    // Top triangle (top-center, previous top edge, new top edge)
+                    o.pos = UnityObjectToClipPos(float4(topCenter, 1.0));
                     o.normal = normal;
                     o.color = color;
                     triStream.Append(o);
 
-                    o.pos = UnityObjectToClipPos(vertex1);
+                    o.pos = UnityObjectToClipPos(float4(prevTopEdge, 1.0));
                     o.normal = normal;
                     o.color = color;
                     triStream.Append(o);
 
-                    o.pos = UnityObjectToClipPos(vertex2);
+                    o.pos = UnityObjectToClipPos(float4(newTopEdge, 1.0));
                     o.normal = normal;
-                    o.color  = color;
+                    o.color = color;
                     triStream.Append(o);
+
+                    triStream.RestartStrip();
+
+                    // Side triangle 1 (previous top edge, new bottom edge, new top edge)
+                    o.pos = UnityObjectToClipPos(float4(prevTopEdge, 1.0));
+                    o.normal = normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    o.pos = UnityObjectToClipPos(float4(newBottomEdge, 1.0));
+                    o.normal = normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    o.pos = UnityObjectToClipPos(float4(newTopEdge, 1.0));
+                    o.normal = normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    triStream.RestartStrip();
+
+                    // Side triangle 2 (previous top edge, previous bottom edge, new bottom edge)
+                    o.pos = UnityObjectToClipPos(float4(prevTopEdge, 1.0));
+                    o.normal = normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    o.pos = UnityObjectToClipPos(float4(prevBottomEdge, 1.0));
+                    o.normal = normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    o.pos = UnityObjectToClipPos(float4(newBottomEdge, 1.0));
+                    o.normal = normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge));
+                    o.color = color;
+                    triStream.Append(o);
+
+                    triStream.RestartStrip();
+
+                    prevTopEdge = newTopEdge;
+                    prevBottomEdge = newBottomEdge;
                 }
             }
 
