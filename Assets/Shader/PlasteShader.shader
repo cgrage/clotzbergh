@@ -30,43 +30,47 @@ Shader "PlasteShader"
 
             float4 _MainLightColor;
 
+            float3 GetNormal(uint side)
+            {
+                if (side == 0) return float3(-1, 0, 0); // Left
+                if (side == 1) return float3(1, 0, 0);  // Right
+                if (side == 2) return float3(0, -1, 0); // Bottom
+                if (side == 3) return float3(0, 1, 0);  // Top
+                if (side == 4) return float3(0, 0, -1); // Back
+                if (side == 5) return float3(0, 0, 1);  // Front
+
+                return float3(0, 0, 0);
+            }
+
+            float4 GetColor(uint color)
+            {
+                if (color == 0) return float4(1, 1, 1, 1);       // White
+                if (color == 1) return float4(0.5, 0.5, 0.5, 1); // Grey
+                if (color == 2) return float4(0, 0, 0, 1);       // Black
+                if (color == 3) return float4(1, 0, 0, 1);       // Red
+                if (color == 4) return float4(0, 0, 1, 1);       // Blue
+                if (color == 5) return float4(1, 1, 0, 1);       // Yellow
+                if (color == 6) return float4(0, 1, 0, 1);       // Green
+                if (color == 7) return float4(0, 0.5, 1, 1);     // Azure
+                if (color == 8) return float4(1, 0.5, 0, 1);     // Orange
+                if (color == 9) return float4(0, 0, 0.5, 1);     // Dark Blue
+
+                return float4(0, 0, 0, 1);
+            }
+
             v2f vert(appdata v)
             {
-                v2f o;
-                o.pos = UnityObjectToClipPos(v.vertex);
-
-                // Determine normal based on the side (least significant 3 bits)
                 uint side = ((uint)v.uv.x) & 0x7;
-                /**/ if (side == 0) o.normal = float3(-1, 0, 0);  // Left
-                else if (side == 1) o.normal = float3(1, 0, 0); // Right
-                else if (side == 2) o.normal = float3(0, -1, 0);  // Bottom
-                else if (side == 3) o.normal = float3(0, 1, 0); // Top
-                else if (side == 4) o.normal = float3(0, 0, -1); // Back
-                else if (side == 5) o.normal = float3(0, 0, 1); // Front
-                else o.normal = float3(0, 0, 0); // Default, if no valid side is found
-
-                // Determine base color based on the higher bits (5 bits above)
                 uint colorEnum = ((uint)v.uv.x >> 3) & 0x1F;
-                float4 baseColor;
-
-                /**/ if (colorEnum == 0) baseColor = float4(1, 1, 1, 1); // White
-                else if (colorEnum == 1) baseColor = float4(0.5, 0.5, 0.5, 1); // Grey
-                else if (colorEnum == 2) baseColor = float4(0, 0, 0, 1); // Black
-                else if (colorEnum == 3) baseColor = float4(1, 0, 0, 1); // Red
-                else if (colorEnum == 4) baseColor = float4(0, 0, 1, 1); // Blue
-                else if (colorEnum == 5) baseColor = float4(1, 1, 0, 1); // Yellow
-                else if (colorEnum == 6) baseColor = float4(0, 1, 0, 1); // Green
-                else if (colorEnum == 7) baseColor = float4(0, 0.5, 1, 1); // Azure
-                else if (colorEnum == 8) baseColor = float4(1, 0.5, 0, 1); // Orange
-                else  baseColor = float4(1, 1, 1, 1);  // Default to white
-
-                // Apply color variation based on variant (0 to 127)
                 uint variant = (uint)v.uv.y; // numbers are from 0 to 127
+
+                float4 baseColor = GetColor(colorEnum);
                 float variation = variant / 127.0;
 
-                // Create a slight color variation
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.normal = GetNormal(side);
                 o.color = baseColor * (1.0 - variation * 0.1); // Vary color by up to 10%
-
                 return o;
             }
 

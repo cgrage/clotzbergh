@@ -87,6 +87,11 @@ public static class WorldDef
     public static readonly Vector3 ChunkSize = new(SubKlotzSize.x * ChunkSubDivsX, SubKlotzSize.y * ChunkSubDivsY, SubKlotzSize.z * ChunkSubDivsZ);
 
     /// <summary>
+    /// 
+    /// </summary>
+    public const int SubKlotzPerChunkCount = ChunkSubDivsX * ChunkSubDivsY * ChunkSubDivsZ; // 81,920
+
+    /// <summary>
     /// Lod (level of detail) is a number from 0..4
     /// Lod 0 ->  1 sub-klotz packing
     /// Lod 1 ->  2 sub-klotz packing
