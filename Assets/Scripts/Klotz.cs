@@ -59,16 +59,17 @@ public enum KlotzSide
 [Flags]
 public enum KlotzSideFlags
 {
-    HasStuds = 1 << 1,
+    HasStuds = 1 << 0,
+    HasHoles = 1 << 1,
 }
 
 [Flags]
 public enum KlotzVertexFlags
 {
-    SideHasStuds = 1 << 1,
-    ReservedFlag1 = 1 << 2,
-    ReservedFlag2 = 1 << 3,
-    ReservedFlag3 = 1 << 4,
+    SideHasStuds = 1 << 0,
+    SideHasHoles = 1 << 1,
+    ReservedFlag2 = 1 << 2,
+    ReservedFlag3 = 1 << 3,
 }
 
 public readonly struct KlotzVariant
@@ -145,6 +146,12 @@ public static class KlotzKB
     {
         return true;
     }
+
+    public static bool TypeHasBottomHoles(KlotzType t)
+    {
+        return true;
+    }
+
 
     public static readonly KlotzType[] AllGroundTypes = {
         KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4, KlotzType.Plate1x6, KlotzType.Plate1x8,

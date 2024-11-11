@@ -66,7 +66,7 @@ public class MeshGenerator
 
                     if (!opaqueXM1) builder.AddLeftFace();
                     if (!opaqueXP1) builder.AddRightFace();
-                    if (!opaqueYM1) builder.AddBottomFace();
+                    if (!opaqueYM1) builder.AddBottomFace(lod == 0 && KlotzKB.TypeHasBottomHoles(type) ? KlotzSideFlags.HasHoles : 0);
                     if (!opaqueYP1) builder.AddTopFace(lod == 0 && KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
                     if (!opaqueZM1) builder.AddBackFace();
                     if (!opaqueZP1) builder.AddFrontFace();
@@ -302,6 +302,7 @@ public class VoxelMeshBuilder : MeshBuilder
 
         KlotzVertexFlags flags = 0;
         if (sideFlags.HasFlag(KlotzSideFlags.HasStuds)) flags |= KlotzVertexFlags.SideHasStuds;
+        if (sideFlags.HasFlag(KlotzSideFlags.HasHoles)) flags |= KlotzVertexFlags.SideHasHoles;
 
         Vector2 vertexData = BuildVertexUvData(side, flags, _color, _variant);
         UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData);
