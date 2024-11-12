@@ -171,7 +171,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
         {
             _isConnected = false;
 
-            if (_runCancelTS.Token.IsCancellationRequested)
+            if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
             {
                 Debug.LogFormat($"ConnectionThread stopped with exception ({ex.GetType().Name}).");
             }
@@ -197,7 +197,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
         }
         catch (Exception ex)
         {
-            if (_runCancelTS.Token.IsCancellationRequested)
+            if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
             {
                 Debug.LogFormat($"MeshThread stopped with exception ({ex.GetType().Name}).");
             }

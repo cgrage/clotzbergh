@@ -67,7 +67,8 @@ public class WorldMap
         // Debug.Log($"ServerMap: AddPlayer ${id}");
         _playerStates.TryAdd(id, new()
         {
-            PlayerLocation = Vector3Int.zero,
+            PlayerLocation = Vector3.zero,
+            PlayerChunkLocation = Vector3Int.zero,
         });
     }
 
@@ -76,7 +77,7 @@ public class WorldMap
         // Debug.Log($"ServerMap: PlayerMoved ${id} ${newCoords}");
         _playerStates.TryGetValue(id, out PlayerWorldMapState state);
 
-        state.PlayerLocation = newCoords;
+        state.PlayerChunkLocation = newCoords;
         state.ResetChunkPriority(newCoords);
     }
 
@@ -85,6 +86,9 @@ public class WorldMap
         _playerStates.TryRemove(id, out _);
     }
 
+    /// <summary>
+    /// Called by <c>ClientUpdaterThread</c>
+    /// </summary>
     public WorldChunkUpdate GetNextChunkUpdate(PlayerId id)
     {
         _playerStates.TryGetValue(id, out PlayerWorldMapState playerState);
@@ -169,7 +173,7 @@ public class WorldMap
         }
         catch (Exception ex)
         {
-            if (_runCancelTS.Token.IsCancellationRequested)
+            if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
             {
                 Debug.LogFormat($"GeneratorThread stopped with exception ({ex.GetType().Name}).");
             }

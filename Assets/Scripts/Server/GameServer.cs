@@ -89,6 +89,9 @@ public class GameServer : MonoBehaviour, IServerSideOps
         return playerId;
     }
 
+    /// <summary>
+    /// Called by Thread Pool Worker
+    /// </summary>
     void IServerSideOps.PlayerMoved(PlayerId id, Vector3Int newCoords)
     {
         _worldMap.PlayerMoved(id, newCoords);
@@ -100,11 +103,17 @@ public class GameServer : MonoBehaviour, IServerSideOps
         _playerData.TryRemove(id, out _);
     }
 
+    /// <summary>
+    /// Called by ClientUpdaterThread
+    /// </summary>
     WorldChunkUpdate IServerSideOps.GetNextChunkUpdate(PlayerId id)
     {
         return _worldMap.GetNextChunkUpdate(id);
     }
 
+    /// <summary>
+    /// Called by Thread Pool Worker
+    /// </summary>
     void IServerSideOps.PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
     {
         _worldMap.PlayerTakeKlotz(id, chunkCoords, innerChunkCoords);
@@ -142,6 +151,9 @@ public class GameServer : MonoBehaviour, IServerSideOps
             _clientUpdaterThread.Start();
         }
 
+        /// <summary>
+        /// Called by Thread Pool Worker
+        /// </summary>
         protected override void OnMessage(MessageEventArgs e)
         {
             try
@@ -157,6 +169,9 @@ public class GameServer : MonoBehaviour, IServerSideOps
             }
         }
 
+        /// <summary>
+        /// Called by Thread Pool Worker
+        /// </summary>
         private void HandleCommand(IntercomProtocol.Command cmd)
         {
             if (!_initialCoordsReceived && cmd is not IntercomProtocol.PlayerPosUpdateCommand)
@@ -186,6 +201,9 @@ public class GameServer : MonoBehaviour, IServerSideOps
             }
         }
 
+        /// <summary>
+        /// Main thread function of the ClientUpdaterThread
+        /// </summary>
         private void ClientUpdaterThreadMain()
         {
             PlayerId id = _playerId;
@@ -210,7 +228,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
             }
             catch (Exception ex)
             {
-                if (_isClosed)
+                if (_isClosed || ex is ThreadAbortException)
                 {
                     Debug.LogFormat($"ClientUpdaterThread stopped with exception ({ex.GetType().Name}).");
                 }

@@ -33,9 +33,10 @@ public class WorldChunkUpdate
 
 public class PlayerWorldMapState
 {
-    public Vector3Int PlayerLocation { get; set; }
+    public Vector3 PlayerLocation { get; set; }
+    public Vector3Int PlayerChunkLocation { get; set; }
     public readonly Dictionary<Vector3Int, PlayerChunkData> _chunkData = new();
-    private readonly List<PlayerChunkData> _chunks = new();
+    private List<PlayerChunkData> _sortedChunks = new();
 
     public PlayerWorldMapState()
     {
@@ -78,18 +79,23 @@ public class PlayerWorldMapState
                             SentOutVersion = 0,
                         };
                         _chunkData.Add(chunkCoords, thisChunk);
-                        _chunks.Add(thisChunk);
                     }
                 }
             }
         }
 
-        _chunks.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+        List<PlayerChunkData> sorted = new(_chunkData.Values);
+        sorted.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+
+        _sortedChunks = sorted;
     }
 
+    /// <summary>
+    /// Called by <c>ClientUpdaterThread</c>
+    /// </summary>
     public Vector3Int? GetNextAndSetUpdated(Func<Vector3Int, ulong> worldVersionFunc)
     {
-        foreach (var chunk in _chunks)
+        foreach (var chunk in _sortedChunks)
         {
             ulong worldVersion = worldVersionFunc(chunk.Coords);
             if (chunk.SentOutVersion < worldVersion)
