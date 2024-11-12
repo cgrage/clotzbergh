@@ -7,22 +7,22 @@ using WebSocketSharp.Server;
 
 public interface IServerSideOps
 {
-    PlayerId AddPlayer();
+    ClientId AddClient();
 
-    void PlayerMoved(PlayerId id, Vector3Int newCoords);
+    void PlayerMoved(ClientId id, Vector3 newPosition);
 
-    void RemovePlayer(PlayerId id);
+    void RemoveClient(ClientId id);
 
-    WorldChunkUpdate GetNextChunkUpdate(PlayerId id);
+    WorldChunkUpdate GetNextChunkUpdate(ClientId id);
 
-    void PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords);
+    void PlayerTakeKlotz(ClientId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords);
 }
 
 public class GameServer : MonoBehaviour, IServerSideOps
 {
-    private static int _nextPlayerId = 1;
+    private static int _playerIdCounter = 0;
     private readonly WorldMap _worldMap = new();
-    private readonly ConcurrentDictionary<PlayerId, ConnectionData> _playerData = new();
+    private readonly ConcurrentDictionary<ClientId, ConnectionData> _clientData = new();
 
     private WebSocketServer _wss;
 
@@ -72,41 +72,38 @@ public class GameServer : MonoBehaviour, IServerSideOps
         }
     }
 
-    PlayerId IServerSideOps.AddPlayer()
+    ClientId IServerSideOps.AddClient()
     {
-        int playerIdValue = 0;
-        Interlocked.Increment(ref _nextPlayerId);
-
-        PlayerId playerId = new(playerIdValue++);
+        ClientId clientId = new(Interlocked.Increment(ref _playerIdCounter));
         ConnectionData data = new() { };
 
-        if (!_playerData.TryAdd(playerId, data))
+        if (!_clientData.TryAdd(clientId, data))
         {
             throw new Exception("Failed to add player.");
         }
 
-        _worldMap.AddPlayer(playerId);
-        return playerId;
+        _worldMap.AddClient(clientId);
+        return clientId;
     }
 
     /// <summary>
     /// Called by Thread Pool Worker
     /// </summary>
-    void IServerSideOps.PlayerMoved(PlayerId id, Vector3Int newCoords)
+    void IServerSideOps.PlayerMoved(ClientId id, Vector3 newPosition)
     {
-        _worldMap.PlayerMoved(id, newCoords);
+        _worldMap.PlayerMoved(id, newPosition);
     }
 
-    void IServerSideOps.RemovePlayer(PlayerId id)
+    void IServerSideOps.RemoveClient(ClientId id)
     {
-        _worldMap.RemovePlayer(id);
-        _playerData.TryRemove(id, out _);
+        _worldMap.RemoveClient(id);
+        _clientData.TryRemove(id, out _);
     }
 
     /// <summary>
     /// Called by ClientUpdaterThread
     /// </summary>
-    WorldChunkUpdate IServerSideOps.GetNextChunkUpdate(PlayerId id)
+    WorldChunkUpdate IServerSideOps.GetNextChunkUpdate(ClientId id)
     {
         return _worldMap.GetNextChunkUpdate(id);
     }
@@ -114,7 +111,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
     /// <summary>
     /// Called by Thread Pool Worker
     /// </summary>
-    void IServerSideOps.PlayerTakeKlotz(PlayerId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+    void IServerSideOps.PlayerTakeKlotz(ClientId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
     {
         _worldMap.PlayerTakeKlotz(id, chunkCoords, innerChunkCoords);
     }
@@ -124,19 +121,19 @@ public class GameServer : MonoBehaviour, IServerSideOps
         public IServerSideOps ops;
 
         private volatile bool _isClosed = false;
-        private bool _initialCoordsReceived = false;
-        private PlayerId _playerId;
+        private bool _initialStatusReceived = false;
+        private ClientId _playerId;
         private Thread _clientUpdaterThread;
 
         protected override void OnOpen()
         {
-            _playerId = ops.AddPlayer();
+            _playerId = ops.AddClient();
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
             _isClosed = true;
-            ops.RemovePlayer(_playerId);
+            ops.RemoveClient(_playerId);
 
             if (_clientUpdaterThread != null)
             {
@@ -174,20 +171,20 @@ public class GameServer : MonoBehaviour, IServerSideOps
         /// </summary>
         private void HandleCommand(IntercomProtocol.Command cmd)
         {
-            if (!_initialCoordsReceived && cmd is not IntercomProtocol.PlayerPosUpdateCommand)
+            if (!_initialStatusReceived && cmd is not IntercomProtocol.ClientStatusCommand)
                 throw new Exception("First command must be player pos update command");
 
-            if (cmd is IntercomProtocol.PlayerPosUpdateCommand)
+            if (cmd is IntercomProtocol.ClientStatusCommand)
             {
-                var posCmd = cmd as IntercomProtocol.PlayerPosUpdateCommand;
+                var posCmd = cmd as IntercomProtocol.ClientStatusCommand;
 
-                if (!_initialCoordsReceived)
+                if (!_initialStatusReceived)
                 {
                     OnInitialCoordsReceived();
-                    _initialCoordsReceived = true;
+                    _initialStatusReceived = true;
                 }
 
-                ops.PlayerMoved(_playerId, posCmd.Coord);
+                ops.PlayerMoved(_playerId, posCmd.Position);
             }
             else if (cmd is IntercomProtocol.TakeKlotzCommand)
             {
@@ -206,7 +203,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
         /// </summary>
         private void ClientUpdaterThreadMain()
         {
-            PlayerId id = _playerId;
+            ClientId id = _playerId;
 
             try
             {

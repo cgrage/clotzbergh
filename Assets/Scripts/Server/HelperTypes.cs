@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public readonly struct PlayerId
+public readonly struct ClientId
 {
     private readonly int _value;
 
-    public PlayerId(int value)
+    public ClientId(int value)
     {
         _value = value;
     }
@@ -16,7 +16,7 @@ public readonly struct PlayerId
     public override string ToString() => _value.ToString();
 
     // public static implicit operator int(PlayerId id) => id._value;
-    public static explicit operator PlayerId(int value) => new(value);
+    public static explicit operator ClientId(int value) => new(value);
 }
 
 public class ConnectionData
@@ -31,14 +31,14 @@ public class WorldChunkUpdate
     public WorldChunk Chunk { get; set; }
 }
 
-public class PlayerWorldMapState
+public class ClientWorldMapState
 {
-    public Vector3 PlayerLocation { get; set; }
-    public Vector3Int PlayerChunkLocation { get; set; }
+    public Vector3 PlayerPosition { get; set; }
+    public Vector3Int PlayerChunkCoords { get; set; }
     public readonly Dictionary<Vector3Int, PlayerChunkData> _chunkData = new();
     private List<PlayerChunkData> _sortedChunks = new();
 
-    public PlayerWorldMapState()
+    public ClientWorldMapState()
     {
 
     }

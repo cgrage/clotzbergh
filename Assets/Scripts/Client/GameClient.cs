@@ -16,7 +16,6 @@ public class GameClient : MonoBehaviour, IClientSideOps
 {
     public string Hostname = "localhost";
     public int Port = 3000;
-    public float MoveThreshold = 2;
     public int MeshThreadCount = 4;
     public Transform Viewer;
     public Material Material;
@@ -25,7 +24,6 @@ public class GameClient : MonoBehaviour, IClientSideOps
 
     private readonly List<Thread> _meshThreads = new();
     private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
-    private Vector3 _viewerPosition = Vector3.positiveInfinity;
     private Vector3Int _viewerChunkCoords = Vector3Int.zero;
     private bool _isConnected = false;
 
@@ -33,6 +31,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
     /// Used during <c>Update()</c> do decide if we were connected at last <c>Update()</c>
     /// </summary>
     private bool _wasConnected = false;
+    private float _timeSinceLastClientStatus = 0f;
 
     private readonly CancellationTokenSource _runCancelTS = new();
     private readonly ClientChunkStore _chunkStore = new();
@@ -72,6 +71,8 @@ public class GameClient : MonoBehaviour, IClientSideOps
 
     void Update()
     {
+        _timeSinceLastClientStatus += Time.deltaTime;
+
         if (_isConnected && !_wasConnected)
         {
             _mainThreadActionQueue.Clear();
@@ -90,17 +91,18 @@ public class GameClient : MonoBehaviour, IClientSideOps
                 action();
             }
 
-            float diffOfLastPos = Vector3.Distance(Viewer.position, _viewerPosition);
             Vector3Int newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
-
-            if (newCoords != _viewerChunkCoords /*&& diffOfLastPos > MoveThreshold*/)
+            if (newCoords != _viewerChunkCoords)
             {
+                // Debug.Log($"Viewer moved to chunk ${newCoords}");
                 _viewerChunkCoords = newCoords;
-                _viewerPosition = Viewer.position;
-
-                Debug.Log($"Viewer moved to chunk ${newCoords}");
                 _chunkStore.OnViewerMoved(newCoords);
-                SendPayerPosUpdate(newCoords);
+            }
+
+            if (_timeSinceLastClientStatus >= 0.1f) // 0.1s
+            {
+                SendClientStatus(Viewer.position);
+                _timeSinceLastClientStatus = 0;
             }
 
             // update after "on moved" so that world can be requested on first frame
@@ -266,11 +268,11 @@ public class GameClient : MonoBehaviour, IClientSideOps
         Debug.LogFormat("Closed client");
     }
 
-    private void SendPayerPosUpdate(Vector3Int coords)
+    private void SendClientStatus(Vector3 newPosition)
     {
         _connectionThreadActionQueue.Add((ws) =>
         {
-            IntercomProtocol.PlayerPosUpdateCommand cmd = new(coords);
+            IntercomProtocol.ClientStatusCommand cmd = new(newPosition);
             ws.Send(cmd.ToBytes());
         });
     }

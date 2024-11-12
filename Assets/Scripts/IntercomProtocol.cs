@@ -8,7 +8,7 @@ public static class IntercomProtocol
     {
         public enum CodeValue : byte
         {
-            PlayerPosUpdate = 1,
+            ClientStatus = 1,
             ChuckData = 2,
             TakeKlotz = 3,
         }
@@ -44,7 +44,7 @@ public static class IntercomProtocol
             CodeValue code = (CodeValue)reader.ReadByte();
             return code switch
             {
-                CodeValue.PlayerPosUpdate => new PlayerPosUpdateCommand(reader),
+                CodeValue.ClientStatus => new ClientStatusCommand(reader),
                 CodeValue.ChuckData => new ChunkDataCommand(reader),
                 CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
                 _ => throw new IOException("Invalid command"),
@@ -52,30 +52,30 @@ public static class IntercomProtocol
         }
     }
 
-    public class PlayerPosUpdateCommand : Command
+    public class ClientStatusCommand : Command
     {
-        const CodeValue CommandCode = CodeValue.PlayerPosUpdate;
+        const CodeValue CommandCode = CodeValue.ClientStatus;
 
-        public Vector3Int Coord { get; private set; }
+        public Vector3 Position { get; private set; }
 
-        public PlayerPosUpdateCommand(Vector3Int coord) : base(CommandCode)
+        public ClientStatusCommand(Vector3 position) : base(CommandCode)
         {
-            Coord = coord;
+            Position = position;
         }
 
-        public PlayerPosUpdateCommand(BinaryReader reader) : base(CommandCode)
+        public ClientStatusCommand(BinaryReader reader) : base(CommandCode)
         {
-            Coord = new Vector3Int(
-                reader.ReadInt32(),
-                reader.ReadInt32(),
-                reader.ReadInt32());
+            Position = new Vector3(
+                reader.ReadSingle(),
+                reader.ReadSingle(),
+                reader.ReadSingle());
         }
 
         protected override void Serialize(BinaryWriter w)
         {
-            w.Write(Coord.x);
-            w.Write(Coord.y);
-            w.Write(Coord.z);
+            w.Write(Position.x);
+            w.Write(Position.y);
+            w.Write(Position.z);
         }
     }
 
