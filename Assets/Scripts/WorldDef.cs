@@ -115,11 +115,11 @@ public static class WorldDef
     /// </summary>
     public static readonly LevelOfDetailSetting[] DetailLevels =
     {
-         new() { LevelOfDetail = 0, MaxThreshold = 2, }, // 4
-         new() { LevelOfDetail = 1, MaxThreshold = 4, }, // 8
-         new() { LevelOfDetail = 2, MaxThreshold = 8, }, // 12
-         new() { LevelOfDetail = 2, MaxThreshold = 10, }, // 16
-         new() { LevelOfDetail = -1, MaxThreshold = 11, }, // world load distance
+         new() { LevelOfDetail = 0, MaxThreshold = 4, },
+         new() { LevelOfDetail = 1, MaxThreshold = 8, },
+         new() { LevelOfDetail = 2, MaxThreshold = 12, },
+         new() { LevelOfDetail = 2, MaxThreshold = 16, },
+         new() { LevelOfDetail = -1, MaxThreshold = 32, }, // world load distance
     };
 
     /// <summary>

@@ -4,7 +4,7 @@ Shader "PlasteShader"
     {
         _MainLightColor ("Main Light Color", Color) = (1, 1, 1, 1)
         _SpecColor ("Specular Color", Color) = (1, 1, 1, 1)
-        _Glossiness ("Glossiness", Range(0, 1)) = 0.5
+        _Glossiness ("Glossiness", Range(0, 1)) = 1
     }
 
     SubShader
@@ -56,18 +56,28 @@ Shader "PlasteShader"
                 return float3(0, 0, 0); // Default
             }
 
+            float4 HexToFloat4(uint hexValue)
+            {
+                float r = ((hexValue >> 16) & 0xFF) / 255.0;
+                float g = ((hexValue >> 8) & 0xFF) / 255.0;
+                float b = (hexValue & 0xFF) / 255.0;
+                return float4(r, g, b, 1);
+            }
+
             float4 GetColor(uint color)
             {
-                if (color == 0) return float4(1, 1, 1, 1);       // White
-                if (color == 1) return float4(0.5, 0.5, 0.5, 1); // Gray
-                if (color == 2) return float4(0, 0, 0, 1);       // Black
-                if (color == 3) return float4(1, 0, 0, 1);       // Red
-                if (color == 4) return float4(0, 0, 1, 1);       // Blue
-                if (color == 5) return float4(1, 1, 0, 1);       // Yellow
-                if (color == 6) return float4(0, 1, 0, 1);       // Green
-                if (color == 7) return float4(0, 0.5, 1, 1);     // Azure
-                if (color == 8) return float4(1, 0.5, 0, 1);     // Orange
-                if (color == 9) return float4(0, 0, 0.5, 1);     // Dark Blue
+                if (color == 0) return HexToFloat4(0xFFFFFF); // White
+                if (color == 1) return HexToFloat4(0x808080); // Gray
+                if (color == 2) return HexToFloat4(0x000000); // Black
+                if (color == 3) return HexToFloat4(0xFF0000); // Red
+                if (color == 4) return HexToFloat4(0x0000FF); // Blue
+                if (color == 5) return HexToFloat4(0xFFFF00); // Yellow
+                if (color == 6) return HexToFloat4(0x00FF00); // Green
+                if (color == 7) return HexToFloat4(0x007FFF); // Azure
+                if (color == 8) return HexToFloat4(0xFF7F00); // Orange
+                if (color == 9) return HexToFloat4(0x000080); // Dark Blue
+                if (color == 10) return HexToFloat4(0x996633); // Brown
+                if (color == 11) return HexToFloat4(0x251101); // Dark Brown
 
                 return float4(0, 0, 0, 1); // Default
             }
@@ -205,10 +215,10 @@ Shader "PlasteShader"
                 float diffuse = max(dot(normal, lightDir), 0.0);
                 
                 // Specular highlights
-                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 128.0);
+                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 256.0);
 
                 // Combine results
-                float3 ambient = 0.1 * i.color.rgb;
+                float3 ambient = 0.05 * i.color.rgb;
                 float3 diffuseColor = i.color.rgb * _MainLightColor.rgb * diffuse;
                 float3 specularColor = _SpecColor.rgb * spec;
 
