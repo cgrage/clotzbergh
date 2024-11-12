@@ -20,7 +20,7 @@ public interface IServerSideOps
 
 public class GameServer : MonoBehaviour, IServerSideOps
 {
-    private static int _playerIdCounter = 0;
+    private static int _idCounter = 0;
     private readonly WorldMap _worldMap = new();
     private readonly ConcurrentDictionary<ClientId, ConnectionData> _clientData = new();
 
@@ -74,12 +74,12 @@ public class GameServer : MonoBehaviour, IServerSideOps
 
     ClientId IServerSideOps.AddClient()
     {
-        ClientId clientId = new(Interlocked.Increment(ref _playerIdCounter));
+        ClientId clientId = new(Interlocked.Increment(ref _idCounter));
         ConnectionData data = new() { };
 
         if (!_clientData.TryAdd(clientId, data))
         {
-            throw new Exception("Failed to add player.");
+            throw new Exception("Failed to add client.");
         }
 
         _worldMap.AddClient(clientId);
@@ -122,18 +122,18 @@ public class GameServer : MonoBehaviour, IServerSideOps
 
         private volatile bool _isClosed = false;
         private bool _initialStatusReceived = false;
-        private ClientId _playerId;
+        private ClientId _clientId;
         private Thread _clientUpdaterThread;
 
         protected override void OnOpen()
         {
-            _playerId = ops.AddClient();
+            _clientId = ops.AddClient();
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
             _isClosed = true;
-            ops.RemoveClient(_playerId);
+            ops.RemoveClient(_clientId);
 
             if (_clientUpdaterThread != null)
             {
@@ -144,7 +144,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
 
         private void OnInitialCoordsReceived()
         {
-            _clientUpdaterThread = new Thread(ClientUpdaterThreadMain) { Name = $"ClientUpdaterThreadMain ID={_playerId}" };
+            _clientUpdaterThread = new Thread(ClientUpdaterThreadMain) { Name = $"ClientUpdaterThreadMain ID={_clientId}" };
             _clientUpdaterThread.Start();
         }
 
@@ -172,7 +172,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
         private void HandleCommand(IntercomProtocol.Command cmd)
         {
             if (!_initialStatusReceived && cmd is not IntercomProtocol.ClientStatusCommand)
-                throw new Exception("First command must be player pos update command");
+                throw new Exception("First command must be client status command");
 
             if (cmd is IntercomProtocol.ClientStatusCommand)
             {
@@ -184,12 +184,12 @@ public class GameServer : MonoBehaviour, IServerSideOps
                     _initialStatusReceived = true;
                 }
 
-                ops.PlayerMoved(_playerId, posCmd.Position);
+                ops.PlayerMoved(_clientId, posCmd.Position);
             }
             else if (cmd is IntercomProtocol.TakeKlotzCommand)
             {
                 var takeCmd = cmd as IntercomProtocol.TakeKlotzCommand;
-                ops.PlayerTakeKlotz(_playerId,
+                ops.PlayerTakeKlotz(_clientId,
                     takeCmd.ChunkCoord, takeCmd.InnerChunkCoord);
             }
             else
@@ -203,7 +203,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
         /// </summary>
         private void ClientUpdaterThreadMain()
         {
-            ClientId id = _playerId;
+            ClientId id = _clientId;
 
             try
             {

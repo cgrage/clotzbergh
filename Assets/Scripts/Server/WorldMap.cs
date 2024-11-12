@@ -99,9 +99,9 @@ public class WorldMap
     /// </summary>
     public WorldChunkUpdate GetNextChunkUpdate(ClientId id)
     {
-        _clientStates.TryGetValue(id, out ClientWorldMapState playerState);
+        _clientStates.TryGetValue(id, out ClientWorldMapState clientState);
 
-        Vector3Int? next = playerState.GetNextAndSetUpdated(GetWorldChunkStateVersion);
+        Vector3Int? next = clientState.GetNextAndSetUpdated(GetWorldChunkStateVersion);
         if (!next.HasValue)
             return null;
 
