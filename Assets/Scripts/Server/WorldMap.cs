@@ -167,6 +167,17 @@ public class WorldMap
                 }
             }
         }
-        catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
+        catch (Exception ex)
+        {
+            if (_runCancelTS.Token.IsCancellationRequested)
+            {
+                Debug.LogFormat($"GeneratorThread stopped with exception ({ex.GetType().Name}).");
+            }
+            else
+            {
+                Debug.LogException(ex);
+                Debug.LogFormat("GeneratorThread stopped on exception (see above).");
+            }
+        }
     }
 }

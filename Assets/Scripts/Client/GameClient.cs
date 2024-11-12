@@ -167,16 +167,19 @@ public class GameClient : MonoBehaviour, IClientSideOps
                 action(ws);
             }
         }
-        catch (OperationCanceledException)
-        {
-            _isConnected = false;
-            Debug.LogFormat("ConnectionThread stopped (OperationCanceledException).");
-        }
         catch (Exception ex)
         {
             _isConnected = false;
-            Debug.LogException(ex);
-            Debug.LogFormat("ConnectionThread stopped on exception (see above).");
+
+            if (_runCancelTS.Token.IsCancellationRequested)
+            {
+                Debug.LogFormat($"ConnectionThread stopped with exception ({ex.GetType().Name}).");
+            }
+            else
+            {
+                Debug.LogException(ex);
+                Debug.LogFormat("ConnectionThread stopped on exception (see above).");
+            }
         }
     }
 
@@ -192,7 +195,18 @@ public class GameClient : MonoBehaviour, IClientSideOps
                 ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldLocalVersion); });
             }
         }
-        catch (OperationCanceledException) { /* see also: Expection anti-pattern */ }
+        catch (Exception ex)
+        {
+            if (_runCancelTS.Token.IsCancellationRequested)
+            {
+                Debug.LogFormat($"MeshThread stopped with exception ({ex.GetType().Name}).");
+            }
+            else
+            {
+                Debug.LogException(ex);
+                Debug.LogFormat("MeshThread stopped on exception (see above).");
+            }
+        }
     }
 
     void OnConnected()
