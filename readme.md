@@ -17,7 +17,7 @@ Code:
 
 Game-play:
 - ~~Add colors to klotzes~~
-- Add per klotz color variants
+- ~~Add per klotz color variants~~
 - Multi-klotz collection
 - Multiplayer: Update server about real position (often)
 
