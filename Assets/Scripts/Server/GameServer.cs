@@ -208,7 +208,18 @@ public class GameServer : MonoBehaviour, IServerSideOps
                     }
                 }
             }
-            catch (InvalidOperationException) { /* this is expected */ }
+            catch (Exception ex)
+            {
+                if (_isClosed)
+                {
+                    Debug.LogFormat($"ClientUpdaterThread stopped with exception ({ex.GetType().Name}).");
+                }
+                else
+                {
+                    Debug.LogException(ex);
+                    Debug.LogFormat("ClientUpdaterThread stopped on exception (see above).");
+                }
+            }
         }
     }
 }
