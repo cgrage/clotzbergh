@@ -219,11 +219,9 @@ public class ClientChunk
         if (_currentWorld == null)
             return null;
 
-        SubKlotz subKlotz = _currentWorld.Get(subKlotzCoords);
-        Vector3Int rootCoords = subKlotz.RootPos(subKlotzCoords);
-
-        WorldStitcher stitcher = new(this);
-        SubKlotz? root = stitcher.At(rootCoords);
+        WorldReader reader = new(this);
+        reader.MoveTo(subKlotzCoords);
+        SubKlotz? root = reader.RootSubKlotz;
 
         if (!root.HasValue)
             return null;
@@ -231,14 +229,14 @@ public class ClientChunk
         KlotzType type = root.Value.Type;
         KlotzDirection dir = root.Value.Direction;
 
-        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(rootCoords, dir);
+        Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(reader.RootPos, dir);
         Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(_coords);
         Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(type), WorldDef.SubKlotzSize);
         Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(dir);
 
         return new()
         {
-            rootCoords = rootCoords,
+            rootCoords = reader.RootPos,
             worldPosition = pos,
             worldSize = size,
             worldRotation = rotation,
