@@ -61,14 +61,25 @@ public class PlayerSelection : MonoBehaviour
         if (!Physics.Raycast(ray, out RaycastHit hit, 8))
             return null;
 
-        if (!hit.collider.gameObject.TryGetComponent<ClientChunk.OwnerRef>(out ClientChunk.OwnerRef ownerRef))
+        if (hit.collider == null || hit.collider.gameObject == null)
+            return null;
+
+        if (!hit.collider.gameObject.TryGetComponent(out ClientChunk.OwnerRef ownerRef))
+            return null;
+
+        ClientChunk chunk = ownerRef.owner;
+        if (chunk == null)
+            return null;
+
+        KlotzWorldData klotz = chunk.GetKlotzFromTriangleIndex(hit.triangleIndex);
+        if (klotz == null)
             return null;
 
         return new Selection()
         {
             viewedPosition = hit.point,
-            viewedChunk = ownerRef.owner,
-            viewedKlotz = ownerRef.owner.GetKlotzFromTriangleIndex(hit.triangleIndex),
+            viewedChunk = chunk,
+            viewedKlotz = klotz,
         };
     }
 

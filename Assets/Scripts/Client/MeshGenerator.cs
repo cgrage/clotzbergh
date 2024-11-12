@@ -31,7 +31,7 @@ public class MeshGenerator
             return null;
 
         int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
-        WorldStitcher stitcher = new(chunk);
+        WorldReader reader = new(chunk, lodSkip);
         VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
 
         for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
@@ -40,22 +40,11 @@ public class MeshGenerator
             {
                 for (int x = 0, xi = 0; x < WorldDef.ChunkSubDivsX; x += lodSkip, xi++)
                 {
-                    SubKlotz k = worldChunk.Get(x, y, z);
-                    bool opaque = k.IsOpaque;
-                    if (!opaque)
-                        continue; // later this will be more complex, I guess.
-
-                    bool opaqueXM1 = stitcher.IsOpaqueOrUnknownAt(x - lodSkip, y, z);
-                    bool opaqueXP1 = stitcher.IsOpaqueOrUnknownAt(x + lodSkip, y, z);
-                    bool opaqueYM1 = stitcher.IsOpaqueOrUnknownAt(x, y - lodSkip, z);
-                    bool opaqueYP1 = stitcher.IsOpaqueOrUnknownAt(x, y + lodSkip, z);
-                    bool opaqueZM1 = stitcher.IsOpaqueOrUnknownAt(x, y, z - lodSkip);
-                    bool opaqueZP1 = stitcher.IsOpaqueOrUnknownAt(x, y, z + lodSkip);
-
-                    if (opaqueXM1 && opaqueXP1 && opaqueYM1 && opaqueYP1 && opaqueZM1 && opaqueZP1)
+                    reader.MoveTo(x, y, z);
+                    if (!reader.IsExposed)
                         continue;
 
-                    SubKlotz? kRoot = stitcher.At(k.RootPos(new Vector3Int(x, y, z)));
+                    SubKlotz? kRoot = reader.RootSubKlotz;
                     if (!kRoot.HasValue)
                         continue; // can't access the root sub-klotz
 
@@ -64,12 +53,12 @@ public class MeshGenerator
                     builder.SetColor(kRoot.Value.Color);
                     builder.SetVariant(kRoot.Value.Variant);
 
-                    if (!opaqueXM1) builder.AddLeftFace();
-                    if (!opaqueXP1) builder.AddRightFace();
-                    if (!opaqueYM1) builder.AddBottomFace(lod == 0 && KlotzKB.TypeHasBottomHoles(type) ? KlotzSideFlags.HasHoles : 0);
-                    if (!opaqueYP1) builder.AddTopFace(lod == 0 && KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
-                    if (!opaqueZM1) builder.AddBackFace();
-                    if (!opaqueZP1) builder.AddFrontFace();
+                    if (reader.IsExposedXM1) builder.AddLeftFace();
+                    if (reader.IsExposedXP1) builder.AddRightFace();
+                    if (reader.IsExposedYM1) builder.AddBottomFace(lod == 0 && KlotzKB.TypeHasBottomHoles(type) ? KlotzSideFlags.HasHoles : 0);
+                    if (reader.IsExposedYP1) builder.AddTopFace(lod == 0 && KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
+                    if (reader.IsExposedZM1) builder.AddBackFace();
+                    if (reader.IsExposedZP1) builder.AddFrontFace();
                 }
             }
         }
@@ -82,54 +71,236 @@ public class MeshGenerator
 /// Helper class to stitch multiple world chunks together.
 /// Always operates from the perspective of the chunk given to the constructor. 
 /// </summary>
-public class WorldStitcher
+public class WorldReader
 {
     private readonly WorldChunk _worldChunk;
-    private readonly WorldChunk _neighborXM1;
-    private readonly WorldChunk _neighborXP1;
-    private readonly WorldChunk _neighborYM1;
-    private readonly WorldChunk _neighborYP1;
-    private readonly WorldChunk _neighborZM1;
-    private readonly WorldChunk _neighborZP1;
+    private readonly WorldChunk _neighborWorldXM1;
+    private readonly WorldChunk _neighborWorldXP1;
+    private readonly WorldChunk _neighborWorldYM1;
+    private readonly WorldChunk _neighborWorldYP1;
+    private readonly WorldChunk _neighborWorldZM1;
+    private readonly WorldChunk _neighborWorldZP1;
+    private readonly int _lodSkip = 1;
 
-    public WorldStitcher(ClientChunk chunk)
+    private int _x, _y, _z;
+    private SubKlotz _subKlotz;
+    private int _exposed = 0;
+
+    private bool GetExposed(int i) { return (_exposed & (1 << i)) != 0; }
+    private void SetExposed(int i) { _exposed |= 1 << i; }
+
+    public bool IsExposed { get { return _exposed != 0; } }
+    public bool IsExposedXM1 { get { return GetExposed(0); } }
+    public bool IsExposedXP1 { get { return GetExposed(1); } }
+    public bool IsExposedYM1 { get { return GetExposed(2); } }
+    public bool IsExposedYP1 { get { return GetExposed(3); } }
+    public bool IsExposedZM1 { get { return GetExposed(4); } }
+    public bool IsExposedZP1 { get { return GetExposed(5); } }
+
+    public WorldReader(ClientChunk chunk, int lodSkip = 1)
     {
         _worldChunk = chunk.World;
-        _neighborXM1 = chunk.NeighborXM1?.World;
-        _neighborXP1 = chunk.NeighborXP1?.World;
-        _neighborYM1 = chunk.NeighborYM1?.World;
-        _neighborYP1 = chunk.NeighborYP1?.World;
-        _neighborZM1 = chunk.NeighborZM1?.World;
-        _neighborZP1 = chunk.NeighborZP1?.World;
+        _neighborWorldXM1 = chunk.NeighborXM1?.World;
+        _neighborWorldXP1 = chunk.NeighborXP1?.World;
+        _neighborWorldYM1 = chunk.NeighborYM1?.World;
+        _neighborWorldYP1 = chunk.NeighborYP1?.World;
+        _neighborWorldZM1 = chunk.NeighborZM1?.World;
+        _neighborWorldZP1 = chunk.NeighborZP1?.World;
+        _lodSkip = lodSkip;
     }
 
-    public SubKlotz? At(int x, int y, int z)
+    public void MoveTo(int x, int y, int z)
     {
-        const int MAX_X = WorldDef.ChunkSubDivsX;
-        const int MAX_Y = WorldDef.ChunkSubDivsY;
-        const int MAX_Z = WorldDef.ChunkSubDivsZ;
+        _x = x;
+        _y = y;
+        _z = z;
+        _subKlotz = _worldChunk.Get(x, y, z);
+        _exposed = 0;
 
-        if (x < 0) { return _neighborXM1?.Get(x + MAX_X, y, z); }
-        else if (x >= MAX_X) { return _neighborXP1?.Get(x - MAX_X, y, z); }
-        else if (y < 0) { return _neighborYM1?.Get(x, y + MAX_Y, z); }
-        else if (y >= MAX_Y) { return _neighborYP1?.Get(x, y - MAX_Y, z); }
-        else if (z < 0) { return _neighborZM1?.Get(x, y, z + MAX_Z); }
-        else if (z >= MAX_Z) { return _neighborZP1?.Get(x, y, z - MAX_Z); }
-        else { return _worldChunk.Get(x, y, z); }
+        if (_subKlotz.IsOpaque)
+        {
+            if (IsSideExposedXM1()) SetExposed(0);
+            if (IsSideExposedXP1()) SetExposed(1);
+            if (IsSideExposedYM1()) SetExposed(2);
+            if (IsSideExposedYP1()) SetExposed(3);
+            if (IsSideExposedZM1()) SetExposed(4);
+            if (IsSideExposedZP1()) SetExposed(5);
+        }
     }
 
-    public SubKlotz? At(Vector3Int coords)
+    public void MoveTo(Vector3Int coords)
+    {
+        MoveTo(coords.x, coords.y, coords.z);
+    }
+
+    private bool IsSideExposedXM1()
+    {
+        if (_x > 0) // if within current chunk: regular case
+            return !_worldChunk.Get(_x - _lodSkip, _y, _z).IsOpaque;
+
+        if (_neighborWorldXM1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip, _y, _z).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z).IsOpaque ||
+            !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z + _lodSkip / 2).IsOpaque ||
+            !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z).IsOpaque ||
+            !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+    }
+
+    private bool IsSideExposedXP1()
+    {
+        if (_x < WorldDef.ChunkSubDivsX - _lodSkip) // if within current chunk: regular case
+            return !_worldChunk.Get(_x + _lodSkip, _y, _z).IsOpaque;
+
+        if (_neighborWorldXP1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldXP1.Get(0, _y, _z).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldXP1.Get(0, _y, _z + _lodSkip / 2).IsOpaque ||
+            !_neighborWorldXP1.Get(0, _y + _lodSkip / 2, _z).IsOpaque ||
+            !_neighborWorldXP1.Get(0, _y + _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+    }
+
+    private bool IsSideExposedYM1()
+    {
+        if (_y > 0) // if within current chunk: regular case
+            return !_worldChunk.Get(_x, _y - _lodSkip, _z).IsOpaque;
+
+        if (_neighborWorldYM1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip, _z).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z).IsOpaque ||
+            !_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2).IsOpaque ||
+            !_neighborWorldYM1.Get(_x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z).IsOpaque ||
+            !_neighborWorldYM1.Get(_x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+    }
+
+    private bool IsSideExposedYP1()
+    {
+        if (_y < WorldDef.ChunkSubDivsY - _lodSkip) // if within current chunk: regular case
+            return !_worldChunk.Get(_x, _y + _lodSkip, _z).IsOpaque;
+
+        if (_neighborWorldYP1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldYP1.Get(_x, 0, _z).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldYP1.Get(_x, 0, _z + _lodSkip / 2).IsOpaque ||
+            !_neighborWorldYP1.Get(_x + _lodSkip / 2, 0, _z).IsOpaque ||
+            !_neighborWorldYP1.Get(_x + _lodSkip / 2, 0, _z + _lodSkip / 2).IsOpaque;
+    }
+
+    private bool IsSideExposedZM1()
+    {
+        if (_z > 0) // if within current chunk: regular case
+            return !_worldChunk.Get(_x, _y, _z - _lodSkip).IsOpaque;
+
+        if (_neighborWorldZM1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldZM1.Get(_x, _y, WorldDef.ChunkSubDivsZ - _lodSkip).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldZM1.Get(_x, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
+            !_neighborWorldZM1.Get(_x, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
+            !_neighborWorldZM1.Get(_x + _lodSkip / 2, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
+            !_neighborWorldZM1.Get(_x + _lodSkip / 2, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque;
+    }
+
+    private bool IsSideExposedZP1()
+    {
+        if (_z < WorldDef.ChunkSubDivsX - _lodSkip) // if within current chunk: regular case
+            return !_worldChunk.Get(_x, _y, _z + _lodSkip).IsOpaque;
+
+        if (_neighborWorldZP1 == null)
+            return false; // neighbor chunk not known
+
+        if (!_neighborWorldZP1.Get(_x, _y, 0).IsOpaque)
+            return true; // same LOD neighbor block missing
+
+        // check one LOD below the current one
+        if (_lodSkip == 1)
+            return false;
+
+        return
+            !_neighborWorldZP1.Get(_x, _y + _lodSkip / 2, 0).IsOpaque ||
+            !_neighborWorldZP1.Get(_x + _lodSkip / 2, _y, 0).IsOpaque ||
+            !_neighborWorldZP1.Get(_x + _lodSkip / 2, _y + _lodSkip / 2, 0).IsOpaque;
+    }
+
+    public Vector3Int RootPos { get { return _subKlotz.RootPos(new(_x, _y, _z)); } }
+
+    public SubKlotz? RootSubKlotz
+    {
+        get
+        {
+            if (_subKlotz.IsRoot)
+                return _subKlotz;
+
+            return At(RootPos);
+        }
+    }
+
+    private SubKlotz? At(int x, int y, int z)
+    {
+        if (x < 0)
+            return _neighborWorldXM1?.Get(x + WorldDef.ChunkSubDivsX, y, z);
+
+        if (x >= WorldDef.ChunkSubDivsX)
+            return _neighborWorldXP1?.Get(x - WorldDef.ChunkSubDivsX, y, z);
+
+        if (y < 0)
+            return _neighborWorldYM1?.Get(x, y + WorldDef.ChunkSubDivsY, z);
+
+        if (y >= WorldDef.ChunkSubDivsY)
+            return _neighborWorldYP1?.Get(x, y - WorldDef.ChunkSubDivsY, z);
+
+        if (z < 0)
+            return _neighborWorldZM1?.Get(x, y, z + WorldDef.ChunkSubDivsZ);
+
+        if (z >= WorldDef.ChunkSubDivsZ)
+            return _neighborWorldZP1?.Get(x, y, z - WorldDef.ChunkSubDivsZ);
+
+        return _worldChunk.Get(x, y, z);
+    }
+
+    private SubKlotz? At(Vector3Int coords)
     {
         return At(coords.x, coords.y, coords.z);
-    }
-
-    public bool IsOpaqueOrUnknownAt(int x, int y, int z)
-    {
-        SubKlotz? subKlotz = At(x, y, z);
-        if (!subKlotz.HasValue)
-            return true;
-
-        return subKlotz.Value.IsOpaque;
     }
 }
 
