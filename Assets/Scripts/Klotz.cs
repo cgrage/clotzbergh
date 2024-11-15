@@ -44,7 +44,8 @@ public enum KlotzColor
     DarkBlue = 9,
     Brown = 10,
     DarkBrown = 11,
-    NextFree = 12,
+    DarkGreen = 12,
+    NextFree,
     Maximum = 31
 }
 

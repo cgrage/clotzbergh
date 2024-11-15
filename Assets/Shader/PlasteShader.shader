@@ -78,6 +78,7 @@ Shader "PlasteShader"
                 if (color == 9) return HexToFloat4(0x000080); // Dark Blue
                 if (color == 10) return HexToFloat4(0x996633); // Brown
                 if (color == 11) return HexToFloat4(0x251101); // Dark Brown
+                if (color == 12) return HexToFloat4(0x006400); // Dark Green
 
                 return float4(0, 0, 0, 1); // Default
             }
