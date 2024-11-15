@@ -9,8 +9,9 @@ public static class IntercomProtocol
         public enum CodeValue : byte
         {
             ClientStatus = 1,
-            ChuckData = 2,
-            TakeKlotz = 3,
+            ServerStatus,
+            ChuckData,
+            TakeKlotz,
         }
 
         public CodeValue Code { get; private set; }
@@ -49,6 +50,28 @@ public static class IntercomProtocol
                 CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
                 _ => throw new IOException("Invalid command"),
             };
+        }
+    }
+
+    public class ServerStatusCommand : Command
+    {
+        const CodeValue CommandCode = CodeValue.ServerStatus;
+
+        public ServerStatusUpdate Update { get; private set; }
+
+        public ServerStatusCommand(ServerStatusUpdate update) : base(CommandCode)
+        {
+            Update = update;
+        }
+
+        public ServerStatusCommand(BinaryReader reader) : base(CommandCode)
+        {
+            Update = ServerStatusUpdate.Deserialize(reader);
+        }
+
+        protected override void Serialize(BinaryWriter w)
+        {
+            Update.Serialize(w);
         }
     }
 

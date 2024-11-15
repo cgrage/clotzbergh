@@ -234,12 +234,19 @@ public class GameClient : MonoBehaviour, IClientSideOps
 
         switch (cmd.Code)
         {
+            case IntercomProtocol.Command.CodeValue.ServerStatus:
+                var statusCmd = (IntercomProtocol.ChunkDataCommand)cmd;
+                break;
+
             case IntercomProtocol.Command.CodeValue.ChuckData:
-                var realCmd = (IntercomProtocol.ChunkDataCommand)cmd;
+                var chunkDataCmd = (IntercomProtocol.ChunkDataCommand)cmd;
                 ToMainThread(() =>
                 {
                     _receivedChunks++;
-                    _chunkStore.OnWorldChunkReceived(realCmd.Coord, realCmd.Version, realCmd.Chunk);
+                    _chunkStore.OnWorldChunkReceived(
+                        chunkDataCmd.Coord,
+                        chunkDataCmd.Version,
+                        chunkDataCmd.Chunk);
                 });
                 break;
         }
