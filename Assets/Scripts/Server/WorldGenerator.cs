@@ -165,7 +165,7 @@ public class MicroBlockWorldGenerator : ChunkGenerator
         if (y < -85) return KlotzColor.DarkBlue;
         if (y < -80) return KlotzColor.Azure;
         if (y < -70) return KlotzColor.Yellow;
-        if (y < -20) return KlotzColor.Green;
+        if (y < -20) return KlotzColor.DarkGreen;
         if (y < 30) return KlotzColor.DarkBrown;
         if (y < 70) return KlotzColor.Gray;
         return KlotzColor.White;
