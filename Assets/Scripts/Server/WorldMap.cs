@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -8,11 +9,12 @@ public class WorldMap
 {
     private readonly WorldGenerator _generator = new();
     private readonly Dictionary<Vector3Int, WorldChunkState> _worldState = new();
-    private readonly ConcurrentDictionary<ClientId, ClientWorldMapState> _clientStates = new();
+    private readonly Dictionary<ClientId, ClientWorldMapState> _clientStates = new();
 
     private readonly CancellationTokenSource _runCancelTS = new();
     private readonly List<Thread> _generatorThreads = new();
     private readonly BlockingCollection<GeneratorThreadArgs> _generationRequestQueue = new();
+    private ulong _clientListVersion = 0;
 
     private class GeneratorThreadArgs
     {
@@ -62,20 +64,37 @@ public class WorldMap
         return state.Version;
     }
 
+    private ClientWorldMapState GetClientState(ClientId id)
+    {
+        lock (_clientStates)
+        {
+            return _clientStates[id];
+        }
+    }
+
     public void AddClient(ClientId id)
     {
         // Debug.Log($"ServerMap: AddClient ${id}");
-        _clientStates.TryAdd(id, new()
+
+        lock (_clientStates)
         {
-            PlayerPosition = Vector3.zero,
-            PlayerChunkCoords = Vector3Int.zero,
-        });
+            bool added = _clientStates.TryAdd(id, new($"Player {id.Value}")
+            {
+                PlayerPosition = Vector3.zero,
+                PlayerChunkCoords = Vector3Int.zero,
+            });
+
+            if (!added)
+                return;
+
+            _clientListVersion++;
+        }
     }
 
     public void PlayerMoved(ClientId id, Vector3 newPosition)
     {
         // Debug.Log($"ServerMap: PlayerMoved ${id} ${newCoords}");
-        _clientStates.TryGetValue(id, out ClientWorldMapState state);
+        ClientWorldMapState state = GetClientState(id);
 
         Vector3Int newChunkCoords = WorldChunk.PositionToChunkCoords(newPosition);
         bool movedChunk = state.PlayerChunkCoords != newChunkCoords;
@@ -91,7 +110,11 @@ public class WorldMap
 
     public void RemoveClient(ClientId id)
     {
-        _clientStates.TryRemove(id, out _);
+        lock (_clientStates)
+        {
+            _clientStates.Remove(id);
+            _clientListVersion--;
+        }
     }
 
     /// <summary>
@@ -99,9 +122,9 @@ public class WorldMap
     /// </summary>
     public WorldChunkUpdate GetNextChunkUpdate(ClientId id)
     {
-        _clientStates.TryGetValue(id, out ClientWorldMapState clientState);
+        ClientWorldMapState state = GetClientState(id);
 
-        Vector3Int? next = clientState.GetNextAndSetUpdated(GetWorldChunkStateVersion);
+        Vector3Int? next = state.GetNextAndSetUpdated(GetWorldChunkStateVersion);
         if (!next.HasValue)
             return null;
 
@@ -115,6 +138,30 @@ public class WorldMap
             Version = worldState.Version,
             Chunk = worldState.Chunk,
         };
+    }
+
+    public ServerStatusUpdate GetNextServerStatus(ClientId id)
+    {
+        ClientWorldMapState state = GetClientState(id);
+        ServerStatusUpdate update = new();
+
+        lock (_clientStates)
+        {
+            update.PlayerListVersion = _clientListVersion;
+            update.PlayerPositions = _clientStates.Values.Select(clientState => clientState.PlayerPosition).ToArray();
+
+            if (state.SeenClientListVersion != _clientListVersion)
+            {
+                update.PlayerListUpdate = new PlayerListUpdate()
+                {
+                    PlayerNames = _clientStates.Values.Select(clientState => clientState.PlayerName).ToArray(),
+                };
+
+                state.SeenClientListVersion = _clientListVersion;
+            }
+        }
+
+        return update;
     }
 
     public void PlayerTakeKlotz(ClientId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)

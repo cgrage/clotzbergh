@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public readonly struct ClientId
@@ -33,14 +34,17 @@ public class WorldChunkUpdate
 
 public class ClientWorldMapState
 {
+    public string PlayerName { get; private set; }
     public Vector3 PlayerPosition { get; set; }
     public Vector3Int PlayerChunkCoords { get; set; }
-    public readonly Dictionary<Vector3Int, PlayerChunkData> _chunkData = new();
+    public ulong SeenClientListVersion { get; set; }
+
+    private readonly Dictionary<Vector3Int, PlayerChunkData> _chunkData = new();
     private List<PlayerChunkData> _sortedChunks = new();
 
-    public ClientWorldMapState()
+    public ClientWorldMapState(string name)
     {
-
+        PlayerName = name;
     }
 
     public void ResetChunkPriority(Vector3Int newCoords)
@@ -114,4 +118,76 @@ public class PlayerChunkData
     public Vector3Int Coords { get; set; }
     public int Priority { get; set; }
     public ulong SentOutVersion { get; set; }
+}
+
+public class PlayerListUpdate
+{
+    public string[] PlayerNames { get; set; }
+}
+
+public class ServerStatusUpdate
+{
+    public ulong PlayerListVersion { get; set; }
+    public Vector3[] PlayerPositions { get; set; }
+    public PlayerListUpdate PlayerListUpdate { get; set; }
+
+    public void Serialize(BinaryWriter w)
+    {
+        w.Write(PlayerListVersion);
+        w.Write(PlayerPositions.Length);
+        foreach (var pos in PlayerPositions)
+        {
+            w.Write(pos.x);
+            w.Write(pos.y);
+            w.Write(pos.z);
+        }
+        if (PlayerListUpdate != null)
+        {
+            w.Write((byte)1);
+            foreach (var name in PlayerListUpdate.PlayerNames)
+            {
+                w.Write(name);
+            }
+        }
+        else
+        {
+            w.Write((byte)0);
+        }
+    }
+
+    public static ServerStatusUpdate Deserialize(BinaryReader reader)
+    {
+        ulong playerListVersion = reader.ReadUInt64();
+        int playerCount = reader.ReadInt32();
+        Vector3[] playerPositions = new Vector3[playerCount];
+        PlayerListUpdate playerListUpdate = null;
+        for (int i = 0; i < playerCount; i++)
+        {
+            playerPositions[i] = new(
+                reader.ReadSingle(),
+                reader.ReadSingle(),
+                reader.ReadSingle());
+        }
+        byte flags = reader.ReadByte();
+        if (flags > 0)
+        {
+            string[] playerNames = new string[playerCount];
+            for (int i = 0; i < playerCount; i++)
+            {
+                playerNames[i] = reader.ReadString();
+            }
+
+            playerListUpdate = new()
+            {
+                PlayerNames = playerNames,
+            };
+        }
+
+        return new ServerStatusUpdate()
+        {
+            PlayerListVersion = playerListVersion,
+            PlayerPositions = playerPositions,
+            PlayerListUpdate = playerListUpdate,
+        };
+    }
 }

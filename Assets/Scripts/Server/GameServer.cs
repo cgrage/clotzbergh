@@ -13,6 +13,8 @@ public interface IServerSideOps
 
     void RemoveClient(ClientId id);
 
+    ServerStatusUpdate GetServerStatus(ClientId id);
+
     WorldChunkUpdate GetNextChunkUpdate(ClientId id);
 
     void PlayerTakeKlotz(ClientId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords);
@@ -98,6 +100,15 @@ public class GameServer : MonoBehaviour, IServerSideOps
     {
         _worldMap.RemoveClient(id);
         _clientData.TryRemove(id, out _);
+    }
+
+    /// <summary>
+    /// Called by ClientUpdaterThread
+    /// </summary>
+    /// <returns></returns>
+    ServerStatusUpdate IServerSideOps.GetServerStatus(ClientId id)
+    {
+        return _worldMap.GetNextServerStatus(id);
     }
 
     /// <summary>
@@ -204,21 +215,39 @@ public class GameServer : MonoBehaviour, IServerSideOps
         private void ClientUpdaterThreadMain()
         {
             ClientId id = _clientId;
+            int timeOfLastStatus = Environment.TickCount;
 
             try
             {
                 while (!_isClosed)
                 {
-                    WorldChunkUpdate update = ops.GetNextChunkUpdate(id);
+                    int currentTime = Environment.TickCount;
+                    int elapsedMilliseconds = currentTime - timeOfLastStatus;
 
-                    if (update == null)
+                    if (elapsedMilliseconds >= 100)
+                    {
+                        ServerStatusUpdate statusUpdate = ops.GetServerStatus(id);
+                        var resp = new IntercomProtocol.ServerStatusCommand(statusUpdate);
+
+                        Send(resp.ToBytes());
+
+                        // Reset the start time
+                        timeOfLastStatus = currentTime;
+                    }
+
+                    WorldChunkUpdate chunkUpdate = ops.GetNextChunkUpdate(id);
+                    if (chunkUpdate == null)
                     {
                         // Waste some time
                         Thread.Sleep(10);
                     }
                     else
                     {
-                        var resp = new IntercomProtocol.ChunkDataCommand(update.Coords, update.Version, update.Chunk);
+                        var resp = new IntercomProtocol.ChunkDataCommand(
+                            chunkUpdate.Coords,
+                            chunkUpdate.Version,
+                            chunkUpdate.Chunk);
+
                         Send(resp.ToBytes());
                     }
                 }
