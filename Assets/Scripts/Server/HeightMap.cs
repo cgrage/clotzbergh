@@ -1,7 +1,12 @@
 using UnityEngine;
 using Random = System.Random;
 
-public class HeightMap
+public interface IHeightMap
+{
+    float At(int x, int y);
+}
+
+public class DefaultHeightMap : IHeightMap
 {
     public const float NoisePlaneScale = 0.003f;
     public const float NoiseHeightScale = 20f;
@@ -11,7 +16,7 @@ public class HeightMap
 
     private readonly Vector2[] _octaveOffsets;
 
-    public HeightMap(int octaves = DefaultOctaves, int seed = 0)
+    public DefaultHeightMap(int octaves = DefaultOctaves, int seed = 0)
     {
         Random rnd = new(seed);
 
