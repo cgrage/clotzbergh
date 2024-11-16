@@ -227,9 +227,7 @@ public class GameServer : MonoBehaviour, IServerSideOps
                     if (elapsedMilliseconds >= 100)
                     {
                         ServerStatusUpdate statusUpdate = ops.GetServerStatus(id);
-                        var resp = new IntercomProtocol.ServerStatusCommand(statusUpdate);
-
-                        Send(resp.ToBytes());
+                        Send(new IntercomProtocol.ServerStatusCommand(statusUpdate).ToBytes());
 
                         // Reset the start time
                         timeOfLastStatus = currentTime;
@@ -243,12 +241,8 @@ public class GameServer : MonoBehaviour, IServerSideOps
                     }
                     else
                     {
-                        var resp = new IntercomProtocol.ChunkDataCommand(
-                            chunkUpdate.Coords,
-                            chunkUpdate.Version,
-                            chunkUpdate.Chunk);
-
-                        Send(resp.ToBytes());
+                        Send(new IntercomProtocol.ChunkDataCommand(chunkUpdate.Coords,
+                            chunkUpdate.Version, chunkUpdate.Chunk).ToBytes());
                     }
                 }
             }

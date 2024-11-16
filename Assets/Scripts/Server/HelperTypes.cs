@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public readonly struct ClientId
+public readonly struct ClientId : IEquatable<ClientId>
 {
     private readonly int _value;
 
@@ -16,7 +16,16 @@ public readonly struct ClientId
 
     public override string ToString() => _value.ToString();
 
-    // public static implicit operator int(PlayerId id) => id._value;
+    // Implement IEquatable<ClientId>
+    public bool Equals(ClientId other) => _value == other._value;
+    public override bool Equals(object obj) => obj is ClientId other && Equals(other);
+    public override int GetHashCode() => _value.GetHashCode();
+
+    // Comparison operators
+    public static bool operator ==(ClientId left, ClientId right) => left.Equals(right);
+    public static bool operator !=(ClientId left, ClientId right) => !left.Equals(right);
+
+    // Explicit conversion from int to ClientId
     public static explicit operator ClientId(int value) => new(value);
 }
 
@@ -120,20 +129,24 @@ public class PlayerChunkData
     public ulong SentOutVersion { get; set; }
 }
 
-public class PlayerListUpdate
+public enum PlayerFlags
 {
-    public string[] PlayerNames { get; set; }
+    IsYou = 1,
+}
+
+public class PlayerInfo
+{
+    public string Name { get; set; }
+    public PlayerFlags Flags { get; set; }
 }
 
 public class ServerStatusUpdate
 {
-    public ulong PlayerListVersion { get; set; }
     public Vector3[] PlayerPositions { get; set; }
-    public PlayerListUpdate PlayerListUpdate { get; set; }
+    public PlayerInfo[] PlayerList { get; set; }
 
     public void Serialize(BinaryWriter w)
     {
-        w.Write(PlayerListVersion);
         w.Write(PlayerPositions.Length);
         foreach (var pos in PlayerPositions)
         {
@@ -141,12 +154,13 @@ public class ServerStatusUpdate
             w.Write(pos.y);
             w.Write(pos.z);
         }
-        if (PlayerListUpdate != null)
+        if (PlayerList != null)
         {
             w.Write((byte)1);
-            foreach (var name in PlayerListUpdate.PlayerNames)
+            foreach (var player in PlayerList)
             {
-                w.Write(name);
+                w.Write(player.Name);
+                w.Write((byte)player.Flags);
             }
         }
         else
@@ -155,39 +169,36 @@ public class ServerStatusUpdate
         }
     }
 
-    public static ServerStatusUpdate Deserialize(BinaryReader reader)
+    public static ServerStatusUpdate Deserialize(BinaryReader r)
     {
-        ulong playerListVersion = reader.ReadUInt64();
-        int playerCount = reader.ReadInt32();
+        int playerCount = r.ReadInt32();
         Vector3[] playerPositions = new Vector3[playerCount];
-        PlayerListUpdate playerListUpdate = null;
+        PlayerInfo[] playerList = null;
         for (int i = 0; i < playerCount; i++)
         {
             playerPositions[i] = new(
-                reader.ReadSingle(),
-                reader.ReadSingle(),
-                reader.ReadSingle());
+                r.ReadSingle(),
+                r.ReadSingle(),
+                r.ReadSingle());
         }
-        byte flags = reader.ReadByte();
+        byte flags = r.ReadByte();
         if (flags > 0)
         {
-            string[] playerNames = new string[playerCount];
+            playerList = new PlayerInfo[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
-                playerNames[i] = reader.ReadString();
+                playerList[i] = new PlayerInfo()
+                {
+                    Name = r.ReadString(),
+                    Flags = (PlayerFlags)r.ReadByte()
+                };
             }
-
-            playerListUpdate = new()
-            {
-                PlayerNames = playerNames,
-            };
         }
 
         return new ServerStatusUpdate()
         {
-            PlayerListVersion = playerListVersion,
             PlayerPositions = playerPositions,
-            PlayerListUpdate = playerListUpdate,
+            PlayerList = playerList,
         };
     }
 }

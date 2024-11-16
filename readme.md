@@ -21,11 +21,11 @@ Game-play:
 - ☐ Player interaction with game (level 1)
   - ☐ Multi-klotz collection
   - ☐ Placing klotzes
-- ☐ Multiplayer (level 1)
+- ☑ Multiplayer (level 1)
   - ☑ Client: Update server about real position (often)
   - ☑ Server: Add server status
-  - ☐ Server: Add other players list
-  - ☐ Client: Display other players
+  - ☑ Server: Add other players list
+  - ☑ Client: Display other players
 
 Deployment:
 - ☐ How to bundle the game?
