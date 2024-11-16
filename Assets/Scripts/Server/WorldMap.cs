@@ -147,15 +147,20 @@ public class WorldMap
 
         lock (_clientStates)
         {
-            update.PlayerListVersion = _clientListVersion;
             update.PlayerPositions = _clientStates.Values.Select(clientState => clientState.PlayerPosition).ToArray();
 
             if (state.SeenClientListVersion != _clientListVersion)
             {
-                update.PlayerListUpdate = new PlayerListUpdate()
+                update.PlayerList = new PlayerInfo[_clientStates.Count];
+                int i = 0;
+                foreach (var playerEntry in _clientStates)
                 {
-                    PlayerNames = _clientStates.Values.Select(clientState => clientState.PlayerName).ToArray(),
-                };
+                    update.PlayerList[i++] = new()
+                    {
+                        Name = playerEntry.Value.PlayerName,
+                        Flags = (id == playerEntry.Key) ? PlayerFlags.IsYou : 0,
+                    };
+                }
 
                 state.SeenClientListVersion = _clientListVersion;
             }

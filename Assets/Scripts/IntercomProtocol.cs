@@ -46,6 +46,7 @@ public static class IntercomProtocol
             return code switch
             {
                 CodeValue.ClientStatus => new ClientStatusCommand(reader),
+                CodeValue.ServerStatus => new ServerStatusCommand(reader),
                 CodeValue.ChuckData => new ChunkDataCommand(reader),
                 CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
                 _ => throw new IOException("Invalid command"),
@@ -64,9 +65,9 @@ public static class IntercomProtocol
             Update = update;
         }
 
-        public ServerStatusCommand(BinaryReader reader) : base(CommandCode)
+        public ServerStatusCommand(BinaryReader r) : base(CommandCode)
         {
-            Update = ServerStatusUpdate.Deserialize(reader);
+            Update = ServerStatusUpdate.Deserialize(r);
         }
 
         protected override void Serialize(BinaryWriter w)

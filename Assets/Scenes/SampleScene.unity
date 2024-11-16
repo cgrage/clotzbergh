@@ -154,12 +154,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerCamera: {fileID: 963194227}
-  walkSpeed: 6
-  runSpeed: 12
+  walkSpeed: 10
+  runSpeed: 25
   jumpPower: 10
   gravity: 10
   lookSpeed: 2
-  lookXLimit: 45
+  lookXLimit: 90
   defaultHeight: 2
   crouchHeight: 1
   crouchSpeed: 3
@@ -325,7 +325,7 @@ GameObject:
   - component: {fileID: 724055403}
   - component: {fileID: 724055402}
   m_Layer: 0
-  m_Name: Capsule
+  m_Name: PlayerModel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -389,7 +389,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 54478b33fa3f88e49b95ef9daddef0aa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -450,7 +450,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Hostname: localhost
   Port: 3001
-  MoveThreshold: 2
+  MeshThreadCount: 4
   Viewer: {fileID: 539553190}
   Material: {fileID: 2100000, guid: 66be6cf389d75024890c562d78254fe7, type: 2}
 --- !u!4 &785459302

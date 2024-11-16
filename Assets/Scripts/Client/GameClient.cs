@@ -32,6 +32,7 @@ public class GameClient : MonoBehaviour, IClientSideOps
     /// </summary>
     private bool _wasConnected = false;
     private float _timeSinceLastClientStatus = 0f;
+    private GameObject[] _allPlayers = new GameObject[0];
 
     private readonly CancellationTokenSource _runCancelTS = new();
     private readonly ClientChunkStore _chunkStore = new();
@@ -226,16 +227,32 @@ public class GameClient : MonoBehaviour, IClientSideOps
         _mainThreadActionQueue.Enqueue(action);
     }
 
+    /// <summary>
+    /// Called on Thread Pool Worker
+    /// </summary>
     void OnDataReceivedAsync(object sender, MessageEventArgs e)
     {
-        _receivedBytes += (ulong)e.RawData.Length;
-        var cmd = IntercomProtocol.Command.FromBytes(e.RawData);
-        // Debug.LogFormat("Client received command '{0}'", cmd.Code);
+        try { OnDataReceivedAsync(e.RawData); }
+        catch (Exception ex) { Debug.LogException(ex); }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    void OnDataReceivedAsync(byte[] data)
+    {
+        _receivedBytes += (ulong)data.Length;
+        var cmd = IntercomProtocol.Command.FromBytes(data);
+        // Debug.LogFormat($"Client: Cmd '{cmd.Code}', {data.Length} bytes");
 
         switch (cmd.Code)
         {
             case IntercomProtocol.Command.CodeValue.ServerStatus:
-                var statusCmd = (IntercomProtocol.ChunkDataCommand)cmd;
+                var statusCmd = (IntercomProtocol.ServerStatusCommand)cmd;
+                ToMainThread(() =>
+                {
+                    UpdatePlayerPositions(statusCmd.Update);
+                });
                 break;
 
             case IntercomProtocol.Command.CodeValue.ChuckData:
@@ -282,6 +299,45 @@ public class GameClient : MonoBehaviour, IClientSideOps
             IntercomProtocol.ClientStatusCommand cmd = new(newPosition);
             ws.Send(cmd.ToBytes());
         });
+    }
+
+    private void UpdatePlayerPositions(ServerStatusUpdate update)
+    {
+        int posCount = update.PlayerPositions.Length;
+        // Debug.Log($"UpdatePlayerPositions ({posCount})");
+
+        if (update.PlayerList == null)
+        {
+            if (_allPlayers.Length != posCount)
+            {
+                Debug.LogWarning($"Got update for {posCount} but only know {_allPlayers.Length} players");
+                return;
+            }
+        }
+        else
+        {
+            // delete existing players
+            for (int i = 0; i < _allPlayers.Length; i++)
+            {
+                GameObject.Destroy(_allPlayers[i]);
+            }
+
+            GameObject playerModel = GameObject.Find("PlayerModel");
+
+            // add new players
+            _allPlayers = new GameObject[update.PlayerList.Length];
+            for (int i = 0; i < _allPlayers.Length; i++)
+            {
+                _allPlayers[i] = Instantiate(playerModel, update.PlayerPositions[i], Quaternion.identity);
+                _allPlayers[i].name = update.PlayerList[i].Name;
+                _allPlayers[i].SetActive(!update.PlayerList[i].Flags.HasFlag(PlayerFlags.IsYou));
+            }
+        }
+
+        for (int i = 0; i < update.PlayerPositions.Length; i++)
+        {
+            _allPlayers[i].transform.position = update.PlayerPositions[i];
+        }
     }
 
     private readonly struct MeshRequest
