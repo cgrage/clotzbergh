@@ -46,7 +46,7 @@ public enum KlotzColor
     DarkBrown = 11,
     DarkGreen = 12,
     NextFree,
-    Maximum = 31
+    Maximum = 63
 }
 
 public enum KlotzSide
@@ -90,6 +90,8 @@ public readonly struct KlotzVariant
 
     // Explicit cast from uint
     public static explicit operator KlotzVariant(uint value) { return new KlotzVariant((byte)value); }
+
+    public override string ToString() { return _value.ToString(); }
 }
 
 public static class KlotzKB
@@ -136,6 +138,9 @@ public static class KlotzKB
         };
     }
 
+    public const int MaxKlotzSizeXZ = 8;
+    public const int MaxKlotzSizeY = 3;
+
     public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
     {
         return t switch
@@ -154,7 +159,6 @@ public static class KlotzKB
     {
         return true;
     }
-
 
     public static readonly KlotzType[] AllGroundTypes = {
         KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4, KlotzType.Plate1x6, KlotzType.Plate1x8,
@@ -386,7 +390,14 @@ public readonly struct SubKlotz
 
     public override string ToString()
     {
-        return $"0x{_rawBits:x}";
+        if (IsRoot)
+        {
+            return $"[Root-SubKlotz: Type{Type}, Dir={Direction}, Color={Color}, Variant={Variant}, Opaque={IsOpaque}, Raw 0x{_rawBits:x}]";
+        }
+        else
+        {
+            return $"[NonRoot-SubKlotz: {SubKlotzIndex}, Dir={Direction}, Opaque={IsOpaque}, Raw=0x{_rawBits:x}]";
+        }
     }
 
     public static Vector3Int TranslateSubIndexToCoords(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)

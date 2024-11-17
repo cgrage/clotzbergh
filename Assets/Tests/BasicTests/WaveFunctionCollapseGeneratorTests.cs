@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-public class WaveFunctionCollapseGeneratorTests
+public class WorldGeneratorTests
 {
     public class TestHeightMap : IHeightMap
     {
@@ -12,9 +12,19 @@ public class WaveFunctionCollapseGeneratorTests
     }
 
     [Test]
-    public void Contradictions()
+    public void WaveFunctionCollapseGeneratorTest()
     {
         WaveFunctionCollapseGenerator generator = new(Vector3Int.zero, new TestHeightMap());
+        WorldChunk chunk = generator.Generate();
+
+        CheckChunkIsFilledCompletely(chunk);
+        CheckChunkHasNoContradictions(chunk);
+    }
+
+    [Test]
+    public void MicroBlockWorldGeneratorTest()
+    {
+        MicroBlockWorldGenerator generator = new(Vector3Int.zero, new TestHeightMap());
         WorldChunk chunk = generator.Generate();
 
         CheckChunkIsFilledCompletely(chunk);
@@ -69,7 +79,7 @@ public class WaveFunctionCollapseGeneratorTests
                                 Vector3Int? use = usedBy[coords.x, coords.y, coords.z];
                                 if (use.HasValue)
                                 {
-                                    Assert.Fail($"Double use at {coords} by {use.Value} ({chunk.Get(use.Value)}) and {pos} ({chunk.Get(pos)})");
+                                    Assert.Fail($"Double use at {coords} {chunk.Get(subIndex)} by {use.Value} {chunk.Get(use.Value)} and {pos} {chunk.Get(pos)}");
                                 }
                                 usedBy[coords.x, coords.y, coords.z] = pos;
                             }
