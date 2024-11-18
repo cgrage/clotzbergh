@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
@@ -103,6 +102,17 @@ public abstract class ChunkGenerator
         return (KlotzColor)Random.Next(0, (int)KlotzColor.NextFree);
     }
 
+    protected KlotzColor ColorFromHeight(int y)
+    {
+        if (y < -85) return KlotzColor.DarkBlue;
+        if (y < -80) return KlotzColor.Azure;
+        if (y < -70) return KlotzColor.Yellow;
+        if (y < -20) return KlotzColor.DarkGreen;
+        if (y < 30) return KlotzColor.DarkBrown;
+        if (y < 70) return KlotzColor.Gray;
+        return KlotzColor.White;
+    }
+
     /// <summary>
     /// Little helper
     /// </summary>
@@ -141,7 +151,7 @@ public class MicroBlockWorldGenerator : ChunkGenerator
                     {
                         chunk.Set(ix, iy, iz, SubKlotz.Root(
                             KlotzType.Plate1x1,
-                            GetColorFromHeight(y),
+                            ColorFromHeight(y),
                             NextRandVariant(),
                             KlotzDirection.ToPosX));
                     }
@@ -159,17 +169,6 @@ public class MicroBlockWorldGenerator : ChunkGenerator
         // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
 
         return chunk;
-    }
-
-    private KlotzColor GetColorFromHeight(int y)
-    {
-        if (y < -85) return KlotzColor.DarkBlue;
-        if (y < -80) return KlotzColor.Azure;
-        if (y < -70) return KlotzColor.Yellow;
-        if (y < -20) return KlotzColor.DarkGreen;
-        if (y < 30) return KlotzColor.DarkBrown;
-        if (y < 70) return KlotzColor.Gray;
-        return KlotzColor.White;
     }
 }
 
@@ -386,7 +385,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
     {
         KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
         Vector3Int size = KlotzKB.KlotzSize(type);
-        KlotzColor color = NextRandColor();
+        KlotzColor color = ColorFromHeight(ChunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
         KlotzVariant variant = NextRandVariant();
 
         for (int subZ = 0; subZ < size.z; subZ++)
