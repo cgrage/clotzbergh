@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -14,21 +15,32 @@ public class WorldGeneratorTests
     [Test]
     public void WaveFunctionCollapseGeneratorTest()
     {
-        WaveFunctionCollapseGenerator generator = new(Vector3Int.zero, new TestHeightMap());
-        WorldChunk chunk = generator.Generate();
-
-        CheckChunkIsFilledCompletely(chunk);
-        CheckChunkHasNoContradictions(chunk);
+        GeneratorTest<WaveFunctionCollapseGenerator>();
     }
 
     [Test]
     public void MicroBlockWorldGeneratorTest()
     {
-        MicroBlockWorldGenerator generator = new(Vector3Int.zero, new TestHeightMap());
-        WorldChunk chunk = generator.Generate();
+        GeneratorTest<MicroBlockWorldGenerator>();
+    }
 
-        CheckChunkIsFilledCompletely(chunk);
-        CheckChunkHasNoContradictions(chunk);
+    public void GeneratorTest<T>() where T : ChunkGenerator, new()
+    {
+        List<Vector3Int> coords = new()
+        {
+            new(0, 0, 0),
+            // new(0, 0, 1),
+            // new(0, 0, 2),
+            // new(0, 0, 3),
+        };
+
+        foreach (var coord in coords)
+        {
+            WorldChunk chunk = new T().Generate(coord, new TestHeightMap());
+
+            CheckChunkIsFilledCompletely(chunk);
+            CheckChunkHasNoContradictions(chunk);
+        }
     }
 
     private void CheckChunkIsFilledCompletely(WorldChunk chunk)
