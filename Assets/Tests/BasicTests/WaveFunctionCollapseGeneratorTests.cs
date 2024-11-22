@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
+using Clotzbergh.Server.WorldGeneration;
+using Clotzbergh.Server;
+using Clotzbergh;
 
 public class WorldGeneratorTests
 {

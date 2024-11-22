@@ -2,56 +2,33 @@ using System;
 using System.IO;
 using UnityEngine;
 
-/// <summary>
-/// 
-/// </summary>
-public class WorldChunk
+namespace Clotzbergh
 {
-    private readonly SubKlotz[,,] _klotzData;
-
-    private int _klotzCount;
-
-    public WorldChunk()
+    /// <summary>
+    /// 
+    /// </summary>
+    public class WorldChunk
     {
-        _klotzCount = 0;
-        _klotzData = new SubKlotz[
-            WorldDef.ChunkSubDivsX,
-            WorldDef.ChunkSubDivsY,
-            WorldDef.ChunkSubDivsZ];
-    }
+        private readonly SubKlotz[,,] _klotzData;
 
-    public void FloodFill(int toHeight = WorldDef.ChunkSubDivsY)
-    {
-        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+        private int _klotzCount;
+
+        public WorldChunk()
         {
-            for (int y = 0; y < toHeight; y++)
-            {
-                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
-                {
-                    Set(x, y, z, SubKlotz.Root(
-                        KlotzType.Plate1x1,
-                        KlotzColor.White,
-                        KlotzVariant.Zero,
-                        KlotzDirection.ToPosX));
-                }
-            }
+            _klotzCount = 0;
+            _klotzData = new SubKlotz[
+                WorldDef.ChunkSubDivsX,
+                WorldDef.ChunkSubDivsY,
+                WorldDef.ChunkSubDivsZ];
         }
-    }
 
-    public void CoreFill(int startPercent = 25, int endPercent = 75)
-    {
-        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+        public void FloodFill(int toHeight = WorldDef.ChunkSubDivsY)
         {
-            for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
-                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                for (int y = 0; y < toHeight; y++)
                 {
-                    bool inCore =
-                         x >= startPercent * WorldDef.ChunkSubDivsX / 100 && x < endPercent * WorldDef.ChunkSubDivsX / 100 &&
-                         y >= startPercent * WorldDef.ChunkSubDivsY / 100 && y < endPercent * WorldDef.ChunkSubDivsY / 100 &&
-                         z >= startPercent * WorldDef.ChunkSubDivsZ / 100 && z < endPercent * WorldDef.ChunkSubDivsZ / 100;
-
-                    if (inCore)
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
                         Set(x, y, z, SubKlotz.Root(
                             KlotzType.Plate1x1,
@@ -59,111 +36,11 @@ public class WorldChunk
                             KlotzVariant.Zero,
                             KlotzDirection.ToPosX));
                     }
-                    else
-                    {
-                        Set(x, y, z, SubKlotz.Air);
-                    }
-                }
-            }
-        }
-    }
-
-    public SubKlotz Get(int x, int y, int z) { return _klotzData[x, y, z]; }
-
-    public SubKlotz Get(Vector3Int coords) { return Get(coords.x, coords.y, coords.z); }
-
-    public void Set(int x, int y, int z, SubKlotz t)
-    {
-        bool wasRoot = _klotzData[x, y, z].IsRootAndNotAir;
-        _klotzData[x, y, z] = t;
-        bool isRoot = t.IsRootAndNotAir;
-
-        if (isRoot != wasRoot)
-        {
-            _klotzCount += wasRoot ? -1 : 1;
-        }
-    }
-
-    public void Set(Vector3Int coords, SubKlotz t) { Set(coords.x, coords.y, coords.z, t); }
-
-    protected void SetUncounted(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
-
-    public Klotz[] ToKlotzArray()
-    {
-        Klotz[] result = new Klotz[_klotzCount];
-        int i = 0;
-
-        for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
-        {
-            for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
-            {
-                for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
-                {
-                    SubKlotz k = Get(x, y, z);
-
-                    if (k.IsRootAndNotAir)
-                    {
-                        result[i++] = k.ToKlotz(x, y, z);
-                    }
                 }
             }
         }
 
-        if (i != _klotzCount)
-            throw new Exception("Internal data counting error");
-
-        return result;
-    }
-
-    private const int UseListIfFillLevelInPercent = 50; // 40,960
-
-    public void Serialize(BinaryWriter w)
-    {
-        int fillLevel = (_klotzCount * 100) / WorldDef.SubKlotzPerChunkCount;
-        bool asList = fillLevel < UseListIfFillLevelInPercent;
-
-        if (asList)
-        {
-            w.Write((uint)1 << 31 | (uint)_klotzCount);
-
-            foreach (Klotz klotz in ToKlotzArray())
-            {
-                klotz.Serialize(w);
-            }
-        }
-        else
-        {
-            w.Write((uint)0 << 31 | (uint)_klotzCount);
-
-            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
-            {
-                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
-                {
-                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
-                    {
-                        Get(x, y, z).Serialize(w);
-                    }
-                }
-            }
-        }
-    }
-
-    public static WorldChunk Deserialize(BinaryReader r)
-    {
-        WorldChunk chunk = new();
-
-        uint bits = r.ReadUInt32();
-        bool isList = (bits & (1 << 31)) != 0;
-        int klotzCount = (int)(bits & ~(1 << 31));
-
-        if (isList)
-        {
-            for (int i = 0; i < klotzCount; i++)
-            {
-                chunk.PlaceKlotz(Klotz.Deserialize(r));
-            }
-        }
-        else
+        public void CoreFill(int startPercent = 25, int endPercent = 75)
         {
             for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
@@ -171,101 +48,227 @@ public class WorldChunk
                 {
                     for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
-                        chunk.SetUncounted(x, y, z, SubKlotz.Deserialize(r));
+                        bool inCore =
+                             x >= startPercent * WorldDef.ChunkSubDivsX / 100 && x < endPercent * WorldDef.ChunkSubDivsX / 100 &&
+                             y >= startPercent * WorldDef.ChunkSubDivsY / 100 && y < endPercent * WorldDef.ChunkSubDivsY / 100 &&
+                             z >= startPercent * WorldDef.ChunkSubDivsZ / 100 && z < endPercent * WorldDef.ChunkSubDivsZ / 100;
+
+                        if (inCore)
+                        {
+                            Set(x, y, z, SubKlotz.Root(
+                                KlotzType.Plate1x1,
+                                KlotzColor.White,
+                                KlotzVariant.Zero,
+                                KlotzDirection.ToPosX));
+                        }
+                        else
+                        {
+                            Set(x, y, z, SubKlotz.Air);
+                        }
                     }
                 }
             }
         }
 
-        return chunk;
-    }
+        public SubKlotz Get(int x, int y, int z) { return _klotzData[x, y, z]; }
 
-    public void PlaceKlotz(Klotz klotz)
-    {
-        PlaceKlotz(klotz.Type, klotz.Color, klotz.Variant, klotz.Coords, klotz.Direction);
-    }
+        public SubKlotz Get(Vector3Int coords) { return Get(coords.x, coords.y, coords.z); }
 
-    public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, Vector3Int rootCoords, KlotzDirection dir)
-    {
-        Vector3Int size = KlotzKB.KlotzSize(type);
-
-        for (int subZ = 0; subZ < size.z; subZ++)
+        public void Set(int x, int y, int z, SubKlotz t)
         {
-            for (int subX = 0; subX < size.x; subX++)
+            bool wasRoot = _klotzData[x, y, z].IsRootAndNotAir;
+            _klotzData[x, y, z] = t;
+            bool isRoot = t.IsRootAndNotAir;
+
+            if (isRoot != wasRoot)
             {
-                for (int subY = 0; subY < size.y; subY++)
-                {
-                    Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
-                        rootCoords, new(subX, subY, subZ), dir);
-
-                    if (subX == 0 && subY == 0 && subZ == 0)
-                    {
-                        Set(coords, SubKlotz.Root(type, color, variant, dir));
-                    }
-                    else
-                    {
-                        Set(coords, SubKlotz.NonRoot(type, dir, subX, subY, subZ));
-                    }
-                }
+                _klotzCount += wasRoot ? -1 : 1;
             }
         }
-    }
 
-    public void RemoveKlotz(Vector3Int klotzCoords)
-    {
-        SubKlotz k = Get(klotzCoords);
+        public void Set(Vector3Int coords, SubKlotz t) { Set(coords.x, coords.y, coords.z, t); }
 
-        if (!k.IsRoot)
+        protected void SetUncounted(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
+
+        public Klotz[] ToKlotzArray()
         {
-            Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (not a root).");
-            return;
-        }
+            Klotz[] result = new Klotz[_klotzCount];
+            int i = 0;
 
-        if (k.IsAir)
-        {
-            Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (air).");
-            return;
-        }
-
-        Vector3Int size = KlotzKB.KlotzSize(k.Type);
-
-        for (int subZ = 0; subZ < size.z; subZ++)
-        {
-            for (int subX = 0; subX < size.x; subX++)
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
-                for (int subY = 0; subY < size.y; subY++)
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
                 {
-                    Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
-                        klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                    {
+                        SubKlotz k = Get(x, y, z);
 
-                    Set(coords, SubKlotz.Air);
+                        if (k.IsRootAndNotAir)
+                        {
+                            result[i++] = k.ToKlotz(x, y, z);
+                        }
+                    }
+                }
+            }
+
+            if (i != _klotzCount)
+                throw new Exception("Internal data counting error");
+
+            return result;
+        }
+
+        private const int UseListIfFillLevelInPercent = 50; // 40,960
+
+        public void Serialize(BinaryWriter w)
+        {
+            int fillLevel = (_klotzCount * 100) / WorldDef.SubKlotzPerChunkCount;
+            bool asList = fillLevel < UseListIfFillLevelInPercent;
+
+            if (asList)
+            {
+                w.Write((uint)1 << 31 | (uint)_klotzCount);
+
+                foreach (Klotz klotz in ToKlotzArray())
+                {
+                    klotz.Serialize(w);
+                }
+            }
+            else
+            {
+                w.Write((uint)0 << 31 | (uint)_klotzCount);
+
+                for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+                {
+                    for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+                    {
+                        for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                        {
+                            Get(x, y, z).Serialize(w);
+                        }
+                    }
                 }
             }
         }
-    }
 
-    public static Vector3Int PositionToChunkCoords(Vector3 position)
-    {
-        return new(
-            Mathf.FloorToInt(position.x / WorldDef.ChunkSize.x),
-            Mathf.FloorToInt(position.y / WorldDef.ChunkSize.y),
-            Mathf.FloorToInt(position.z / WorldDef.ChunkSize.z));
-    }
+        public static WorldChunk Deserialize(BinaryReader r)
+        {
+            WorldChunk chunk = new();
 
-    public static Vector3 ChunkCoordsToPosition(Vector3Int coords)
-    {
-        return Vector3.Scale(coords, WorldDef.ChunkSize);
-    }
+            uint bits = r.ReadUInt32();
+            bool isList = (bits & (1 << 31)) != 0;
+            int klotzCount = (int)(bits & ~(1 << 31));
 
-    public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
-    {
-        Vector3 chunkPosition = ChunkCoordsToPosition(chunkCoords);
-        Vector3 chunkCenter = chunkPosition + WorldDef.ChunkSize / 2;
-        return Vector3.Distance(position, chunkCenter);
-    }
+            if (isList)
+            {
+                for (int i = 0; i < klotzCount; i++)
+                {
+                    chunk.PlaceKlotz(Klotz.Deserialize(r));
+                }
+            }
+            else
+            {
+                for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+                {
+                    for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+                    {
+                        for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                        {
+                            chunk.SetUncounted(x, y, z, SubKlotz.Deserialize(r));
+                        }
+                    }
+                }
+            }
 
-    public static int ChunkDistance(Vector3Int a, Vector3Int b)
-    {
-        return (int)Vector3Int.Distance(a, b);
+            return chunk;
+        }
+
+        public void PlaceKlotz(Klotz klotz)
+        {
+            PlaceKlotz(klotz.Type, klotz.Color, klotz.Variant, klotz.Coords, klotz.Direction);
+        }
+
+        public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, Vector3Int rootCoords, KlotzDirection dir)
+        {
+            Vector3Int size = KlotzKB.KlotzSize(type);
+
+            for (int subZ = 0; subZ < size.z; subZ++)
+            {
+                for (int subX = 0; subX < size.x; subX++)
+                {
+                    for (int subY = 0; subY < size.y; subY++)
+                    {
+                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                            rootCoords, new(subX, subY, subZ), dir);
+
+                        if (subX == 0 && subY == 0 && subZ == 0)
+                        {
+                            Set(coords, SubKlotz.Root(type, color, variant, dir));
+                        }
+                        else
+                        {
+                            Set(coords, SubKlotz.NonRoot(type, dir, subX, subY, subZ));
+                        }
+                    }
+                }
+            }
+        }
+
+        public void RemoveKlotz(Vector3Int klotzCoords)
+        {
+            SubKlotz k = Get(klotzCoords);
+
+            if (!k.IsRoot)
+            {
+                Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (not a root).");
+                return;
+            }
+
+            if (k.IsAir)
+            {
+                Debug.LogError($"Cannot RemoveKlotz at {klotzCoords} (air).");
+                return;
+            }
+
+            Vector3Int size = KlotzKB.KlotzSize(k.Type);
+
+            for (int subZ = 0; subZ < size.z; subZ++)
+            {
+                for (int subX = 0; subX < size.x; subX++)
+                {
+                    for (int subY = 0; subY < size.y; subY++)
+                    {
+                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                            klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
+
+                        Set(coords, SubKlotz.Air);
+                    }
+                }
+            }
+        }
+
+        public static Vector3Int PositionToChunkCoords(Vector3 position)
+        {
+            return new(
+                Mathf.FloorToInt(position.x / WorldDef.ChunkSize.x),
+                Mathf.FloorToInt(position.y / WorldDef.ChunkSize.y),
+                Mathf.FloorToInt(position.z / WorldDef.ChunkSize.z));
+        }
+
+        public static Vector3 ChunkCoordsToPosition(Vector3Int coords)
+        {
+            return Vector3.Scale(coords, WorldDef.ChunkSize);
+        }
+
+        public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
+        {
+            Vector3 chunkPosition = ChunkCoordsToPosition(chunkCoords);
+            Vector3 chunkCenter = chunkPosition + WorldDef.ChunkSize / 2;
+            return Vector3.Distance(position, chunkCenter);
+        }
+
+        public static int ChunkDistance(Vector3Int a, Vector3Int b)
+        {
+            return (int)Vector3Int.Distance(a, b);
+        }
     }
 }

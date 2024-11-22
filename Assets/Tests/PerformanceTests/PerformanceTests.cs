@@ -3,6 +3,9 @@ using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using System;
+using Clotzbergh.Server.WorldGeneration;
+using Clotzbergh.Client;
+using Clotzbergh;
 
 public class PerformanceTests
 {

@@ -2,175 +2,178 @@ using System.IO;
 using System.IO.Compression;
 using UnityEngine;
 
-public static class IntercomProtocol
+namespace Clotzbergh
 {
-    public abstract class Command
+    public static class IntercomProtocol
     {
-        public enum CodeValue : byte
+        public abstract class Command
         {
-            ClientStatus = 1,
-            ServerStatus,
-            ChuckData,
-            TakeKlotz,
-        }
-
-        public CodeValue Code { get; private set; }
-
-        protected Command(CodeValue code)
-        {
-            Code = code;
-        }
-
-        public byte[] ToBytes()
-        {
-            using MemoryStream memoryStream = new();
-            using (GZipStream gzipStream = new(memoryStream, CompressionMode.Compress))
-            using (BinaryWriter writer = new(gzipStream))
+            public enum CodeValue : byte
             {
-                writer.Write((byte)Code);
-                Serialize(writer);
+                ClientStatus = 1,
+                ServerStatus,
+                ChuckData,
+                TakeKlotz,
             }
 
-            return memoryStream.ToArray();
-        }
+            public CodeValue Code { get; private set; }
 
-        protected abstract void Serialize(BinaryWriter w);
-
-        public static Command FromBytes(byte[] data)
-        {
-            using MemoryStream memoryStream = new(data);
-            using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
-            using BinaryReader reader = new(gzipStream);
-
-            CodeValue code = (CodeValue)reader.ReadByte();
-            return code switch
+            protected Command(CodeValue code)
             {
-                CodeValue.ClientStatus => new ClientStatusCommand(reader),
-                CodeValue.ServerStatus => new ServerStatusCommand(reader),
-                CodeValue.ChuckData => new ChunkDataCommand(reader),
-                CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
-                _ => throw new IOException("Invalid command"),
-            };
-        }
-    }
+                Code = code;
+            }
 
-    public class ServerStatusCommand : Command
-    {
-        const CodeValue CommandCode = CodeValue.ServerStatus;
+            public byte[] ToBytes()
+            {
+                using MemoryStream memoryStream = new();
+                using (GZipStream gzipStream = new(memoryStream, CompressionMode.Compress))
+                using (BinaryWriter writer = new(gzipStream))
+                {
+                    writer.Write((byte)Code);
+                    Serialize(writer);
+                }
 
-        public ServerStatusUpdate Update { get; private set; }
+                return memoryStream.ToArray();
+            }
 
-        public ServerStatusCommand(ServerStatusUpdate update) : base(CommandCode)
-        {
-            Update = update;
-        }
+            protected abstract void Serialize(BinaryWriter w);
 
-        public ServerStatusCommand(BinaryReader r) : base(CommandCode)
-        {
-            Update = ServerStatusUpdate.Deserialize(r);
-        }
+            public static Command FromBytes(byte[] data)
+            {
+                using MemoryStream memoryStream = new(data);
+                using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
+                using BinaryReader reader = new(gzipStream);
 
-        protected override void Serialize(BinaryWriter w)
-        {
-            Update.Serialize(w);
-        }
-    }
-
-    public class ClientStatusCommand : Command
-    {
-        const CodeValue CommandCode = CodeValue.ClientStatus;
-
-        public Vector3 Position { get; private set; }
-
-        public ClientStatusCommand(Vector3 position) : base(CommandCode)
-        {
-            Position = position;
+                CodeValue code = (CodeValue)reader.ReadByte();
+                return code switch
+                {
+                    CodeValue.ClientStatus => new ClientStatusCommand(reader),
+                    CodeValue.ServerStatus => new ServerStatusCommand(reader),
+                    CodeValue.ChuckData => new ChunkDataCommand(reader),
+                    CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
+                    _ => throw new IOException("Invalid command"),
+                };
+            }
         }
 
-        public ClientStatusCommand(BinaryReader reader) : base(CommandCode)
+        public class ServerStatusCommand : Command
         {
-            Position = new Vector3(
-                reader.ReadSingle(),
-                reader.ReadSingle(),
-                reader.ReadSingle());
+            const CodeValue CommandCode = CodeValue.ServerStatus;
+
+            public ServerStatusUpdate Update { get; private set; }
+
+            public ServerStatusCommand(ServerStatusUpdate update) : base(CommandCode)
+            {
+                Update = update;
+            }
+
+            public ServerStatusCommand(BinaryReader r) : base(CommandCode)
+            {
+                Update = ServerStatusUpdate.Deserialize(r);
+            }
+
+            protected override void Serialize(BinaryWriter w)
+            {
+                Update.Serialize(w);
+            }
         }
 
-        protected override void Serialize(BinaryWriter w)
+        public class ClientStatusCommand : Command
         {
-            w.Write(Position.x);
-            w.Write(Position.y);
-            w.Write(Position.z);
-        }
-    }
+            const CodeValue CommandCode = CodeValue.ClientStatus;
 
-    public class ChunkDataCommand : Command
-    {
-        const CodeValue CommandCode = CodeValue.ChuckData;
+            public Vector3 Position { get; private set; }
 
-        public Vector3Int Coord;
-        public ulong Version;
-        public WorldChunk Chunk;
+            public ClientStatusCommand(Vector3 position) : base(CommandCode)
+            {
+                Position = position;
+            }
 
-        public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CommandCode)
-        {
-            Coord = coord;
-            Version = version;
-            Chunk = chunk;
-        }
+            public ClientStatusCommand(BinaryReader reader) : base(CommandCode)
+            {
+                Position = new Vector3(
+                    reader.ReadSingle(),
+                    reader.ReadSingle(),
+                    reader.ReadSingle());
+            }
 
-        public ChunkDataCommand(BinaryReader r) : base(CommandCode)
-        {
-            Coord = new Vector3Int(
-                r.ReadInt32(),
-                r.ReadInt32(),
-                r.ReadInt32());
-            Version = r.ReadUInt64();
-            Chunk = WorldChunk.Deserialize(r);
+            protected override void Serialize(BinaryWriter w)
+            {
+                w.Write(Position.x);
+                w.Write(Position.y);
+                w.Write(Position.z);
+            }
         }
 
-        protected override void Serialize(BinaryWriter w)
+        public class ChunkDataCommand : Command
         {
-            w.Write(Coord.x);
-            w.Write(Coord.y);
-            w.Write(Coord.z);
-            w.Write(Version);
-            Chunk.Serialize(w);
+            const CodeValue CommandCode = CodeValue.ChuckData;
+
+            public Vector3Int Coord;
+            public ulong Version;
+            public WorldChunk Chunk;
+
+            public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CommandCode)
+            {
+                Coord = coord;
+                Version = version;
+                Chunk = chunk;
+            }
+
+            public ChunkDataCommand(BinaryReader r) : base(CommandCode)
+            {
+                Coord = new Vector3Int(
+                    r.ReadInt32(),
+                    r.ReadInt32(),
+                    r.ReadInt32());
+                Version = r.ReadUInt64();
+                Chunk = WorldChunk.Deserialize(r);
+            }
+
+            protected override void Serialize(BinaryWriter w)
+            {
+                w.Write(Coord.x);
+                w.Write(Coord.y);
+                w.Write(Coord.z);
+                w.Write(Version);
+                Chunk.Serialize(w);
+            }
         }
-    }
 
-    public class TakeKlotzCommand : Command
-    {
-        const CodeValue CommandCode = CodeValue.TakeKlotz;
-
-        public Vector3Int ChunkCoord;
-        public Vector3Int InnerChunkCoord;
-
-        public TakeKlotzCommand(Vector3Int coord, Vector3Int innerChunkCoord) : base(CommandCode)
+        public class TakeKlotzCommand : Command
         {
-            ChunkCoord = coord;
-            InnerChunkCoord = innerChunkCoord;
-        }
+            const CodeValue CommandCode = CodeValue.TakeKlotz;
 
-        public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
-        {
-            ChunkCoord = new Vector3Int(
-                r.ReadInt32(),
-                r.ReadInt32(),
-                r.ReadInt32());
-            InnerChunkCoord = new Vector3Int(
-                r.ReadInt32(),
-                r.ReadInt32(),
-                r.ReadInt32());
-        }
+            public Vector3Int ChunkCoord;
+            public Vector3Int InnerChunkCoord;
 
-        protected override void Serialize(BinaryWriter w)
-        {
-            w.Write(ChunkCoord.x);
-            w.Write(ChunkCoord.y);
-            w.Write(ChunkCoord.z);
-            w.Write(InnerChunkCoord.x);
-            w.Write(InnerChunkCoord.y);
-            w.Write(InnerChunkCoord.z);
+            public TakeKlotzCommand(Vector3Int coord, Vector3Int innerChunkCoord) : base(CommandCode)
+            {
+                ChunkCoord = coord;
+                InnerChunkCoord = innerChunkCoord;
+            }
+
+            public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
+            {
+                ChunkCoord = new Vector3Int(
+                    r.ReadInt32(),
+                    r.ReadInt32(),
+                    r.ReadInt32());
+                InnerChunkCoord = new Vector3Int(
+                    r.ReadInt32(),
+                    r.ReadInt32(),
+                    r.ReadInt32());
+            }
+
+            protected override void Serialize(BinaryWriter w)
+            {
+                w.Write(ChunkCoord.x);
+                w.Write(ChunkCoord.y);
+                w.Write(ChunkCoord.z);
+                w.Write(InnerChunkCoord.x);
+                w.Write(InnerChunkCoord.y);
+                w.Write(InnerChunkCoord.z);
+            }
         }
     }
 }
