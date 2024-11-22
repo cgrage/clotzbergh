@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -24,94 +22,6 @@ namespace Clotzbergh
         Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
         Brick4x6,
         // CornerBrick1x2x2,
-    }
-
-
-    public readonly struct KlotzTypeSet64 : IEnumerable<KlotzType>
-    {
-        private readonly ulong _value;
-
-        public static readonly KlotzTypeSet64 Empty = new();
-
-        public KlotzTypeSet64(ulong value) { _value = value; }
-
-        public KlotzTypeSet64(IEnumerable<KlotzType> types)
-        {
-            _value = 0;
-            foreach (var type in types)
-            {
-                _value |= 1UL << (int)type;
-            }
-        }
-
-        public KlotzTypeSet64 Merge(KlotzTypeSet64 other)
-        {
-            return new KlotzTypeSet64(_value | other._value);
-        }
-
-        public bool Contains(KlotzType type)
-        {
-            return (_value & 1UL << (int)type) != 0;
-        }
-
-        public KlotzTypeSet64 Remove(KlotzType type)
-        {
-            return new(_value & ~(1UL << (int)type));
-        }
-
-        public bool ContainsOnly(KlotzTypeSet64 other)
-        {
-            return (_value & ~other._value) == 0;
-        }
-
-        public int Count
-        {
-            get { return CountSetBits(_value); }
-        }
-
-        private static int CountSetBits(ulong bitField)
-        {
-            int count = 0;
-            while (bitField != 0)
-            {
-                bitField &= (bitField - 1); // Clear the least significant bit set
-                count++;
-            }
-            return count;
-        }
-
-        private static IEnumerable<int> GetSetBitPositions(ulong bitField)
-        {
-            int position = 0;
-            while (bitField != 0)
-            {
-                if ((bitField & 1) != 0)
-                {
-                    yield return position;
-                }
-                bitField >>= 1;
-                position++;
-            }
-        }
-
-        // Explicit cast to int
-        public static explicit operator ulong(KlotzTypeSet64 variant) { return variant._value; }
-
-        // Explicit cast from uint
-        public static explicit operator KlotzTypeSet64(ulong value) { return new KlotzTypeSet64(value); }
-
-        IEnumerator<KlotzType> IEnumerable<KlotzType>.GetEnumerator()
-        {
-            foreach (int bitPosition in GetSetBitPositions(_value))
-            {
-                yield return (KlotzType)bitPosition;
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<KlotzType>)this).GetEnumerator();
-        }
     }
 
     public enum KlotzDirection

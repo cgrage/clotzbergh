@@ -9,40 +9,6 @@ namespace Clotzbergh.Server.WorldGeneration
         private SubKlotzVoxelSuperPosition[,,] _positions;
         private List<Vector3Int> _nonCollapsed;
 
-        public enum GeneralVoxelType
-        {
-            Air, Ground, AirOrGround
-        }
-
-        private static readonly KlotzType[] AllGroundTypes = {
-        KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4,
-        KlotzType.Plate1x6, KlotzType.Plate1x8, KlotzType.Plate2x2, KlotzType.Plate2x3,
-        KlotzType.Plate2x4, KlotzType.Plate2x6, KlotzType.Plate2x8, KlotzType.Plate4x4,
-        KlotzType.Plate4x6, KlotzType.Plate4x8, KlotzType.Plate6x6, KlotzType.Plate6x8,
-        KlotzType.Plate8x8,
-        KlotzType.Brick1x1, KlotzType.Brick1x2, KlotzType.Brick1x3, KlotzType.Brick1x4,
-        KlotzType.Brick1x6, KlotzType.Brick1x8, KlotzType.Brick2x2, KlotzType.Brick2x3,
-        KlotzType.Brick2x4, KlotzType.Brick2x6, KlotzType.Brick2x8, KlotzType.Brick4x6 };
-
-        private static readonly KlotzType[] AllGroundTypesSortedByVolumeDesc = SortByVolumeDesc(AllGroundTypes);
-        private static readonly KlotzType[] All1x1x1Types = { KlotzType.Air, KlotzType.Plate1x1 };
-
-        private static readonly KlotzTypeSet64 AirSet = new(new KlotzType[] { KlotzType.Air });
-        private static readonly KlotzTypeSet64 AllGroundTypesSet = new(AllGroundTypes);
-        private static readonly KlotzTypeSet64 All1x1x1TypesSet = new(All1x1x1Types);
-
-        private static KlotzType[] SortByVolumeDesc(IEnumerable<KlotzType> types)
-        {
-            List<KlotzType> list = new(types);
-            list.Sort((a, b) =>
-            {
-                Vector3Int sa = KlotzKB.KlotzSize(a);
-                Vector3Int sb = KlotzKB.KlotzSize(b);
-                return (sb.x * sb.y * sb.z).CompareTo(sa.x * sa.y * sa.z);
-            });
-            return list.ToArray();
-        }
-
         public struct SubKlotzVoxelSuperPosition
         {
             private readonly GeneralVoxelType _generalType;
@@ -62,9 +28,9 @@ namespace Clotzbergh.Server.WorldGeneration
                 else
                 {
                     if (generalType == GeneralVoxelType.AirOrGround)
-                        _possibleTypes = _possibleTypes.Merge(AirSet);
+                        _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AirSet);
 
-                    _possibleTypes = _possibleTypes.Merge(AllGroundTypesSet);
+                    _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AllGroundTypesSet);
                 }
             }
 
@@ -221,7 +187,7 @@ namespace Clotzbergh.Server.WorldGeneration
                             }
                         }
 
-                        if (voxel.PossibleTypes.ContainsOnly(All1x1x1TypesSet))
+                        if (voxel.PossibleTypes.ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
                         {
                             Collapse(pCoords);
                         }
@@ -280,7 +246,7 @@ namespace Clotzbergh.Server.WorldGeneration
             KlotzType? option2 = null;
             KlotzType type;
 
-            foreach (var testType in AllGroundTypesSortedByVolumeDesc)
+            foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
             {
                 if (rootVoxel.PossibleTypes.Contains(testType))
                 {
