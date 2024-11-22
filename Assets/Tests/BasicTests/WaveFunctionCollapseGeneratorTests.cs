@@ -38,13 +38,18 @@ public class WorldGeneratorTests
         {
             WorldChunk chunk = new T().Generate(coord, new TestHeightMap());
 
-            CheckChunkIsFilledCompletely(chunk);
+            CheckChunkIsFilledCompletely(chunk, out int klotzCount, out int airCount);
             CheckChunkHasNoContradictions(chunk);
+
+            Debug.Log($"Klotz-Count: {klotzCount}, Air-Count: {airCount}");
         }
     }
 
-    private void CheckChunkIsFilledCompletely(WorldChunk chunk)
+    private void CheckChunkIsFilledCompletely(WorldChunk chunk, out int klotzCount, out int airCount)
     {
+        klotzCount = 0;
+        airCount = 0;
+
         for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {
             for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
@@ -54,6 +59,15 @@ public class WorldGeneratorTests
                     Vector3Int pos = new(x, y, z);
                     SubKlotz k = chunk.Get(pos);
                     Assert.IsTrue(k.IsOpaque, $"Not filled at {pos}");
+
+                    if (k.IsRoot)
+                    {
+                        klotzCount++;
+                        if (k.IsAir)
+                        {
+                            airCount++;
+                        }
+                    }
                 }
             }
         }
