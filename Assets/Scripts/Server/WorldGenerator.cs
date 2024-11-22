@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
@@ -182,118 +183,218 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         Air, Ground, AirOrGround
     }
 
-    public class SubKlotzVoxelSuperPosition
+    private static readonly KlotzType[] AllGroundTypes = {
+        KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4,
+        KlotzType.Plate1x6, KlotzType.Plate1x8, KlotzType.Plate2x2, KlotzType.Plate2x3,
+        KlotzType.Plate2x4, KlotzType.Plate2x6, KlotzType.Plate2x8, KlotzType.Plate4x4,
+        KlotzType.Plate4x6, KlotzType.Plate4x8, KlotzType.Plate6x6, KlotzType.Plate6x8,
+        KlotzType.Plate8x8,
+        KlotzType.Brick1x1, KlotzType.Brick1x2, KlotzType.Brick1x3, KlotzType.Brick1x4,
+        KlotzType.Brick1x6, KlotzType.Brick1x8, KlotzType.Brick2x2, KlotzType.Brick2x3,
+        KlotzType.Brick2x4, KlotzType.Brick2x6, KlotzType.Brick2x8, KlotzType.Brick4x6 };
+
+    private static readonly KlotzType[] AllGroundTypesSortedByVolume = SortByVolume(AllGroundTypes);
+    private static readonly KlotzType[] All1x1x1Types = { KlotzType.Air, KlotzType.Plate1x1 };
+
+    private static readonly KlotzTypeSet AirSet = new(new KlotzType[] { KlotzType.Air });
+    private static readonly KlotzTypeSet AllGroundTypesSet = new(AllGroundTypes);
+    private static readonly KlotzTypeSet All1x1x1TypesSet = new(All1x1x1Types);
+
+    private static KlotzType[] SortByVolume(IEnumerable<KlotzType> types)
     {
-        public GeneralVoxelType GeneralType { get; private set; }
-        public ulong PossibleTypes { get; set; }
-        public SubKlotz? CollapsedType = null;
+        List<KlotzType> list = new(types);
+        list.Sort((a, b) =>
+        {
+            Vector3Int sa = KlotzKB.KlotzSize(a);
+            Vector3Int sb = KlotzKB.KlotzSize(b);
+            return (sa.x * sa.y * sa.z).CompareTo(sb.x * sb.y * sb.z);
+        });
+        return list.ToArray();
+    }
 
-        public static ulong AllGroundTypes =
-            1UL << (int)KlotzType.Plate1x1 |
-            1UL << (int)KlotzType.Plate1x2 |
-            1UL << (int)KlotzType.Plate1x3 |
-            1UL << (int)KlotzType.Plate1x4 |
-            1UL << (int)KlotzType.Plate1x6 |
-            1UL << (int)KlotzType.Plate1x8 |
-            1UL << (int)KlotzType.Plate2x2 |
-            1UL << (int)KlotzType.Plate2x3 |
-            1UL << (int)KlotzType.Plate2x4 |
-            1UL << (int)KlotzType.Plate2x6 |
-            1UL << (int)KlotzType.Plate2x8 |
-            1UL << (int)KlotzType.Plate4x4 |
-            1UL << (int)KlotzType.Plate4x6 |
-            1UL << (int)KlotzType.Plate4x8 |
-            1UL << (int)KlotzType.Plate6x6 |
-            1UL << (int)KlotzType.Plate6x8 |
-            1UL << (int)KlotzType.Plate8x8 |
-            1UL << (int)KlotzType.Brick1x1 |
-            1UL << (int)KlotzType.Brick1x2 |
-            1UL << (int)KlotzType.Brick1x3 |
-            1UL << (int)KlotzType.Brick1x4 |
-            1UL << (int)KlotzType.Brick1x6 |
-            1UL << (int)KlotzType.Brick1x8 |
-            1UL << (int)KlotzType.Brick2x2 |
-            1UL << (int)KlotzType.Brick2x3 |
-            1UL << (int)KlotzType.Brick2x4 |
-            1UL << (int)KlotzType.Brick2x6 |
-            1UL << (int)KlotzType.Brick2x8 |
-            1UL << (int)KlotzType.Brick4x6;
+    public readonly struct KlotzTypeSet : IEnumerable<KlotzType>
+    {
+        private readonly ulong _value;
 
-        public static ulong All1x1x1Types =
-            1UL << (int)KlotzType.Air |
-            1UL << (int)KlotzType.Plate1x1;
+        public static readonly KlotzTypeSet Empty = new();
+
+        public KlotzTypeSet(ulong value) { _value = value; }
+
+        public KlotzTypeSet(IEnumerable<KlotzType> types)
+        {
+            _value = 0;
+            foreach (var type in types)
+            {
+                _value |= 1UL << (int)type;
+            }
+        }
+
+        public KlotzTypeSet Merge(KlotzTypeSet other)
+        {
+            return new KlotzTypeSet(_value | other._value);
+        }
+
+        public bool Contains(KlotzType type)
+        {
+            return (_value & 1UL << (int)type) != 0;
+        }
+
+        public KlotzTypeSet Remove(KlotzType type)
+        {
+            return new(_value & ~(1UL << (int)type));
+        }
+
+        public bool ContainsOnly(KlotzTypeSet other)
+        {
+            return (_value & ~other._value) == 0;
+        }
+
+        public int Count
+        {
+            get { return CountSetBits(_value); }
+        }
+
+        public readonly void GetHighest(out KlotzType highest, out KlotzType? secondHighest)
+        {
+            int highestBit = GetHighestSetBitPosition(_value);
+            if (highestBit == -1)
+                throw new InvalidOperationException("No bits set in PossibleTypes (Collapse)");
+
+            highest = (KlotzType)highestBit;
+
+            // Unset the highest set bit
+            ulong remainingBits = _value & ~(1UL << highestBit);
+
+            // Find the new highest set bit, which is the second highest in the original bit-field
+            int secondHighestBit = GetHighestSetBitPosition(remainingBits);
+            if (secondHighestBit == -1)
+            {
+                secondHighest = null;
+            }
+            else
+            {
+                secondHighest = (KlotzType)secondHighestBit;
+            }
+        }
+
+        private static int CountSetBits(ulong bitField)
+        {
+            int count = 0;
+            while (bitField != 0)
+            {
+                bitField &= (bitField - 1); // Clear the least significant bit set
+                count++;
+            }
+            return count;
+        }
+
+        private static IEnumerable<int> GetSetBitPositions(ulong bitField)
+        {
+            int position = 0;
+            while (bitField != 0)
+            {
+                if ((bitField & 1) != 0)
+                {
+                    yield return position;
+                }
+                bitField >>= 1;
+                position++;
+            }
+        }
+
+        private static int GetHighestSetBitPosition(ulong bitField)
+        {
+            for (int i = 63; i >= 0; i--)
+            {
+                if ((bitField & (1UL << i)) != 0)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        // Explicit cast to int
+        public static explicit operator ulong(KlotzTypeSet variant) { return variant._value; }
+
+        // Explicit cast from uint
+        public static explicit operator KlotzTypeSet(ulong value) { return new KlotzTypeSet(value); }
+
+        IEnumerator<KlotzType> IEnumerable<KlotzType>.GetEnumerator()
+        {
+            foreach (int bitPosition in GetSetBitPositions(_value))
+            {
+                yield return (KlotzType)bitPosition;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable<KlotzType>)this).GetEnumerator();
+        }
+    }
+
+    public struct SubKlotzVoxelSuperPosition
+    {
+        private readonly GeneralVoxelType _generalType;
+        private KlotzTypeSet _possibleTypes;
+        private SubKlotz? _collapsedType;
 
         public SubKlotzVoxelSuperPosition(GeneralVoxelType generalType)
         {
-            GeneralType = generalType;
+            _generalType = generalType;
+            _possibleTypes = new();
+            _collapsedType = null;
 
             if (generalType == GeneralVoxelType.Air)
             {
-                CollapsedType = SubKlotz.Air;
+                _collapsedType = SubKlotz.Air;
             }
             else
             {
                 if (generalType == GeneralVoxelType.AirOrGround)
-                    PossibleTypes |= 1 << ((int)KlotzType.Air);
+                    _possibleTypes = _possibleTypes.Merge(AirSet);
 
-                PossibleTypes |= AllGroundTypes;
+                _possibleTypes = _possibleTypes.Merge(AllGroundTypesSet);
             }
         }
 
-        public bool IsAir { get { return CollapsedType?.Type == KlotzType.Air; } }
+        public readonly GeneralVoxelType GeneralType => _generalType;
 
-        public bool IsFreeGround { get { return !CollapsedType.HasValue && GeneralType != GeneralVoxelType.Air; } }
+        public readonly KlotzTypeSet PossibleTypes => _possibleTypes;
 
-        public bool IsCollapsed { get { return CollapsedType.HasValue; } }
+        public readonly bool IsAir => _collapsedType?.Type == KlotzType.Air;
+
+        public readonly bool IsFreeGround => !_collapsedType.HasValue && GeneralType != GeneralVoxelType.Air;
+
+        public readonly bool IsCollapsed => _collapsedType.HasValue;
+
+        public readonly SubKlotz CollapsedType => _collapsedType.Value;
+
+        public void RemovePossibleType(KlotzType type)
+        {
+            _possibleTypes = _possibleTypes.Remove(type);
+        }
+
+        public void SetCollapsedType(SubKlotz value)
+        {
+            _collapsedType = value;
+        }
 
         public override string ToString()
         {
-            if (CollapsedType.HasValue) { return $"Collapsed to: {CollapsedType.Value}"; }
-            else { return $"SuperPos of {CountSetBits(PossibleTypes)}"; }
+            if (_collapsedType.HasValue) { return $"Collapsed to: {_collapsedType.Value}"; }
+            else { return $"SuperPos of {_possibleTypes.Count}"; }
         }
-    }
-
-    public static int CountSetBits(ulong bitField)
-    {
-        int count = 0;
-        while (bitField != 0)
-        {
-            bitField &= (bitField - 1); // Clear the least significant bit set
-            count++;
-        }
-        return count;
-    }
-
-    static IEnumerable<int> GetSetBitPositions(ulong bitField)
-    {
-        int position = 0;
-        while (bitField != 0)
-        {
-            if ((bitField & 1) != 0)
-            {
-                yield return position;
-            }
-            bitField >>= 1;
-            position++;
-        }
-    }
-
-    public static int GetHighestSetBitPosition(ulong bitField)
-    {
-        for (int i = 63; i >= 0; i--)
-        {
-            if ((bitField & (1UL << i)) != 0)
-            {
-                return i;
-            }
-        }
-        return -1;
     }
 
     public override WorldChunk InnerGenerate()
     {
-        _positions = new SubKlotzVoxelSuperPosition[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
         _nonCollapsed = new();
+        _positions = new SubKlotzVoxelSuperPosition[
+            WorldDef.ChunkSubDivsX,
+            WorldDef.ChunkSubDivsY,
+            WorldDef.ChunkSubDivsZ];
 
         PlaceGround();
         RecalculateSuperpositionsInRange(Vector3Int.zero, WorldDef.ChunkSubDivs);
@@ -301,9 +402,9 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         while (_nonCollapsed.Count > 0)
         {
             Vector3Int coords = _nonCollapsed[_random.Next(0, _nonCollapsed.Count)];
-            SubKlotz newRoot = Collapse(coords);
+            Collapse(coords);
 
-            RecalculateSuperpositionsAffectedBy(coords, newRoot);
+            RecalculateSuperpositionsAffectedBy(coords);
         }
 
         return ToWorldChunk();
@@ -364,19 +465,19 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         if (voxel.IsCollapsed)
             return;
 
-        foreach (int bitPosition in GetSetBitPositions(voxel.PossibleTypes))
+        foreach (KlotzType type in voxel.PossibleTypes)
         {
-            KlotzType type = (KlotzType)bitPosition;
             KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
             if (!IsPossible(x, y, z, type, dir))
             {
-                voxel.PossibleTypes &= ~(1UL << bitPosition);
+                _positions[x, y, z].RemovePossibleType(type);
             }
         }
     }
 
-    private void RecalculateSuperpositionsAffectedBy(Vector3Int coords, SubKlotz subKlotz)
+    private void RecalculateSuperpositionsAffectedBy(Vector3Int coords)
     {
+        SubKlotz subKlotz = _positions[coords.x, coords.y, coords.z].CollapsedType;
         KlotzType type = subKlotz.Type;
         Vector3Int size = KlotzKB.KlotzSize(type);
         KlotzDirection dir = subKlotz.Direction;
@@ -400,19 +501,18 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
                     Vector3Int pCoords = new(x, y, z);
 
-                    foreach (int bitPosition in GetSetBitPositions(voxel.PossibleTypes))
+                    foreach (KlotzType pType in voxel.PossibleTypes)
                     {
-                        KlotzType pType = (KlotzType)bitPosition;
                         Vector3Int pSize = KlotzKB.KlotzSize(pType);
                         KlotzDirection pDir = KlotzDirection.ToPosX; // TODO: All other directions
 
                         if (DoIntersect(coords, size, dir, pCoords, pSize, pDir))
                         {
-                            voxel.PossibleTypes &= ~(1UL << bitPosition);
+                            _positions[x, y, z].RemovePossibleType(pType);
                         }
                     }
 
-                    if ((voxel.PossibleTypes & ~SubKlotzVoxelSuperPosition.All1x1x1Types) == 0)
+                    if (voxel.PossibleTypes.ContainsOnly(All1x1x1TypesSet))
                     {
                         Collapse(pCoords);
                     }
@@ -461,46 +561,34 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         return true;
     }
 
-    private SubKlotz Collapse(Vector3Int rootCoords)
+    private void Collapse(Vector3Int rootCoords)
     {
         SubKlotzVoxelSuperPosition rootVoxel = _positions[rootCoords.x, rootCoords.y, rootCoords.z];
         if (rootVoxel.IsCollapsed)
             throw new InvalidOperationException("Already collapsed (Collapse)");
 
-        int highestBit = GetHighestSetBitPosition(rootVoxel.PossibleTypes);
-        if (highestBit == -1)
-            throw new InvalidOperationException("No bits set in PossibleTypes (Collapse)");
-
-        // Unset the highest set bit
-        rootVoxel.PossibleTypes &= ~(1UL << highestBit);
-
-        // Find the new highest set bit, which is the second highest in the original bit-field
-        int secondHighestBit = GetHighestSetBitPosition(rootVoxel.PossibleTypes);
-
+        rootVoxel.PossibleTypes.GetHighest(out KlotzType highest, out KlotzType? secondHighest);
         KlotzType type;
 
-        if (secondHighestBit == -1)
+        if (secondHighest.HasValue)
         {
-            type = (KlotzType)highestBit;
+            // 50:50 chance of the last 2 items in list
+            type = _random.Next() % 2 == 0 ? highest : secondHighest.Value;
         }
         else
         {
-            // 50:50 chance of the last 2 items in list
-            int bitPos = _random.Next() % 2 == 0 ? highestBit : secondHighestBit;
-            type = (KlotzType)bitPos;
+            type = highest;
         }
 
         if (type == KlotzType.Air)
         {
-            rootVoxel.CollapsedType = SubKlotz.Air;
+            _positions[rootCoords.x, rootCoords.y, rootCoords.z].SetCollapsedType(SubKlotz.Air);
             _nonCollapsed.Remove(rootCoords);
         }
         else
         {
             PlaceKlotzInRandDirection(rootCoords, type);
         }
-
-        return rootVoxel.CollapsedType.Value;
     }
 
     void PlaceKlotzInRandDirection(Vector3Int rootCoords, KlotzType type)
@@ -519,23 +607,13 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
                     Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                         rootCoords, new(subX, subY, subZ), dir);
 
-                    SubKlotzVoxelSuperPosition voxel = _positions[coords.x, coords.y, coords.z];
-
-                    // safety-check
-                    // if (voxel.IsCollapsed)
-                    // {
-                    //     bool possible = IsPossible(rootCoords.x, rootCoords.y, rootCoords.z, type, dir);
-                    //     throw new InvalidOperationException(
-                    //         $"Cannot place {type} at {rootCoords} because {coords} is already used by {voxel}. IsPossible returned {possible}");
-                    // }
-
                     if (subX == 0 && subY == 0 && subZ == 0)
                     {
-                        voxel.CollapsedType = SubKlotz.Root(type, color, variant, dir);
+                        _positions[coords.x, coords.y, coords.z].SetCollapsedType(SubKlotz.Root(type, color, variant, dir));
                     }
                     else
                     {
-                        voxel.CollapsedType = SubKlotz.NonRoot(type, dir, subX, subY, subZ);
+                        _positions[coords.x, coords.y, coords.z].SetCollapsedType(SubKlotz.NonRoot(type, dir, subX, subY, subZ));
                     }
 
                     _nonCollapsed.Remove(coords);
@@ -554,7 +632,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
             {
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
-                    chunk.Set(x, y, z, _positions[x, y, z].CollapsedType.Value);
+                    chunk.Set(x, y, z, _positions[x, y, z].CollapsedType);
                 }
             }
         }
