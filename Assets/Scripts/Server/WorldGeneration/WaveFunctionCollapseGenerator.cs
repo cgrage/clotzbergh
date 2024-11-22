@@ -1,177 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = System.Random;
-
-public class WorldGenerator
-{
-    protected IHeightMap HeightMap { get; } = new DefaultHeightMap();
-
-    public WorldChunk GetChunk(Vector3Int chunkCoords)
-    {
-        ChunkGenerator gen = new MicroBlockWorldGenerator();
-        // ChunkGenerator gen = new WaveFunctionCollapseGenerator();
-
-        return gen.Generate(chunkCoords, HeightMap);
-    }
-
-    public Mesh GeneratePreviewMesh(int dist)
-    {
-        int size = 2 * dist;
-
-        Vector3[] vertices = new Vector3[size * size];
-        int[] triangles = new int[(size - 1) * (size - 1) * 6];
-
-        int vIndex = 0;
-        for (int y = -dist; y < dist; y++)
-        {
-            for (int x = -dist; x < dist; x++)
-            {
-                vertices[vIndex++] = new Vector3(
-                    x * WorldDef.SubKlotzSize.x,
-                    HeightMap.At(x, y),
-                    y * WorldDef.SubKlotzSize.z);
-            }
-        }
-
-        int triIndex = 0;
-        for (int iy = 0; iy < size - 1; iy++)
-        {
-            for (int ix = 0; ix < size - 1; ix++)
-            {
-                int current = ix + iy * size;
-
-                triangles[triIndex++] = current;
-                triangles[triIndex++] = current + size;
-                triangles[triIndex++] = current + 1;
-
-                triangles[triIndex++] = current + 1;
-                triangles[triIndex++] = current + size;
-                triangles[triIndex++] = current + size + 1;
-            }
-        }
-
-        Mesh mesh = new()
-        {
-            vertices = vertices,
-            triangles = triangles
-        };
-
-        mesh.RecalculateNormals();
-        return mesh;
-    }
-}
-
-public abstract class ChunkGenerator
-{
-    private static readonly object RandomCreationLock = new();
-
-    protected Random _random;
-
-    protected Vector3Int _chunkCoords;
-
-    protected IHeightMap _heightMap;
-
-    public virtual WorldChunk Generate(Vector3Int chunkCoords, IHeightMap heightMap)
-    {
-        lock (RandomCreationLock) { _random = new(chunkCoords.x + chunkCoords.y * 1000 + chunkCoords.z * 1000000); }
-        _chunkCoords = chunkCoords;
-        _heightMap = heightMap;
-
-        return InnerGenerate();
-    }
-
-    public abstract WorldChunk InnerGenerate();
-
-    protected bool IsOutOfBounds(Vector3Int coords)
-    {
-        return IsOutOfBounds(coords.x, coords.y, coords.z);
-    }
-
-    protected bool IsOutOfBounds(int x, int y, int z)
-    {
-        return
-            x < 0 || y < 0 || z < 0 ||
-            x >= WorldDef.ChunkSubDivsX ||
-            y >= WorldDef.ChunkSubDivsY ||
-            z >= WorldDef.ChunkSubDivsZ;
-    }
-
-    /// <summary>
-    /// Little helper
-    /// </summary>
-    protected KlotzColor NextRandColor()
-    {
-        return (KlotzColor)_random.Next(0, (int)KlotzColor.NextFree);
-    }
-
-    protected KlotzColor ColorFromHeight(int y)
-    {
-        if (y < -85) return KlotzColor.DarkBlue;
-        if (y < -80) return KlotzColor.Azure;
-        if (y < -70) return KlotzColor.Yellow;
-        if (y < -20) return KlotzColor.DarkGreen;
-        if (y < 30) return KlotzColor.DarkBrown;
-        if (y < 70) return KlotzColor.Gray;
-        return KlotzColor.White;
-    }
-
-    /// <summary>
-    /// Little helper
-    /// </summary>
-    protected KlotzVariant NextRandVariant()
-    {
-        return (KlotzVariant)(uint)_random.Next(0, KlotzVariant.MaxValue + 1);
-    }
-
-}
-
-public class MicroBlockWorldGenerator : ChunkGenerator
-{
-    public override WorldChunk InnerGenerate()
-    {
-        WorldChunk chunk = new();
-
-        for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
-        {
-            for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
-            {
-                int x = _chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                int z = _chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
-                int groundStart = Mathf.RoundToInt(_heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
-
-                for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
-                {
-                    int y = _chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
-                    if (y > groundStart)
-                    {
-                        chunk.Set(ix, iy, iz, SubKlotz.Air);
-                    }
-                    else
-                    {
-                        chunk.Set(ix, iy, iz, SubKlotz.Root(
-                            KlotzType.Plate1x1,
-                            ColorFromHeight(y),
-                            NextRandVariant(),
-                            KlotzDirection.ToPosX));
-                    }
-                }
-            }
-        }
-
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 16), KlotzDirection.ToPosX);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 18), KlotzDirection.ToPosX);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 16), KlotzDirection.ToPosZ);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(13, 39, 16), KlotzDirection.ToPosZ);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 15), KlotzDirection.ToNegX);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(15, 39, 13), KlotzDirection.ToNegX);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(16, 39, 15), KlotzDirection.ToNegZ);
-        // chunk.PlaceKlotz(KlotzType.Brick2x4, NextRandColor(), NextRandVariant(), new Vector3Int(18, 39, 15), KlotzDirection.ToNegZ);
-
-        return chunk;
-    }
-}
 
 public class WaveFunctionCollapseGenerator : ChunkGenerator
 {
@@ -193,151 +22,29 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         KlotzType.Brick1x6, KlotzType.Brick1x8, KlotzType.Brick2x2, KlotzType.Brick2x3,
         KlotzType.Brick2x4, KlotzType.Brick2x6, KlotzType.Brick2x8, KlotzType.Brick4x6 };
 
-    private static readonly KlotzType[] AllGroundTypesSortedByVolume = SortByVolume(AllGroundTypes);
+    private static readonly KlotzType[] AllGroundTypesSortedByVolumeDesc = SortByVolumeDesc(AllGroundTypes);
     private static readonly KlotzType[] All1x1x1Types = { KlotzType.Air, KlotzType.Plate1x1 };
 
-    private static readonly KlotzTypeSet AirSet = new(new KlotzType[] { KlotzType.Air });
-    private static readonly KlotzTypeSet AllGroundTypesSet = new(AllGroundTypes);
-    private static readonly KlotzTypeSet All1x1x1TypesSet = new(All1x1x1Types);
+    private static readonly KlotzTypeSet64 AirSet = new(new KlotzType[] { KlotzType.Air });
+    private static readonly KlotzTypeSet64 AllGroundTypesSet = new(AllGroundTypes);
+    private static readonly KlotzTypeSet64 All1x1x1TypesSet = new(All1x1x1Types);
 
-    private static KlotzType[] SortByVolume(IEnumerable<KlotzType> types)
+    private static KlotzType[] SortByVolumeDesc(IEnumerable<KlotzType> types)
     {
         List<KlotzType> list = new(types);
         list.Sort((a, b) =>
         {
             Vector3Int sa = KlotzKB.KlotzSize(a);
             Vector3Int sb = KlotzKB.KlotzSize(b);
-            return (sa.x * sa.y * sa.z).CompareTo(sb.x * sb.y * sb.z);
+            return (sb.x * sb.y * sb.z).CompareTo(sa.x * sa.y * sa.z);
         });
         return list.ToArray();
-    }
-
-    public readonly struct KlotzTypeSet : IEnumerable<KlotzType>
-    {
-        private readonly ulong _value;
-
-        public static readonly KlotzTypeSet Empty = new();
-
-        public KlotzTypeSet(ulong value) { _value = value; }
-
-        public KlotzTypeSet(IEnumerable<KlotzType> types)
-        {
-            _value = 0;
-            foreach (var type in types)
-            {
-                _value |= 1UL << (int)type;
-            }
-        }
-
-        public KlotzTypeSet Merge(KlotzTypeSet other)
-        {
-            return new KlotzTypeSet(_value | other._value);
-        }
-
-        public bool Contains(KlotzType type)
-        {
-            return (_value & 1UL << (int)type) != 0;
-        }
-
-        public KlotzTypeSet Remove(KlotzType type)
-        {
-            return new(_value & ~(1UL << (int)type));
-        }
-
-        public bool ContainsOnly(KlotzTypeSet other)
-        {
-            return (_value & ~other._value) == 0;
-        }
-
-        public int Count
-        {
-            get { return CountSetBits(_value); }
-        }
-
-        public readonly void GetHighest(out KlotzType highest, out KlotzType? secondHighest)
-        {
-            int highestBit = GetHighestSetBitPosition(_value);
-            if (highestBit == -1)
-                throw new InvalidOperationException("No bits set in PossibleTypes (Collapse)");
-
-            highest = (KlotzType)highestBit;
-
-            // Unset the highest set bit
-            ulong remainingBits = _value & ~(1UL << highestBit);
-
-            // Find the new highest set bit, which is the second highest in the original bit-field
-            int secondHighestBit = GetHighestSetBitPosition(remainingBits);
-            if (secondHighestBit == -1)
-            {
-                secondHighest = null;
-            }
-            else
-            {
-                secondHighest = (KlotzType)secondHighestBit;
-            }
-        }
-
-        private static int CountSetBits(ulong bitField)
-        {
-            int count = 0;
-            while (bitField != 0)
-            {
-                bitField &= (bitField - 1); // Clear the least significant bit set
-                count++;
-            }
-            return count;
-        }
-
-        private static IEnumerable<int> GetSetBitPositions(ulong bitField)
-        {
-            int position = 0;
-            while (bitField != 0)
-            {
-                if ((bitField & 1) != 0)
-                {
-                    yield return position;
-                }
-                bitField >>= 1;
-                position++;
-            }
-        }
-
-        private static int GetHighestSetBitPosition(ulong bitField)
-        {
-            for (int i = 63; i >= 0; i--)
-            {
-                if ((bitField & (1UL << i)) != 0)
-                {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        // Explicit cast to int
-        public static explicit operator ulong(KlotzTypeSet variant) { return variant._value; }
-
-        // Explicit cast from uint
-        public static explicit operator KlotzTypeSet(ulong value) { return new KlotzTypeSet(value); }
-
-        IEnumerator<KlotzType> IEnumerable<KlotzType>.GetEnumerator()
-        {
-            foreach (int bitPosition in GetSetBitPositions(_value))
-            {
-                yield return (KlotzType)bitPosition;
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<KlotzType>)this).GetEnumerator();
-        }
     }
 
     public struct SubKlotzVoxelSuperPosition
     {
         private readonly GeneralVoxelType _generalType;
-        private KlotzTypeSet _possibleTypes;
+        private KlotzTypeSet64 _possibleTypes;
         private SubKlotz? _collapsedType;
 
         public SubKlotzVoxelSuperPosition(GeneralVoxelType generalType)
@@ -361,7 +68,7 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
 
         public readonly GeneralVoxelType GeneralType => _generalType;
 
-        public readonly KlotzTypeSet PossibleTypes => _possibleTypes;
+        public readonly KlotzTypeSet64 PossibleTypes => _possibleTypes;
 
         public readonly bool IsAir => _collapsedType?.Type == KlotzType.Air;
 
@@ -567,17 +274,30 @@ public class WaveFunctionCollapseGenerator : ChunkGenerator
         if (rootVoxel.IsCollapsed)
             throw new InvalidOperationException("Already collapsed (Collapse)");
 
-        rootVoxel.PossibleTypes.GetHighest(out KlotzType highest, out KlotzType? secondHighest);
+        KlotzType? option1 = null;
+        KlotzType? option2 = null;
         KlotzType type;
 
-        if (secondHighest.HasValue)
+        foreach (var testType in AllGroundTypesSortedByVolumeDesc)
+        {
+            if (rootVoxel.PossibleTypes.Contains(testType))
+            {
+                if (option1.HasValue) { option2 = testType; break; }
+                else { option1 = testType; }
+            }
+        }
+
+        if (!option1.HasValue)
+            throw new InvalidOperationException("No PossibleTypes found in Collapse");
+
+        if (option2.HasValue)
         {
             // 50:50 chance of the last 2 items in list
-            type = _random.Next() % 2 == 0 ? highest : secondHighest.Value;
+            type = _random.Next() % 2 == 0 ? option1.Value : option2.Value;
         }
         else
         {
-            type = highest;
+            type = option1.Value;
         }
 
         if (type == KlotzType.Air)
