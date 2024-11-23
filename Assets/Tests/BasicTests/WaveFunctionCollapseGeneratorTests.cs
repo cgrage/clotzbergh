@@ -27,6 +27,12 @@ public class WorldGeneratorTests
         GeneratorTest<MicroBlockWorldGenerator>();
     }
 
+    [Test]
+    public void OpportunisticGeneratorTest()
+    {
+        GeneratorTest<OpportunisticGenerator>();
+    }
+
     public void GeneratorTest<T>() where T : ChunkGenerator, new()
     {
         List<Vector3Int> coords = new()
