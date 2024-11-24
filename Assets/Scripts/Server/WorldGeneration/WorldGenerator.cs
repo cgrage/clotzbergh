@@ -237,12 +237,6 @@ namespace Clotzbergh.Server.WorldGeneration
                 WorldDef.ChunkSubDivsX,
                 WorldDef.ChunkSubDivsY,
                 WorldDef.ChunkSubDivsZ];
-
-            _nonCollapsed = new();
-            _positions = new T[
-                WorldDef.ChunkSubDivsX,
-                WorldDef.ChunkSubDivsY,
-                WorldDef.ChunkSubDivsZ];
         }
 
         protected IReadOnlyList<Vector3Int> NonCollapsed => _nonCollapsed;
