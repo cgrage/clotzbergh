@@ -2,17 +2,14 @@ using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
-    public class WG02_MicroBlockWorldGenerator : VoxelChunkGenerator<ChunkGenVoxel>
+    public class WG02_MicroBlockWorldGenerator : VoxelChunkGenerator
     {
-        protected override ChunkGenVoxel CreateVoxel(GeneralVoxelType voxelType)
-        {
-            return new ChunkGenVoxel(voxelType);
-        }
+        public WG02_MicroBlockWorldGenerator() : base(false) { }
 
         protected override WorldChunk InnerGenerate()
         {
             PlaceGround();
-            FillNonCollapsedWith1x1Plates();
+            FillNonCompletedWith1x1Plates();
 
             // PlaceKlotz(new Vector3Int(16, 39, 16), KlotzType.Brick2x4, KlotzDirection.ToPosX);
             // PlaceKlotz(new Vector3Int(16, 39, 18), KlotzType.Brick2x4, KlotzDirection.ToPosX);

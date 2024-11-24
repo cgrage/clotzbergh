@@ -3,36 +3,28 @@ using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
-    public class WG03_Voxel : ChunkGenVoxel
+    public class WG03_WaveFunctionCollapseGenerator : VoxelChunkGenerator
     {
-        private KlotzTypeSet64 _possibleTypes;
+        private readonly KlotzTypeSet64[,,] _possibleTypesArray;
 
-        public WG03_Voxel(GeneralVoxelType generalType) : base(generalType)
+        public WG03_WaveFunctionCollapseGenerator()
         {
-            if (generalType == GeneralVoxelType.AirOrGround)
-            {
-                _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AirSet);
-                _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AllGroundTypesSet);
-            }
-            else if (generalType == GeneralVoxelType.Ground)
-            {
-                _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AllGroundTypesSet);
-            }
+            _possibleTypesArray = new KlotzTypeSet64[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
         }
 
-        public KlotzTypeSet64 PossibleTypes => _possibleTypes;
-
-        public void RemovePossibleType(KlotzType type)
+        public KlotzTypeSet64 PossibleTypesAt(int x, int y, int z)
         {
-            _possibleTypes = _possibleTypes.Remove(type);
+            return _possibleTypesArray[x, y, z];
         }
-    }
 
-    public class WG03_WaveFunctionCollapseGenerator : VoxelChunkGenerator<WG03_Voxel>
-    {
-        protected override WG03_Voxel CreateVoxel(GeneralVoxelType voxelType)
+        public KlotzTypeSet64 PossibleTypesAt(Vector3Int coords)
         {
-            return new WG03_Voxel(voxelType);
+            return _possibleTypesArray[coords.x, coords.y, coords.z];
+        }
+
+        public void RemovePossibleTypeAt(int x, int y, int z, KlotzType type)
+        {
+            _possibleTypesArray[x, y, z] = _possibleTypesArray[x, y, z].Remove(type);
         }
 
         protected override WorldChunk InnerGenerate()
@@ -40,15 +32,27 @@ namespace Clotzbergh.Server.WorldGeneration
             PlaceGround();
             RecalculateSuperpositionsInRange(Vector3Int.zero, WorldDef.ChunkSubDivs);
 
-            while (NonCollapsed.Count > 0)
+            while (NonCompleted.Count > 0)
             {
-                Vector3Int coords = NextRandomElement(NonCollapsed);
+                Vector3Int coords = NextRandomElement(NonCompleted);
                 Collapse(coords);
 
                 RecalculateSuperpositionsAffectedBy(coords);
             }
 
             return ToWorldChunk();
+        }
+
+        protected override void OnGeneralVoxelTypeDecided(int x, int y, int z, GeneralVoxelType generalType)
+        {
+            if (generalType == GeneralVoxelType.AirOrGround)
+            {
+                _possibleTypesArray[x, y, z] = WorldGenDefs.AirSet.Merge(WorldGenDefs.AllGroundTypesSet);
+            }
+            else if (generalType == GeneralVoxelType.Ground)
+            {
+                _possibleTypesArray[x, y, z] = WorldGenDefs.AllGroundTypesSet;
+            }
         }
 
         private void RecalculateSuperpositionsInRange(Vector3Int from, Vector3Int to)
@@ -70,23 +74,22 @@ namespace Clotzbergh.Server.WorldGeneration
             if (IsOutOfBounds(x, y, z))
                 return;
 
-            WG03_Voxel voxel = AtPosition(x, y, z);
-            if (voxel.IsCollapsed)
+            if (IsCompletedAt(x, y, z))
                 return;
 
-            foreach (KlotzType type in voxel.PossibleTypes)
+            foreach (KlotzType type in PossibleTypesAt(x, y, z))
             {
                 KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
-                if (!IsPossible(x, y, z, type, dir))
+                if (!IsFreeToComplete(x, y, z, type, dir))
                 {
-                    voxel.RemovePossibleType(type);
+                    RemovePossibleTypeAt(x, y, z, type);
                 }
             }
         }
 
         private void RecalculateSuperpositionsAffectedBy(Vector3Int coords)
         {
-            SubKlotz subKlotz = AtPosition(coords).CollapsedType;
+            SubKlotz subKlotz = SubKlotzAt(coords);
             KlotzType type = subKlotz.Type;
             Vector3Int size = KlotzKB.KlotzSize(type);
             KlotzDirection dir = subKlotz.Direction;
@@ -104,24 +107,23 @@ namespace Clotzbergh.Server.WorldGeneration
                 {
                     for (int x = aStart.x; x < aEnd.x; x++)
                     {
-                        WG03_Voxel voxel = AtPosition(x, y, z);
-                        if (voxel.IsCollapsed)
+                        if (IsCompletedAt(x, y, z))
                             continue;
 
                         Vector3Int pCoords = new(x, y, z);
 
-                        foreach (KlotzType pType in voxel.PossibleTypes)
+                        foreach (KlotzType pType in PossibleTypesAt(x, y, z))
                         {
                             Vector3Int pSize = KlotzKB.KlotzSize(pType);
                             KlotzDirection pDir = KlotzDirection.ToPosX; // TODO: All other directions
 
                             if (DoIntersect(coords, size, dir, pCoords, pSize, pDir))
                             {
-                                voxel.RemovePossibleType(pType);
+                                RemovePossibleTypeAt(x, y, z, pType);
                             }
                         }
 
-                        if (voxel.PossibleTypes.ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
+                        if (PossibleTypesAt(x, y, z).ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
                         {
                             Collapse(pCoords);
                         }
@@ -146,8 +148,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private void Collapse(Vector3Int rootCoords)
         {
-            WG03_Voxel rootVoxel = AtPosition(rootCoords);
-            if (rootVoxel.IsCollapsed)
+            if (IsCompletedAt(rootCoords))
                 throw new InvalidOperationException("Already collapsed (Collapse)");
 
             KlotzType? option1 = null;
@@ -156,7 +157,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
             foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
             {
-                if (rootVoxel.PossibleTypes.Contains(testType))
+                if (PossibleTypesAt(rootCoords).Contains(testType))
                 {
                     if (option1.HasValue) { option2 = testType; break; }
                     else { option1 = testType; }
