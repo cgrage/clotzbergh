@@ -194,63 +194,52 @@ namespace Clotzbergh.Server.WorldGeneration
         Air, Ground, AirOrGround
     }
 
-    public class ChunkGenVoxel
+    public abstract class VoxelChunkGenerator : ChunkGenerator
     {
-        private readonly GeneralVoxelType _generalType;
-        private SubKlotz? _collapsedType;
+        private readonly WorldChunk _chunk;
+        private readonly GeneralVoxelType[,,] _generalTypeArray;
+        private readonly bool[,,] _isCompletedArray;
 
-        public ChunkGenVoxel(GeneralVoxelType generalType)
+        private readonly List<Vector3Int> _nonCompleted;
+
+        public VoxelChunkGenerator(bool trackNonCompleted = true)
         {
-            _generalType = generalType;
-            _collapsedType = null;
-
-            if (generalType == GeneralVoxelType.Air)
-            {
-                _collapsedType = SubKlotz.Air;
-            }
+            _chunk = new WorldChunk();
+            _generalTypeArray = new GeneralVoxelType[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
+            _isCompletedArray = new bool[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
+            _nonCompleted = trackNonCompleted ? new() : null;
         }
 
-        public GeneralVoxelType GeneralType => _generalType;
+        protected IReadOnlyList<Vector3Int> NonCompleted => _nonCompleted;
 
-        public bool IsAir => _collapsedType?.Type == KlotzType.Air;
-
-        public bool IsCollapsed => _collapsedType.HasValue;
-
-        public SubKlotz CollapsedType => _collapsedType.Value;
-
-        public void SetCollapsedType(SubKlotz value)
+        protected bool IsCompletedAt(int x, int y, int z)
         {
-            _collapsedType = value;
-        }
-    }
-
-    public abstract class VoxelChunkGenerator<T> : ChunkGenerator where T : ChunkGenVoxel
-    {
-        private T[,,] _positions;
-
-        private List<Vector3Int> _nonCollapsed;
-
-        public VoxelChunkGenerator()
-        {
-            _nonCollapsed = new();
-            _positions = new T[
-                WorldDef.ChunkSubDivsX,
-                WorldDef.ChunkSubDivsY,
-                WorldDef.ChunkSubDivsZ];
+            return _isCompletedArray[x, y, z];
         }
 
-        protected IReadOnlyList<Vector3Int> NonCollapsed => _nonCollapsed;
-
-        protected abstract T CreateVoxel(GeneralVoxelType voxelType);
-
-        protected T AtPosition(int x, int y, int z)
+        protected bool IsCompletedAt(Vector3Int coords)
         {
-            return _positions[x, y, z];
+            return _isCompletedArray[coords.x, coords.y, coords.z];
         }
 
-        protected T AtPosition(Vector3Int coords)
+        protected bool SetCompletedAt(int x, int y, int z)
         {
-            return _positions[coords.x, coords.y, coords.z];
+            return _isCompletedArray[x, y, z] = true;
+        }
+
+        protected bool SetCompletedAt(Vector3Int coords)
+        {
+            return _isCompletedArray[coords.x, coords.y, coords.z] = true;
+        }
+
+        protected SubKlotz SubKlotzAt(int x, int y, int z)
+        {
+            return _chunk.Get(x, y, z);
+        }
+
+        protected SubKlotz SubKlotzAt(Vector3Int coords)
+        {
+            return _chunk.Get(coords);
         }
 
         protected void PlaceGround()
@@ -268,27 +257,34 @@ namespace Clotzbergh.Server.WorldGeneration
                         int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
-                            _positions[ix, iy, iz] = CreateVoxel(GeneralVoxelType.Air);
+                            _generalTypeArray[ix, iy, iz] = GeneralVoxelType.Air;
+                            OnGeneralVoxelTypeDecided(ix, iy, iz, GeneralVoxelType.Air);
+                            SetCompletedAt(ix, iy, iz);
                         }
                         else if (y == groundStart)
                         {
-                            _positions[ix, iy, iz] = CreateVoxel(GeneralVoxelType.AirOrGround);
-                            _nonCollapsed.Add(new(ix, iy, iz));
+                            _generalTypeArray[ix, iy, iz] = GeneralVoxelType.AirOrGround;
+                            OnGeneralVoxelTypeDecided(ix, iy, iz, GeneralVoxelType.AirOrGround);
+                            _nonCompleted?.Add(new(ix, iy, iz));
                         }
                         else
                         {
-                            _positions[ix, iy, iz] = CreateVoxel(GeneralVoxelType.Ground);
-                            _nonCollapsed.Add(new(ix, iy, iz));
+                            _generalTypeArray[ix, iy, iz] = GeneralVoxelType.Ground;
+                            OnGeneralVoxelTypeDecided(ix, iy, iz, GeneralVoxelType.Ground);
+                            _nonCompleted?.Add(new(ix, iy, iz));
                         }
                     }
                 }
             }
         }
 
+        protected virtual void OnGeneralVoxelTypeDecided(int x, int y, int z, GeneralVoxelType generalType) { }
+
         protected void PlaceAir(Vector3Int coords)
         {
-            _positions[coords.x, coords.y, coords.z].SetCollapsedType(SubKlotz.Air);
-            _nonCollapsed.Remove(coords);
+            _chunk.Set(coords, SubKlotz.Air);
+            SetCompletedAt(coords);
+            _nonCompleted?.Remove(coords);
         }
 
         protected void PlaceKlotz(Vector3Int rootCoords, KlotzType type, KlotzDirection dir)
@@ -306,22 +302,30 @@ namespace Clotzbergh.Server.WorldGeneration
                         Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                             rootCoords, new(subX, subY, subZ), dir);
 
+                        if (IsOutOfBounds(coords))
+                        {
+                            bool isFree = IsFreeToComplete(rootCoords, type, dir);
+                            throw new ArgumentException($"Failed to place {type} at {rootCoords}. Out of bounds at {coords}. IsFree={isFree}.");
+                        }
+
                         if (subX == 0 && subY == 0 && subZ == 0)
                         {
-                            _positions[coords.x, coords.y, coords.z].SetCollapsedType(SubKlotz.Root(type, color, variant, dir));
+                            _chunk.Set(coords, SubKlotz.Root(type, color, variant, dir));
+                            SetCompletedAt(coords);
                         }
                         else
                         {
-                            _positions[coords.x, coords.y, coords.z].SetCollapsedType(SubKlotz.NonRoot(type, dir, subX, subY, subZ));
+                            _chunk.Set(coords, SubKlotz.NonRoot(type, dir, subX, subY, subZ));
+                            SetCompletedAt(coords);
                         }
 
-                        _nonCollapsed.Remove(coords);
+                        _nonCompleted?.Remove(coords);
                     }
                 }
             }
         }
 
-        protected void FillNonCollapsedWith1x1Plates()
+        protected void FillNonCompletedWith1x1Plates()
         {
             int baseHeight = ChunkCoords.y * WorldDef.ChunkSubDivsY;
 
@@ -331,10 +335,10 @@ namespace Clotzbergh.Server.WorldGeneration
                 {
                     for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
-                        if (_positions[x, y, z].IsCollapsed)
+                        if (IsCompletedAt(x, y, z))
                             continue;
 
-                        _positions[x, y, z].SetCollapsedType(SubKlotz.Root(
+                        _chunk.Set(x, y, z, SubKlotz.Root(
                             KlotzType.Plate1x1,
                             ColorFromHeight(baseHeight + y),
                             NextRandVariant(),
@@ -345,12 +349,12 @@ namespace Clotzbergh.Server.WorldGeneration
         }
 
 
-        protected bool IsPossible(int x, int y, int z, KlotzType type, KlotzDirection dir)
+        protected bool IsFreeToComplete(int x, int y, int z, KlotzType type, KlotzDirection dir)
         {
-            return IsPossible(new(x, y, z), type, dir);
+            return IsFreeToComplete(new(x, y, z), type, dir);
         }
 
-        protected bool IsPossible(Vector3Int root, KlotzType type, KlotzDirection dir)
+        protected bool IsFreeToComplete(Vector3Int root, KlotzType type, KlotzDirection dir)
         {
             Vector3Int size = KlotzKB.KlotzSize(type);
 
@@ -366,7 +370,7 @@ namespace Clotzbergh.Server.WorldGeneration
                         if (IsOutOfBounds(coords))
                             return false;
 
-                        if (_positions[coords.x, coords.y, coords.z].IsCollapsed)
+                        if (IsCompletedAt(coords))
                             return false;
                     }
                 }
@@ -377,20 +381,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected WorldChunk ToWorldChunk()
         {
-            WorldChunk chunk = new();
-
-            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
-            {
-                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
-                {
-                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
-                    {
-                        chunk.Set(x, y, z, _positions[x, y, z].CollapsedType);
-                    }
-                }
-            }
-
-            return chunk;
+            return _chunk;
         }
     }
 }

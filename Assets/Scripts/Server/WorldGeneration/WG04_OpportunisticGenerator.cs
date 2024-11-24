@@ -1,33 +1,31 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
-    public class WG04_Voxel : ChunkGenVoxel
-    {
-        private int _score;
-
-        public WG04_Voxel(GeneralVoxelType generalType) : base(generalType)
-        {
-            _score = 0;
-        }
-
-        public int Score => _score;
-
-        public void SetScore(int score)
-        {
-            _score = score;
-        }
-    }
-
-    public class WG04_OpportunisticGenerator : VoxelChunkGenerator<WG04_Voxel>
+    public class WG04_OpportunisticGenerator : VoxelChunkGenerator
     {
         private const int Range = 4;
 
-        protected override WG04_Voxel CreateVoxel(GeneralVoxelType voxelType)
+        private readonly int[,,] _scoresArray;
+
+        public WG04_OpportunisticGenerator()
         {
-            return new WG04_Voxel(voxelType);
+            _scoresArray = new int[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
+        }
+
+        public int ScoreAt(int x, int y, int z)
+        {
+            return _scoresArray[x, y, z];
+        }
+
+        public int ScoreAt(Vector3Int coords)
+        {
+            return _scoresArray[coords.x, coords.y, coords.z];
+        }
+
+        public void SetScoreAt(Vector3Int coords, int score)
+        {
+            _scoresArray[coords.x, coords.y, coords.z] = score;
         }
 
         protected override WorldChunk InnerGenerate()
@@ -38,11 +36,11 @@ namespace Clotzbergh.Server.WorldGeneration
             foreach (var type in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
             {
                 int failCount = 0;
-                while (failCount < 3 && NonCollapsed.Count > 0)
+                while (failCount < 3 && NonCompleted.Count > 0)
                 {
-                    Vector3Int coords = NextRandomElement(NonCollapsed);
+                    Vector3Int coords = NextRandomElement(NonCompleted);
                     KlotzDirection dir = NextRandDirection();
-                    bool possible = IsPossible(coords, type, dir);
+                    bool possible = IsFreeToComplete(coords, type, dir);
 
                     if (possible)
                     {
@@ -56,13 +54,13 @@ namespace Clotzbergh.Server.WorldGeneration
                 }
             }
 
-            FillNonCollapsedWith1x1Plates();
+            FillNonCompletedWith1x1Plates();
             return ToWorldChunk();
         }
 
         private void RecalculateAllScores()
         {
-            foreach (var pos in NonCollapsed)
+            foreach (var pos in NonCompleted)
             {
                 RecalculateScoreOfPos(pos);
             }
@@ -70,7 +68,6 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private void RecalculateScoreOfPos(Vector3Int pos)
         {
-            WG04_Voxel voxel = AtPosition(pos);
             int score = 0;
 
             for (int iz = pos.z - (Range - 1); iz < pos.z + Range; iz++)
@@ -82,13 +79,13 @@ namespace Clotzbergh.Server.WorldGeneration
                         if (IsOutOfBounds(ix, iy, iz))
                             continue;
 
-                        if (!AtPosition(ix, iy, iz).IsCollapsed)
+                        if (!IsCompletedAt(ix, iy, iz))
                             score++;
                     }
                 }
             }
 
-            voxel.SetScore(score);
+            SetScoreAt(pos, score);
         }
     }
 }
