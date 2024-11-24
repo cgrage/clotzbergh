@@ -4,11 +4,6 @@ using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
-    public enum GeneralVoxelType
-    {
-        Air, Ground, AirOrGround
-    }
-
     public static class WorldGenDefs
     {
         public static readonly KlotzType[] AllGroundTypes = {
