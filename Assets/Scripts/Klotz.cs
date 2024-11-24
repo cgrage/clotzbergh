@@ -22,6 +22,7 @@ namespace Clotzbergh
         Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
         Brick4x6,
         // CornerBrick1x2x2,
+        Count
     }
 
     public enum KlotzDirection
@@ -30,6 +31,7 @@ namespace Clotzbergh
         ToPosZ = 1,
         ToNegX = 2,
         ToNegZ = 3,
+        Count
     }
 
     public enum KlotzColor
@@ -47,7 +49,7 @@ namespace Clotzbergh
         Brown = 10,
         DarkBrown = 11,
         DarkGreen = 12,
-        NextFree,
+        Count,
         Maximum = 63
     }
 
@@ -58,7 +60,8 @@ namespace Clotzbergh
         Bottom = 2,
         Top = 3,
         Back = 4,
-        Front = 5
+        Front = 5,
+        Count
     }
 
     [Flags]
@@ -79,7 +82,7 @@ namespace Clotzbergh
 
     public readonly struct KlotzVariant
     {
-        public const int MaxValue = 127;
+        public const int Count = 128;
 
         private readonly byte _value;
 

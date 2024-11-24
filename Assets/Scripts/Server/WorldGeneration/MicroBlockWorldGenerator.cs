@@ -12,13 +12,13 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = _chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                    int z = _chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
-                    int groundStart = Mathf.RoundToInt(_heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+                    int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                    int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int groundStart = Mathf.RoundToInt(HeightAt(x, z) / WorldDef.SubKlotzSize.y);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = _chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                        int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             chunk.Set(ix, iy, iz, SubKlotz.Air);

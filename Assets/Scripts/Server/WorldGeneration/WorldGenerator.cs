@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
 
@@ -66,11 +68,11 @@ namespace Clotzbergh.Server.WorldGeneration
     {
         private static readonly object RandomCreationLock = new();
 
-        protected Random _random;
+        private Random _random;
 
-        protected Vector3Int _chunkCoords;
+        private Vector3Int _chunkCoords;
 
-        protected IHeightMap _heightMap;
+        private IHeightMap _heightMap;
 
         public virtual WorldChunk Generate(Vector3Int chunkCoords, IHeightMap heightMap)
         {
@@ -97,14 +99,16 @@ namespace Clotzbergh.Server.WorldGeneration
                 z >= WorldDef.ChunkSubDivsZ;
         }
 
-        /// <summary>
-        /// Little helper
-        /// </summary>
-        protected KlotzColor NextRandColor()
+        protected Vector3Int ChunkCoords { get => _chunkCoords; }
+
+        protected float HeightAt(int x, int y)
         {
-            return (KlotzColor)_random.Next(0, (int)KlotzColor.NextFree);
+            return _heightMap.At(x, y);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected KlotzColor ColorFromHeight(int y)
         {
             if (y < -85) return KlotzColor.DarkBlue;
@@ -117,11 +121,64 @@ namespace Clotzbergh.Server.WorldGeneration
         }
 
         /// <summary>
-        /// Little helper
+        /// 
+        /// </summary>
+        protected KlotzColor NextRandColor()
+        {
+            return (KlotzColor)_random.Next(0, (int)KlotzColor.Count);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        protected KlotzDirection NextRandDirection()
+        {
+            return (KlotzDirection)_random.Next(0, (int)KlotzDirection.Count);
+        }
+
+        /// <summary>
+        /// 
         /// </summary>
         protected KlotzVariant NextRandVariant()
         {
-            return (KlotzVariant)(uint)_random.Next(0, KlotzVariant.MaxValue + 1);
+            return (KlotzVariant)(uint)_random.Next(0, KlotzVariant.Count);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool NextRandomCoinFlip()
+        {
+            return _random.Next() % 2 == 0;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public T NextRandomElement<T>(List<T> list)
+        {
+            return list[_random.Next(0, list.Count)];
+        }
+
+        /// <summary>
+        /// Biased random selection using geometric distribution.
+        /// Adjust the <c>biasFactor</c> to control the bias.
+        /// </summary>
+        public T NextRandomElementBiased<T>(List<T> list, double biasFactor = 0.5)
+        {
+            if (list.Count == 0)
+                throw new ArgumentException("list is empty");
+
+            int n = list.Count;
+            double randomValue = _random.NextDouble();
+
+            // Calculate the weight for the geometric distribution
+            double maxWeight = Math.Pow(biasFactor, n);
+            double weightedRandom = randomValue * (1 - maxWeight);
+            double logValue = Math.Log(1 - weightedRandom);
+            int biasedIndex = (int)(logValue / Math.Log(biasFactor));
+
+            return list[Math.Min(biasedIndex, n - 1)];
         }
     }
 }

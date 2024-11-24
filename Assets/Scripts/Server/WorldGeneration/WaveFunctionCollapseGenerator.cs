@@ -40,8 +40,6 @@ namespace Clotzbergh.Server.WorldGeneration
 
             public readonly bool IsAir => _collapsedType?.Type == KlotzType.Air;
 
-            public readonly bool IsFreeGround => !_collapsedType.HasValue && GeneralType != GeneralVoxelType.Air;
-
             public readonly bool IsCollapsed => _collapsedType.HasValue;
 
             public readonly SubKlotz CollapsedType => _collapsedType.Value;
@@ -76,7 +74,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
             while (_nonCollapsed.Count > 0)
             {
-                Vector3Int coords = _nonCollapsed[_random.Next(0, _nonCollapsed.Count)];
+                Vector3Int coords = NextRandomElement(_nonCollapsed);
                 Collapse(coords);
 
                 RecalculateSuperpositionsAffectedBy(coords);
@@ -91,13 +89,13 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = _chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                    int z = _chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
-                    int groundStart = Mathf.RoundToInt(_heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+                    int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                    int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int groundStart = Mathf.RoundToInt(HeightAt(x, z) / WorldDef.SubKlotzSize.y);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = _chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                        int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             _positions[ix, iy, iz] = new SubKlotzVoxelSuperPosition(GeneralVoxelType.Air);
@@ -227,7 +225,7 @@ namespace Clotzbergh.Server.WorldGeneration
                         if (IsOutOfBounds(coords))
                             return false;
 
-                        if (!_positions[coords.x, coords.y, coords.z].IsFreeGround)
+                        if (_positions[coords.x, coords.y, coords.z].IsCollapsed)
                             return false;
                     }
                 }
@@ -261,7 +259,7 @@ namespace Clotzbergh.Server.WorldGeneration
             if (option2.HasValue)
             {
                 // 50:50 chance of the last 2 items in list
-                type = _random.Next() % 2 == 0 ? option1.Value : option2.Value;
+                type = NextRandomCoinFlip() ? option1.Value : option2.Value;
             }
             else
             {
@@ -283,7 +281,7 @@ namespace Clotzbergh.Server.WorldGeneration
         {
             KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
             Vector3Int size = KlotzKB.KlotzSize(type);
-            KlotzColor color = ColorFromHeight(_chunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
+            KlotzColor color = ColorFromHeight(ChunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
             KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.z; subZ++)

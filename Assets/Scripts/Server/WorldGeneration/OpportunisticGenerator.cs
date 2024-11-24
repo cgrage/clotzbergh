@@ -9,46 +9,39 @@ namespace Clotzbergh.Server.WorldGeneration
         private Voxel[,,] _positions;
         private List<Vector3Int> _nonCollapsed;
 
+        private const int Range = 4;
+
         public struct Voxel
         {
             private readonly GeneralVoxelType _generalType;
-            private KlotzTypeSet64 _possibleTypes;
+            private int _score;
             private SubKlotz? _collapsedType;
 
             public Voxel(GeneralVoxelType generalType)
             {
                 _generalType = generalType;
-                _possibleTypes = new();
+                _score = 0;
                 _collapsedType = null;
 
                 if (generalType == GeneralVoxelType.Air)
                 {
                     _collapsedType = SubKlotz.Air;
                 }
-                else
-                {
-                    if (generalType == GeneralVoxelType.AirOrGround)
-                        _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AirSet);
-
-                    _possibleTypes = _possibleTypes.Merge(WorldGenDefs.AllGroundTypesSet);
-                }
             }
 
             public readonly GeneralVoxelType GeneralType => _generalType;
 
-            public readonly KlotzTypeSet64 PossibleTypes => _possibleTypes;
+            public readonly int Score => _score;
 
             public readonly bool IsAir => _collapsedType?.Type == KlotzType.Air;
-
-            public readonly bool IsFreeGround => !_collapsedType.HasValue && GeneralType != GeneralVoxelType.Air;
 
             public readonly bool IsCollapsed => _collapsedType.HasValue;
 
             public readonly SubKlotz CollapsedType => _collapsedType.Value;
 
-            public void RemovePossibleType(KlotzType type)
+            public void SetScore(int score)
             {
-                _possibleTypes = _possibleTypes.Remove(type);
+                _score = score;
             }
 
             public void SetCollapsedType(SubKlotz value)
@@ -59,7 +52,7 @@ namespace Clotzbergh.Server.WorldGeneration
             public override string ToString()
             {
                 if (_collapsedType.HasValue) { return $"Collapsed to: {_collapsedType.Value}"; }
-                else { return $"SuperPos of {_possibleTypes.Count}"; }
+                else { return $"Voxel with score of {_score}"; }
             }
         }
 
@@ -72,16 +65,35 @@ namespace Clotzbergh.Server.WorldGeneration
                 WorldDef.ChunkSubDivsZ];
 
             PlaceGround();
-            RecalculateSuperpositionsInRange(Vector3Int.zero, WorldDef.ChunkSubDivs);
+            RecalculateAllScores();
 
-            while (_nonCollapsed.Count > 0)
+            foreach (var type in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
             {
-                Vector3Int coords = _nonCollapsed[_random.Next(0, _nonCollapsed.Count)];
-                Collapse(coords);
+                int failCount = 0;
 
-                RecalculateSuperpositionsAffectedBy(coords);
+                _nonCollapsed.Sort((a, b) =>
+                    _positions[a.x, a.y, a.z].Score.CompareTo(
+                    _positions[b.x, b.y, b.z].Score));
+
+                while (failCount < 3 && _nonCollapsed.Count > 0)
+                {
+                    Vector3Int coords = NextRandomElement(_nonCollapsed);
+                    KlotzDirection dir = NextRandDirection();
+                    bool possible = IsPossible(coords, type, dir);
+
+                    if (possible)
+                    {
+                        PlaceKlotz(coords, type, dir);
+                        failCount = 0;
+                    }
+                    else
+                    {
+                        failCount++;
+                    }
+                }
             }
 
+            FillNonCollapsedWith1x1Plates();
             return ToWorldChunk();
         }
 
@@ -91,13 +103,13 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = _chunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                    int z = _chunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
-                    int groundStart = Mathf.RoundToInt(_heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+                    int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
+                    int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int groundStart = Mathf.RoundToInt(HeightAt(x, z) / WorldDef.SubKlotzSize.y);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = _chunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                        int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             _positions[ix, iy, iz] = new Voxel(GeneralVoxelType.Air);
@@ -105,114 +117,69 @@ namespace Clotzbergh.Server.WorldGeneration
                         else if (y == groundStart)
                         {
                             _positions[ix, iy, iz] = new Voxel(GeneralVoxelType.AirOrGround);
-                            _nonCollapsed.Add(new(ix, iy, iz));
+
                         }
                         else
                         {
                             _positions[ix, iy, iz] = new Voxel(GeneralVoxelType.Ground);
-                            _nonCollapsed.Add(new(ix, iy, iz));
                         }
                     }
                 }
             }
         }
 
-        private void RecalculateSuperpositionsInRange(Vector3Int from, Vector3Int to)
+        private void RecalculateAllScores()
         {
-            for (int z = from.z; z < to.z; z++)
+            _nonCollapsed.Clear();
+
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
-                for (int y = from.y; y < to.y; y++)
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
                 {
-                    for (int x = from.x; x < to.x; x++)
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
-                        RecalculateSuperpositionsOfPos(x, y, z);
+                        int score = CalculateScoreOfPos(x, y, z);
+                        if (score <= 0)
+                            continue;
+
+                        _positions[x, y, z].SetScore(score);
+                        _nonCollapsed.Add(new(x, y, z));
                     }
                 }
             }
         }
 
-        private void RecalculateSuperpositionsOfPos(int x, int y, int z)
+        private int CalculateScoreOfPos(int x, int y, int z)
         {
             if (IsOutOfBounds(x, y, z))
-                return;
+                return -1;
 
             Voxel voxel = _positions[x, y, z];
             if (voxel.IsCollapsed)
-                return;
+                return -1;
 
-            foreach (KlotzType type in voxel.PossibleTypes)
+            int score = 0;
+
+            for (int iz = z - (Range - 1); iz < z + Range; iz++)
             {
-                KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
-                if (!IsPossible(x, y, z, type, dir))
+                for (int ix = x - (Range - 1); ix < x + Range; ix++)
                 {
-                    _positions[x, y, z].RemovePossibleType(type);
-                }
-            }
-        }
-
-        private void RecalculateSuperpositionsAffectedBy(Vector3Int coords)
-        {
-            SubKlotz subKlotz = _positions[coords.x, coords.y, coords.z].CollapsedType;
-            KlotzType type = subKlotz.Type;
-            Vector3Int size = KlotzKB.KlotzSize(type);
-            KlotzDirection dir = subKlotz.Direction;
-
-            Vector3Int worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
-            Vector3Int aStart = coords - worstCaseSize;
-            Vector3Int aEnd = coords + size;
-
-            aStart.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
-            aEnd.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
-
-            for (int z = aStart.z; z < aEnd.z; z++)
-            {
-                for (int y = aStart.y; y < aEnd.y; y++)
-                {
-                    for (int x = aStart.x; x < aEnd.x; x++)
+                    for (int iy = y - (Range - 1); iy < y + Range; iy++)
                     {
-                        Voxel voxel = _positions[x, y, z];
-                        if (voxel.IsCollapsed)
+                        if (IsOutOfBounds(ix, iy, iz))
                             continue;
 
-                        Vector3Int pCoords = new(x, y, z);
-
-                        foreach (KlotzType pType in voxel.PossibleTypes)
-                        {
-                            Vector3Int pSize = KlotzKB.KlotzSize(pType);
-                            KlotzDirection pDir = KlotzDirection.ToPosX; // TODO: All other directions
-
-                            if (DoIntersect(coords, size, dir, pCoords, pSize, pDir))
-                            {
-                                _positions[x, y, z].RemovePossibleType(pType);
-                            }
-                        }
-
-                        if (voxel.PossibleTypes.ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
-                        {
-                            Collapse(pCoords);
-                        }
+                        if (!_positions[ix, iy, iz].IsCollapsed)
+                            score++;
                     }
                 }
             }
+
+            return score;
         }
 
-        public static bool DoIntersect(Vector3Int posA, Vector3Int sizeA, KlotzDirection dirA, Vector3Int posB, Vector3Int sizeB, KlotzDirection dirB)
+        private bool IsPossible(Vector3Int root, KlotzType type, KlotzDirection dir)
         {
-            // Limitations
-            if (dirA != KlotzDirection.ToPosX || dirB != KlotzDirection.ToPosX)
-            {
-                throw new NotImplementedException();
-            }
-
-            return
-                posA.x < posB.x + sizeB.x && posA.x + sizeA.x > posB.x &&
-                posA.y < posB.y + sizeB.y && posA.y + sizeA.y > posB.y &&
-                posA.z < posB.z + sizeB.z && posA.z + sizeA.z > posB.z;
-        }
-
-        private bool IsPossible(int x, int y, int z, KlotzType type, KlotzDirection dir)
-        {
-            Vector3Int root = new(x, y, z);
             Vector3Int size = KlotzKB.KlotzSize(type);
 
             for (int subZ = 0; subZ < size.z; subZ++)
@@ -221,13 +188,13 @@ namespace Clotzbergh.Server.WorldGeneration
                 {
                     for (int subY = 0; subY < size.y; subY++)
                     {
-                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                        Vector3Int realCoords = SubKlotz.TranslateSubIndexToCoords(
                             root, new(subX, subY, subZ), dir);
 
-                        if (IsOutOfBounds(coords))
+                        if (IsOutOfBounds(realCoords))
                             return false;
 
-                        if (!_positions[coords.x, coords.y, coords.z].IsFreeGround)
+                        if (_positions[realCoords.x, realCoords.y, realCoords.z].IsCollapsed)
                             return false;
                     }
                 }
@@ -236,54 +203,10 @@ namespace Clotzbergh.Server.WorldGeneration
             return true;
         }
 
-        private void Collapse(Vector3Int rootCoords)
+        void PlaceKlotz(Vector3Int rootCoords, KlotzType type, KlotzDirection dir)
         {
-            Voxel rootVoxel = _positions[rootCoords.x, rootCoords.y, rootCoords.z];
-            if (rootVoxel.IsCollapsed)
-                throw new InvalidOperationException("Already collapsed (Collapse)");
-
-            KlotzType? option1 = null;
-            KlotzType? option2 = null;
-            KlotzType type;
-
-            foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
-            {
-                if (rootVoxel.PossibleTypes.Contains(testType))
-                {
-                    if (option1.HasValue) { option2 = testType; break; }
-                    else { option1 = testType; }
-                }
-            }
-
-            if (!option1.HasValue)
-                throw new InvalidOperationException("No PossibleTypes found in Collapse");
-
-            if (option2.HasValue)
-            {
-                // 50:50 chance of the last 2 items in list
-                type = _random.Next() % 2 == 0 ? option1.Value : option2.Value;
-            }
-            else
-            {
-                type = option1.Value;
-            }
-
-            if (type == KlotzType.Air)
-            {
-                _positions[rootCoords.x, rootCoords.y, rootCoords.z].SetCollapsedType(SubKlotz.Air);
-                _nonCollapsed.Remove(rootCoords);
-            }
-            else
-            {
-                PlaceKlotzInRandDirection(rootCoords, type);
-            }
-        }
-
-        void PlaceKlotzInRandDirection(Vector3Int rootCoords, KlotzType type)
-        {
-            KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
             Vector3Int size = KlotzKB.KlotzSize(type);
-            KlotzColor color = ColorFromHeight(_chunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
+            KlotzColor color = ColorFromHeight(ChunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
             KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.z; subZ++)
@@ -305,6 +228,27 @@ namespace Clotzbergh.Server.WorldGeneration
                         }
 
                         _nonCollapsed.Remove(coords);
+                    }
+                }
+            }
+        }
+
+        private void FillNonCollapsedWith1x1Plates()
+        {
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+            {
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+                {
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                    {
+                        if (_positions[x, y, z].IsCollapsed)
+                            continue;
+
+                        _positions[x, y, z].SetCollapsedType(SubKlotz.Root(
+                            KlotzType.Plate1x1,
+                            ColorFromHeight(y),
+                            NextRandVariant(),
+                            KlotzDirection.ToPosX));
                     }
                 }
             }
