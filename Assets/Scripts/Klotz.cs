@@ -406,6 +406,18 @@ namespace Clotzbergh
             };
         }
 
+        public static Vector3Int TranslateSize(Vector3Int sizeToPosX, KlotzDirection dir)
+        {
+            return dir switch
+            {
+                KlotzDirection.ToPosX => sizeToPosX,
+                KlotzDirection.ToNegX => sizeToPosX,
+                KlotzDirection.ToPosZ => new(sizeToPosX.z, sizeToPosX.y, sizeToPosX.x),
+                KlotzDirection.ToNegZ => new(sizeToPosX.z, sizeToPosX.y, sizeToPosX.x),
+                _ => throw new ArgumentException("Invalid direction")
+            };
+        }
+
         public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coord, Vector3Int subIndex, KlotzDirection dir)
         {
             return dir switch

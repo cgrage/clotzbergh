@@ -189,4 +189,29 @@ public class KlotzTests
         Assert.AreEqual(variant, copy.Variant);
         Assert.AreEqual(direction, copy.Direction);
     }
+
+    [Test]
+    public void TranslateSizeTest()
+    {
+        Assert.AreEqual(new Vector3Int(10, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 10), KlotzDirection.ToPosX));
+        Assert.AreEqual(new Vector3Int(10, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 10), KlotzDirection.ToPosZ));
+        Assert.AreEqual(new Vector3Int(10, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 10), KlotzDirection.ToNegX));
+        Assert.AreEqual(new Vector3Int(10, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 10), KlotzDirection.ToNegZ));
+
+        Assert.AreEqual(new Vector3Int(20, 10, 10), SubKlotz.TranslateSize(new Vector3Int(20, 10, 10), KlotzDirection.ToPosX));
+        Assert.AreEqual(new Vector3Int(10, 20, 10), SubKlotz.TranslateSize(new Vector3Int(10, 20, 10), KlotzDirection.ToPosX));
+        Assert.AreEqual(new Vector3Int(10, 10, 20), SubKlotz.TranslateSize(new Vector3Int(10, 10, 20), KlotzDirection.ToPosX));
+
+        Assert.AreEqual(new Vector3Int(10, 10, 20), SubKlotz.TranslateSize(new Vector3Int(20, 10, 10), KlotzDirection.ToPosZ));
+        Assert.AreEqual(new Vector3Int(10, 20, 10), SubKlotz.TranslateSize(new Vector3Int(10, 20, 10), KlotzDirection.ToPosZ));
+        Assert.AreEqual(new Vector3Int(20, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 20), KlotzDirection.ToPosZ));
+
+        Assert.AreEqual(new Vector3Int(20, 10, 10), SubKlotz.TranslateSize(new Vector3Int(20, 10, 10), KlotzDirection.ToNegX));
+        Assert.AreEqual(new Vector3Int(10, 20, 10), SubKlotz.TranslateSize(new Vector3Int(10, 20, 10), KlotzDirection.ToNegX));
+        Assert.AreEqual(new Vector3Int(10, 10, 20), SubKlotz.TranslateSize(new Vector3Int(10, 10, 20), KlotzDirection.ToNegX));
+
+        Assert.AreEqual(new Vector3Int(10, 10, 20), SubKlotz.TranslateSize(new Vector3Int(20, 10, 10), KlotzDirection.ToNegZ));
+        Assert.AreEqual(new Vector3Int(10, 20, 10), SubKlotz.TranslateSize(new Vector3Int(10, 20, 10), KlotzDirection.ToNegZ));
+        Assert.AreEqual(new Vector3Int(20, 10, 10), SubKlotz.TranslateSize(new Vector3Int(10, 10, 20), KlotzDirection.ToNegZ));
+    }
 }

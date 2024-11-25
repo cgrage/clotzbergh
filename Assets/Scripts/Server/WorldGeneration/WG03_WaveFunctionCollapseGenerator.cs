@@ -1,30 +1,41 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
     public class WG03_WaveFunctionCollapseGenerator : VoxelChunkGenerator
     {
-        private readonly KlotzTypeSet64[,,] _possibleTypesArray;
+        private static readonly KlotzDirection[] SupportedDirs = { KlotzDirection.ToPosX, /*KlotzDirection.ToPosZ*/ };
+
+        private readonly KlotzTypeSet64[,,,] _possibleTypes;
 
         public WG03_WaveFunctionCollapseGenerator()
         {
-            _possibleTypesArray = new KlotzTypeSet64[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
+            _possibleTypes = new KlotzTypeSet64[
+                WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ,
+                SupportedDirs.Length];
         }
 
-        public KlotzTypeSet64 PossibleTypesAt(int x, int y, int z)
+        public KlotzTypeSet64 PossibleTypesAt(int x, int y, int z, KlotzDirection dir)
         {
-            return _possibleTypesArray[x, y, z];
+            if (dir == SupportedDirs[0])
+                return _possibleTypes[x, y, z, 0];
+            else return _possibleTypes[x, y, z, 1];
         }
 
-        public KlotzTypeSet64 PossibleTypesAt(Vector3Int coords)
+        public KlotzTypeSet64 PossibleTypesAt(Vector3Int coords, KlotzDirection dir)
         {
-            return _possibleTypesArray[coords.x, coords.y, coords.z];
+            if (dir == SupportedDirs[0])
+                return _possibleTypes[coords.x, coords.y, coords.z, 0];
+            else return _possibleTypes[coords.x, coords.y, coords.z, 1];
         }
 
-        public void RemovePossibleTypeAt(int x, int y, int z, KlotzType type)
+        public void RemovePossibleTypeAt(int x, int y, int z, KlotzDirection dir, KlotzType type)
         {
-            _possibleTypesArray[x, y, z] = _possibleTypesArray[x, y, z].Remove(type);
+            if (dir == SupportedDirs[0])
+                _possibleTypes[x, y, z, 0] = _possibleTypes[x, y, z, 0].Remove(type);
+            else _possibleTypes[x, y, z, 1] = _possibleTypes[x, y, z, 1].Remove(type);
         }
 
         protected override WorldChunk InnerGenerate()
@@ -47,11 +58,17 @@ namespace Clotzbergh.Server.WorldGeneration
         {
             if (generalType == GeneralVoxelType.AirOrGround)
             {
-                _possibleTypesArray[x, y, z] = WorldGenDefs.AirSet.Merge(WorldGenDefs.AllGroundTypesSet);
+                for (int i = 0; i < SupportedDirs.Length; i++)
+                {
+                    _possibleTypes[x, y, z, i] = WorldGenDefs.AirSet.Merge(WorldGenDefs.AllGroundTypesSet);
+                }
             }
             else if (generalType == GeneralVoxelType.Ground)
             {
-                _possibleTypesArray[x, y, z] = WorldGenDefs.AllGroundTypesSet;
+                for (int i = 0; i < SupportedDirs.Length; i++)
+                {
+                    _possibleTypes[x, y, z, i] = WorldGenDefs.AllGroundTypesSet;
+                }
             }
         }
 
@@ -77,12 +94,14 @@ namespace Clotzbergh.Server.WorldGeneration
             if (IsCompletedAt(x, y, z))
                 return;
 
-            foreach (KlotzType type in PossibleTypesAt(x, y, z))
+            foreach (var dir in SupportedDirs)
             {
-                KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
-                if (!IsFreeToComplete(x, y, z, type, dir))
+                foreach (KlotzType type in PossibleTypesAt(x, y, z, dir))
                 {
-                    RemovePossibleTypeAt(x, y, z, type);
+                    if (!IsFreeToComplete(x, y, z, type, dir))
+                    {
+                        RemovePossibleTypeAt(x, y, z, dir, type);
+                    }
                 }
             }
         }
@@ -111,19 +130,25 @@ namespace Clotzbergh.Server.WorldGeneration
                             continue;
 
                         Vector3Int pCoords = new(x, y, z);
+                        bool only1x1x1 = true;
 
-                        foreach (KlotzType pType in PossibleTypesAt(x, y, z))
+                        foreach (var pDir in SupportedDirs)
                         {
-                            Vector3Int pSize = KlotzKB.KlotzSize(pType);
-                            KlotzDirection pDir = KlotzDirection.ToPosX; // TODO: All other directions
-
-                            if (DoIntersect(coords, size, dir, pCoords, pSize, pDir))
+                            foreach (KlotzType pType in PossibleTypesAt(x, y, z, pDir))
                             {
-                                RemovePossibleTypeAt(x, y, z, pType);
+                                if (DoIntersect(coords, type, dir, pCoords, pType, pDir))
+                                {
+                                    RemovePossibleTypeAt(x, y, z, pDir, pType);
+                                }
+                            }
+
+                            if (!PossibleTypesAt(x, y, z, pDir).ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
+                            {
+                                only1x1x1 = false;
                             }
                         }
 
-                        if (PossibleTypesAt(x, y, z).ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
+                        if (only1x1x1)
                         {
                             Collapse(pCoords);
                         }
@@ -132,13 +157,16 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        public static bool DoIntersect(Vector3Int posA, Vector3Int sizeA, KlotzDirection dirA, Vector3Int posB, Vector3Int sizeB, KlotzDirection dirB)
+        public static bool DoIntersect(Vector3Int posA, KlotzType typeA, KlotzDirection dirA, Vector3Int posB, KlotzType typeB, KlotzDirection dirB)
         {
             // Limitations
             if (dirA != KlotzDirection.ToPosX || dirB != KlotzDirection.ToPosX)
             {
                 throw new NotImplementedException();
             }
+
+            Vector3Int sizeA = KlotzKB.KlotzSize(typeA);
+            Vector3Int sizeB = KlotzKB.KlotzSize(typeB);
 
             return
                 posA.x < posB.x + sizeB.x && posA.x + sizeA.x > posB.x &&
@@ -151,40 +179,41 @@ namespace Clotzbergh.Server.WorldGeneration
             if (IsCompletedAt(rootCoords))
                 throw new InvalidOperationException("Already collapsed (Collapse)");
 
-            KlotzType? option1 = null;
-            KlotzType? option2 = null;
-            KlotzType type;
+            const int maxOptions = 2;
+
+            List<Tuple<KlotzType, KlotzDirection>> options = new();
+            KlotzDirection[] dirsToCheck = NextRandomCoinFlip() ?
+                new[] { KlotzDirection.ToPosX/*, KlotzDirection.ToPosZ*/ } :
+                new[] { /*KlotzDirection.ToPosZ,*/ KlotzDirection.ToPosX };
 
             foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
             {
-                if (PossibleTypesAt(rootCoords).Contains(testType))
+                foreach (var dir in dirsToCheck)
                 {
-                    if (option1.HasValue) { option2 = testType; break; }
-                    else { option1 = testType; }
+                    if (PossibleTypesAt(rootCoords, dir).Contains(testType))
+                    {
+                        options.Add(new(testType, dir));
+                        if (options.Count >= maxOptions)
+                            break;
+                    }
                 }
+
+                if (options.Count >= maxOptions)
+                    break;
             }
 
-            if (!option1.HasValue)
+            if (options.Count == 0)
                 throw new InvalidOperationException("No PossibleTypes found in Collapse");
 
-            if (option2.HasValue)
-            {
-                // 50:50 chance of the last 2 items in list
-                type = NextRandomCoinFlip() ? option1.Value : option2.Value;
-            }
-            else
-            {
-                type = option1.Value;
-            }
+            Tuple<KlotzType, KlotzDirection> option = NextRandomElement(options);
 
-            if (type == KlotzType.Air)
+            if (option.Item1 == KlotzType.Air)
             {
                 PlaceAir(rootCoords);
             }
             else
             {
-                KlotzDirection dir = KlotzDirection.ToPosX; // TODO: All other directions
-                PlaceKlotz(rootCoords, type, dir);
+                PlaceKlotz(rootCoords, option.Item1, option.Item2);
             }
         }
     }
