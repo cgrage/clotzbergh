@@ -68,17 +68,33 @@ public class WorldGeneratorTests
     }
 
     [Test]
-    public void WG04_OpportunisticGeneratorPackedTest()
+    public void WG04_WaveFunctionCollapseGeneratorV2PackedTest()
     {
-        IChunkGenerator gen = new WG04_OpportunisticGenerator();
+        IChunkGenerator gen = new WG04_WaveFunctionCollapseGeneratorV2();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG04_OpportunisticGeneratorEmptyTest()
+    public void WG04_WaveFunctionCollapseGeneratorV2EmptyTest()
     {
-        IChunkGenerator gen = new WG04_OpportunisticGenerator();
+        IChunkGenerator gen = new WG04_WaveFunctionCollapseGeneratorV2();
+        IHeightMap hm = new EmptyHeightMap();
+        GeneratorTest(gen, hm, true, false);
+    }
+
+    [Test]
+    public void WG05_OpportunisticGeneratorPackedTest()
+    {
+        IChunkGenerator gen = new WG05_OpportunisticGenerator();
+        IHeightMap hm = new PackedHeightMap();
+        GeneratorTest(gen, hm, false, true);
+    }
+
+    [Test]
+    public void WG05_OpportunisticGeneratorEmptyTest()
+    {
+        IChunkGenerator gen = new WG05_OpportunisticGenerator();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }

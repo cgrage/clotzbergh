@@ -2,13 +2,13 @@ using UnityEngine;
 
 namespace Clotzbergh.Server.WorldGeneration
 {
-    public class WG04_OpportunisticGenerator : VoxelChunkGenerator
+    public class WG05_OpportunisticGenerator : VoxelChunkGenerator
     {
         private const int Range = 4;
 
         private readonly int[,,] _scoresArray;
 
-        public WG04_OpportunisticGenerator()
+        public WG05_OpportunisticGenerator()
         {
             _scoresArray = new int[WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
         }
