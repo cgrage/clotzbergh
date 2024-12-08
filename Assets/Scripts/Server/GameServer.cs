@@ -25,8 +25,9 @@ namespace Clotzbergh.Server
     public class GameServer : MonoBehaviour, IServerSideOps
     {
         private static int _idCounter = 0;
-        private readonly WorldMap _worldMap = new();
-        private readonly ConcurrentDictionary<ClientId, ConnectionData> _clientData = new();
+
+        private WorldMap _worldMap;
+        private ConcurrentDictionary<ClientId, ConnectionData> _clientData;
 
         private WebSocketServer _wss;
 
@@ -37,6 +38,9 @@ namespace Clotzbergh.Server
         // Start is called before the first frame update
         void Start()
         {
+            _worldMap = new(0);
+            _clientData = new();
+
             string url = string.Format("ws://localhost:{0}", ServerPort);
 
             try
@@ -53,7 +57,7 @@ namespace Clotzbergh.Server
                 Debug.LogFormat("Server start at {0} failed with exception (see above)", url);
             }
 
-            _worldMap.StartGeneratorThreads();
+            _worldMap.StartLoaderThreads();
         }
 
         void OnDestroy()
@@ -64,7 +68,7 @@ namespace Clotzbergh.Server
                 Debug.LogFormat("Server stopped");
             }
 
-            _worldMap.StopMainThreads();
+            _worldMap.StopLoaderThreads();
         }
 
         void OnDrawGizmos()

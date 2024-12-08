@@ -18,7 +18,7 @@ namespace Clotzbergh.Server
 
         private readonly Vector2[] _octaveOffsets;
 
-        public DefaultHeightMap(int octaves = DefaultOctaves, int seed = 0)
+        public DefaultHeightMap(int seed, int octaves = DefaultOctaves)
         {
             Random rnd = new(seed);
 
