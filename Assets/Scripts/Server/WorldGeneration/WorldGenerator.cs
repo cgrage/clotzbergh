@@ -7,7 +7,12 @@ namespace Clotzbergh.Server.WorldGeneration
 {
     public class WorldGenerator
     {
-        protected IHeightMap HeightMap { get; } = new DefaultHeightMap();
+        protected IHeightMap HeightMap { get; }
+
+        public WorldGenerator(int seed)
+        {
+            HeightMap = new DefaultHeightMap(seed);
+        }
 
         public WorldChunk GetChunk(Vector3Int chunkCoords)
         {

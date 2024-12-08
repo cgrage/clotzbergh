@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
@@ -10,16 +12,17 @@ namespace Clotzbergh.Server
 {
     public class WorldMap
     {
-        private readonly WorldGenerator _generator = new();
-        private readonly Dictionary<Vector3Int, WorldChunkState> _worldState = new();
-        private readonly Dictionary<ClientId, ClientWorldMapState> _clientStates = new();
+        private readonly int _worldSeed;
+        private readonly WorldGenerator _generator;
+        private readonly Dictionary<Vector3Int, WorldChunkState> _worldState;
+        private readonly Dictionary<ClientId, ClientWorldMapState> _clientStates;
+        private readonly string _chunkDataPath;
+        private readonly CancellationTokenSource _runCancelTS;
+        private readonly List<Thread> _loaderThreads;
+        private readonly BlockingCollection<LoaderThreadArgs> _generationRequestQueue;
+        private ulong _clientListVersion;
 
-        private readonly CancellationTokenSource _runCancelTS = new();
-        private readonly List<Thread> _generatorThreads = new();
-        private readonly BlockingCollection<GeneratorThreadArgs> _generationRequestQueue = new();
-        private ulong _clientListVersion = 0;
-
-        private class GeneratorThreadArgs
+        private class LoaderThreadArgs
         {
             public Vector3Int coords;
         }
@@ -30,7 +33,25 @@ namespace Clotzbergh.Server
             public WorldChunk Chunk { get; set; }
         }
 
-        public int GeneratorThreadCount = 4;
+        public int LoaderThreadCount = 4;
+
+        public WorldMap(int seed)
+        {
+            _worldSeed = seed;
+            _generator = new(seed);
+            _worldState = new();
+            _clientStates = new();
+            _chunkDataPath = Path.Combine(Application.persistentDataPath, _worldSeed.ToString());
+            _runCancelTS = new();
+            _loaderThreads = new();
+            _generationRequestQueue = new();
+            _clientListVersion = 0;
+
+            if (!Directory.Exists(_chunkDataPath))
+            {
+                Directory.CreateDirectory(_chunkDataPath);
+            }
+        }
 
         public Mesh GeneratePreviewMesh(int dist)
         {
@@ -186,46 +207,53 @@ namespace Clotzbergh.Server
             worldState.Version++;
         }
 
-        public void StartGeneratorThreads()
+        public void StartLoaderThreads()
         {
-            Debug.LogFormat("World generator threads starting...");
+            Debug.LogFormat("World loader threads starting...");
 
-            for (int i = 0; i < GeneratorThreadCount; i++)
+            for (int i = 0; i < LoaderThreadCount; i++)
             {
-                var thread = new Thread(GeneratorThreadMain) { Name = $"GeneratorThread{i}" };
-                _generatorThreads.Add(thread);
+                var thread = new Thread(LoaderThreadMain) { Name = $"LoaderThread{i}" };
+                _loaderThreads.Add(thread);
                 thread.Start();
             }
 
-            Debug.LogFormat("World generator threads started");
+            Debug.LogFormat("World loader threads started");
         }
 
-        public void StopMainThreads()
+        public void StopLoaderThreads()
         {
-            Debug.LogFormat("World generator threads stopping...");
+            Debug.LogFormat("World loader threads stopping...");
             _runCancelTS.Cancel();
 
-            foreach (var thread in _generatorThreads)
+            foreach (var thread in _loaderThreads)
             {
                 if (!thread.Join(TimeSpan.FromSeconds(1)))
                     thread.Abort();
             }
 
-            Debug.LogFormat("World generator threads stopped");
+            Debug.LogFormat("World loader threads stopped");
         }
 
-        void GeneratorThreadMain()
+        private void LoaderThreadMain()
         {
             try
             {
                 while (!_runCancelTS.Token.IsCancellationRequested)
                 {
-                    GeneratorThreadArgs args = _generationRequestQueue.Take(_runCancelTS.Token);
-                    WorldChunk chunk = _generator.GetChunk(args.coords);
+                    LoaderThreadArgs args = _generationRequestQueue.Take(_runCancelTS.Token);
+                    Vector3Int coords = args.coords;
+                    WorldChunk chunk = LoadWorldChunk(coords);
+
+                    if (chunk == null)
+                    {
+                        chunk = _generator.GetChunk(coords);
+                        SaveWorldChunk(chunk, coords);
+                    }
 
                     lock (_worldState)
                     {
-                        WorldChunkState state = _worldState[args.coords];
+                        WorldChunkState state = _worldState[coords];
                         if (state.Version != 0)
                             throw new ArgumentException("World chunk was already created by someone else");
 
@@ -238,14 +266,52 @@ namespace Clotzbergh.Server
             {
                 if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
                 {
-                    Debug.LogFormat($"GeneratorThread stopped with exception ({ex.GetType().Name}).");
+                    Debug.LogFormat($"LoaderThread stopped with exception ({ex.GetType().Name}).");
                 }
                 else
                 {
                     Debug.LogException(ex);
-                    Debug.LogFormat("GeneratorThread stopped on exception (see above).");
+                    Debug.LogFormat("LoaderThread stopped on exception (see above).");
                 }
             }
+        }
+
+        private WorldChunk LoadWorldChunk(Vector3Int coords)
+        {
+            string path = Path.Combine(_chunkDataPath, $"{coords.x},{coords.y},{coords.z}.chunk");
+            if (!File.Exists(path))
+                return null;
+
+            try
+            {
+                byte[] data = File.ReadAllBytes(path);
+
+                using MemoryStream memoryStream = new(data);
+                using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
+                using BinaryReader reader = new(gzipStream);
+
+                return WorldChunk.Deserialize(reader);
+            }
+            catch
+            {
+                Debug.LogWarning($"Failed to load chunk {coords}.");
+                return null;
+            }
+        }
+
+        private void SaveWorldChunk(WorldChunk chunk, Vector3Int coords)
+        {
+            using MemoryStream memoryStream = new();
+            using (GZipStream gzipStream = new(memoryStream, CompressionMode.Compress))
+            using (BinaryWriter writer = new(gzipStream))
+            {
+                chunk.Serialize(writer);
+            }
+
+            byte[] data = memoryStream.ToArray();
+            string path = Path.Combine(_chunkDataPath, $"{coords.x},{coords.y},{coords.z}.chunk");
+
+            File.WriteAllBytes(path, data);
         }
     }
 }
