@@ -60,14 +60,14 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int i = 0; i < SupportedDirs.Length; i++)
                 {
-                    _possibleTypes[x, y, z, i] = WorldGenDefs.AirSet.Merge(WorldGenDefs.AllGroundTypesSet);
+                    _possibleTypes[x, y, z, i] = KlotzTypeSet64.Air.Merge(GroundDefinitions.NiceGroundTypesSet);
                 }
             }
             else if (generalType == GeneralVoxelType.Ground)
             {
                 for (int i = 0; i < SupportedDirs.Length; i++)
                 {
-                    _possibleTypes[x, y, z, i] = WorldGenDefs.AllGroundTypesSet;
+                    _possibleTypes[x, y, z, i] = GroundDefinitions.NiceGroundTypesSet;
                 }
             }
         }
@@ -142,7 +142,7 @@ namespace Clotzbergh.Server.WorldGeneration
                                 }
                             }
 
-                            if (!PossibleTypesAt(x, y, z, pDir).ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
+                            if (!PossibleTypesAt(x, y, z, pDir).ContainsOnly(KlotzTypeSet64.All1x1x1Types))
                             {
                                 only1x1x1 = false;
                             }
@@ -186,7 +186,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 new[] { KlotzDirection.ToPosX/*, KlotzDirection.ToPosZ*/ } :
                 new[] { /*KlotzDirection.ToPosZ,*/ KlotzDirection.ToPosX };
 
-            foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
+            foreach (var testType in GroundDefinitions.NiceGroundTypesSortedByVolumeDesc)
             {
                 foreach (var dir in dirsToCheck)
                 {

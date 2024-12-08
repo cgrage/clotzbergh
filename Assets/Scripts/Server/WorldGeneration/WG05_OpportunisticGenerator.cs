@@ -33,7 +33,7 @@ namespace Clotzbergh.Server.WorldGeneration
             PlaceGround();
             RecalculateAllScores();
 
-            foreach (var type in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
+            foreach (var type in GroundDefinitions.NiceGroundTypesSortedByVolumeDesc)
             {
                 int failCount = 0;
                 while (failCount < 3 && NonCompleted.Count > 0)
