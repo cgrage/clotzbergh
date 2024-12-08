@@ -27,11 +27,11 @@ namespace Clotzbergh.Server.WorldGeneration
             else return _possibleTypes[coords.x, coords.y, coords.z, 1];
         }
 
-        public void RemovePossibleTypeAt(Vector3Int coords, KlotzDirection dir, KlotzType type)
+        public void SetPossibleTypesAt(Vector3Int coords, KlotzDirection dir, KlotzTypeSet64 types)
         {
             if (dir == SupportedDirs[0])
-                _possibleTypes[coords.x, coords.y, coords.z, 0] = _possibleTypes[coords.x, coords.y, coords.z, 0].Remove(type);
-            else _possibleTypes[coords.x, coords.y, coords.z, 1] = _possibleTypes[coords.x, coords.y, coords.z, 1].Remove(type);
+                _possibleTypes[coords.x, coords.y, coords.z, 0] = types;
+            else _possibleTypes[coords.x, coords.y, coords.z, 1] = types;
         }
 
         public HitCube8x3x8 GetHitCube(Vector3Int coords)
@@ -66,14 +66,14 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int i = 0; i < SupportedDirs.Length; i++)
                 {
-                    _possibleTypes[x, y, z, i] = WorldGenDefs.AirSet.Merge(WorldGenDefs.AllGroundTypesSet);
+                    _possibleTypes[x, y, z, i] = KlotzTypeSet64.Air.Merge(GroundDefinitions.NiceGroundTypesSet);
                 }
             }
             else if (generalType == GeneralVoxelType.Ground)
             {
                 for (int i = 0; i < SupportedDirs.Length; i++)
                 {
-                    _possibleTypes[x, y, z, i] = WorldGenDefs.AllGroundTypesSet;
+                    _possibleTypes[x, y, z, i] = GroundDefinitions.NiceGroundTypesSet;
                 }
             }
         }
@@ -101,15 +101,18 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private void RecalculateSuperpositionsOfPos(Vector3Int coords, KlotzDirection dir)
         {
+            KlotzTypeSet64 newPossibleTypes = KlotzTypeSet64.Empty;
+
             foreach (KlotzType type in PossibleTypesAt(coords, dir))
             {
-                if (!IsFreeToComplete(coords, type, dir))
+                if (IsFreeToComplete(coords, type, dir))
                 {
-                    RemovePossibleTypeAt(coords, dir, type);
+                    newPossibleTypes = newPossibleTypes.Add(type);
                 }
             }
 
-            SetHitCube(coords, HitCube8x3x8.FromSet(PossibleTypesAt(coords, dir)));
+            SetPossibleTypesAt(coords, dir, newPossibleTypes);
+            SetHitCube(coords, HitCube8x3x8.FromSet(newPossibleTypes));
         }
 
         private void RecalculateSuperpositionsAffectedBy(Vector3Int coords)
@@ -149,7 +152,7 @@ namespace Clotzbergh.Server.WorldGeneration
                                 RecalculateSuperpositionsOfPos(pCoords, KlotzDirection.ToPosX);
                             }
 
-                            if (!PossibleTypesAt(pCoords, pDir).ContainsOnly(WorldGenDefs.All1x1x1TypesSet))
+                            if (!PossibleTypesAt(pCoords, pDir).ContainsOnly(KlotzTypeSet64.All1x1x1Types))
                             {
                                 only1x1x1 = false;
                             }
@@ -176,7 +179,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 new[] { KlotzDirection.ToPosX/*, KlotzDirection.ToPosZ*/ } :
                 new[] { /*KlotzDirection.ToPosZ,*/ KlotzDirection.ToPosX };
 
-            foreach (var testType in WorldGenDefs.AllGroundTypesSortedByVolumeDesc)
+            foreach (var testType in GroundDefinitions.NiceGroundTypesSortedByVolumeDesc)
             {
                 foreach (var dir in dirsToCheck)
                 {

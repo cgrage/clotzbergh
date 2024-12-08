@@ -12,8 +12,8 @@ namespace Clotzbergh.Server.WorldGeneration
         public WorldChunk GetChunk(Vector3Int chunkCoords)
         {
             //WG01_TrivialWorldGenerator gen = new();
-            WG02_MicroBlockWorldGenerator gen = new();
-            // WaveFunctionCollapseGenerator gen = new();
+            //WG02_MicroBlockWorldGenerator gen = new();
+            WG04_WaveFunctionCollapseGeneratorV2 gen = new();
 
             return gen.Generate(chunkCoords, HeightMap);
         }
