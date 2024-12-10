@@ -132,10 +132,10 @@ namespace Clotzbergh.Client
         void OnGUI()
         {
             GUIStyle style = new() { fontSize = 16 };
-            style.normal.textColor = Color.black;
+            style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
 
             Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
-            GUI.Label(new Rect(5, 5, 500, 200),
+            GUI.Label(new Rect(Screen.width - 250 - 25, Screen.height - 250 - 25, 270, 200),
                 $"Pos: {Viewer.position}\n" +
                 $"Coord: {viewerChunkCoords}\n" +
                 $"Chk Count: {_chunkStore.ChunkCount}\n" +

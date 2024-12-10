@@ -62,13 +62,10 @@ namespace Clotzbergh.Server
 
         void OnDestroy()
         {
-            if (_wss != null)
-            {
-                _wss.Stop();
-                Debug.LogFormat("Server stopped");
-            }
+            _wss?.Stop();
+            _worldMap?.StopLoaderThreads();
 
-            _worldMap.StopLoaderThreads();
+            Debug.LogFormat("Server stopped");
         }
 
         void OnDrawGizmos()
