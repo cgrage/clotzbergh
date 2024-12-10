@@ -19,7 +19,9 @@ namespace Clotzbergh.Server
         private readonly string _chunkDataPath;
         private readonly CancellationTokenSource _runCancelTS;
         private readonly List<Thread> _loaderThreads;
+        private readonly List<Thread> _saverThreads;
         private readonly BlockingCollection<LoaderThreadArgs> _generationRequestQueue;
+        private readonly List<Vector3Int> _toSaveList;
         private ulong _clientListVersion;
 
         private class LoaderThreadArgs
@@ -30,10 +32,12 @@ namespace Clotzbergh.Server
         private class WorldChunkState
         {
             public ulong Version { get; set; }
+            public ulong StoredVersion { get; set; }
             public WorldChunk Chunk { get; set; }
         }
 
         public int LoaderThreadCount = 4;
+        public int SaverThreadsCount = 1;
 
         public WorldMap(int seed)
         {
@@ -44,7 +48,9 @@ namespace Clotzbergh.Server
             _chunkDataPath = Path.Combine(Application.persistentDataPath, _worldSeed.ToString());
             _runCancelTS = new();
             _loaderThreads = new();
+            _saverThreads = new();
             _generationRequestQueue = new();
+            _toSaveList = new();
             _clientListVersion = 0;
 
             Debug.Log($"Loading data from {_chunkDataPath}");
@@ -73,6 +79,7 @@ namespace Clotzbergh.Server
                     _worldState.Add(coords, new()
                     {
                         Version = 0,
+                        StoredVersion = 0,
                         Chunk = null,
                     });
                 }
@@ -158,6 +165,7 @@ namespace Clotzbergh.Server
             if (worldState == null || worldState.Version == 0)
                 return null;
 
+            // TODO: Problem: chunk can change at any moment in time / async
             return new()
             {
                 Coords = next.Value,
@@ -205,13 +213,20 @@ namespace Clotzbergh.Server
                 return;
             }
 
+            // TODO: Sure we want to do this without lock?!
             worldState.Chunk.RemoveKlotz(innerChunkCoords);
             worldState.Version++;
+
+            lock (_toSaveList)
+            {
+                if (!_toSaveList.Contains(chunkCoords))
+                    _toSaveList.Add(chunkCoords);
+            }
         }
 
-        public void StartLoaderThreads()
+        public void StartThreads()
         {
-            Debug.LogFormat("World loader threads starting...");
+            Debug.LogFormat("World management threads starting...");
 
             for (int i = 0; i < LoaderThreadCount; i++)
             {
@@ -220,12 +235,19 @@ namespace Clotzbergh.Server
                 thread.Start();
             }
 
-            Debug.LogFormat("World loader threads started");
+            for (int i = 0; i < SaverThreadsCount; i++)
+            {
+                var thread = new Thread(SaverThreadMain) { Name = $"SaverThread{i}" };
+                _saverThreads.Add(thread);
+                thread.Start();
+            }
+
+            Debug.LogFormat("World management threads started");
         }
 
-        public void StopLoaderThreads()
+        public void StopThreads()
         {
-            Debug.LogFormat("World loader threads stopping...");
+            Debug.LogFormat("World management threads stopping...");
             _runCancelTS.Cancel();
 
             foreach (var thread in _loaderThreads)
@@ -234,7 +256,13 @@ namespace Clotzbergh.Server
                     thread.Abort();
             }
 
-            Debug.LogFormat("World loader threads stopped");
+            foreach (var thread in _saverThreads)
+            {
+                if (!thread.Join(TimeSpan.FromSeconds(3)))
+                    thread.Abort();
+            }
+
+            Debug.LogFormat("World management threads stopped");
         }
 
         private void LoaderThreadMain()
@@ -260,6 +288,7 @@ namespace Clotzbergh.Server
                             throw new ArgumentException("World chunk was already created by someone else");
 
                         state.Version = 1;
+                        state.StoredVersion = 1;
                         state.Chunk = chunk;
                     }
                 }
@@ -274,6 +303,63 @@ namespace Clotzbergh.Server
                 {
                     Debug.LogException(ex);
                     Debug.LogFormat("LoaderThread stopped on exception (see above).");
+                }
+            }
+        }
+
+        private void SaverThreadMain()
+        {
+            try
+            {
+                while (!_runCancelTS.Token.IsCancellationRequested)
+                {
+                    Thread.Sleep(1000);
+
+                    Vector3Int[] toSave;
+                    lock (_toSaveList)
+                    {
+                        toSave = _toSaveList.ToArray();
+                        _toSaveList.Clear();
+                    }
+
+                    if (toSave.Length == 0)
+                        continue;
+
+                    foreach (Vector3Int coords in toSave)
+                    {
+                        WorldChunk chunk;
+                        ulong version;
+
+                        lock (_worldState)
+                        {
+                            WorldChunkState state = _worldState[coords];
+                            chunk = state.Chunk;
+                            version = state.Version;
+                        }
+
+                        // TODO: Problem: chunk can change at any moment in time / async
+                        SaveWorldChunk(chunk, coords);
+
+                        lock (_worldState)
+                        {
+                            WorldChunkState state = _worldState[coords];
+                            state.StoredVersion = version;
+                        }
+                    }
+
+                    Debug.LogFormat($"Saved {toSave.Length} chunks");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
+                {
+                    Debug.LogFormat($"SaverThread stopped with exception ({ex.GetType().Name}).");
+                }
+                else
+                {
+                    Debug.LogException(ex);
+                    Debug.LogFormat("SaverThread stopped on exception (see above).");
                 }
             }
         }
