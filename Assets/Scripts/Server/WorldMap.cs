@@ -47,6 +47,8 @@ namespace Clotzbergh.Server
             _generationRequestQueue = new();
             _clientListVersion = 0;
 
+            Debug.Log($"Loading data from {_chunkDataPath}");
+
             if (!Directory.Exists(_chunkDataPath))
             {
                 Directory.CreateDirectory(_chunkDataPath);

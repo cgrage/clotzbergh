@@ -113,9 +113,9 @@ namespace Clotzbergh.Client
         void OnGUI()
         {
             GUIStyle style = new() { fontSize = 16 };
-            style.normal.textColor = Color.black;
+            style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
 
-            GUI.Label(new Rect(5, 200, 500, 200),
+            GUI.Label(new Rect(Screen.width - 250 - 25, Screen.height - 90 - 25, 270, 200),
                 $"Hit: {_viewedPosition}\n" +
                 $"Type: {_viewedKlotz?.type}\n",
                 style);
