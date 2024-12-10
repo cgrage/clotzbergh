@@ -57,13 +57,13 @@ namespace Clotzbergh.Server
                 Debug.LogFormat("Server start at {0} failed with exception (see above)", url);
             }
 
-            _worldMap.StartLoaderThreads();
+            _worldMap.StartThreads();
         }
 
         void OnDestroy()
         {
             _wss?.Stop();
-            _worldMap?.StopLoaderThreads();
+            _worldMap?.StopThreads();
 
             Debug.LogFormat("Server stopped");
         }
