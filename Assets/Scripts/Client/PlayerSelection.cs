@@ -12,6 +12,8 @@ namespace Clotzbergh.Client
         private float _actHoldTime;
         private const float RequiredHoldTime = 0.1f; // The duration required to trigger the action
 
+        public Material material;
+
         private class Selection
         {
             public Vector3 viewedPosition;
@@ -128,26 +130,26 @@ namespace Clotzbergh.Client
             lr.endColor = color;
         }
 
-        private static GameObject CreateHighlightCube()
+        private GameObject CreateHighlightCube()
         {
             GameObject box = new("Highlight Box");
 
             // Define the vertices of the cuboid
             Vector3[] vertices = {
-            new (0, 0, 0), new (1, 0, 0), new (1, 0, 1), new (0, 0, 1), // Bottom vertices
-            new (0, 1, 0), new (1, 1, 0), new (1, 1, 1), new (0, 1, 1), // Top vertices
-        };
+                new (0, 0, 0), new (1, 0, 0), new (1, 0, 1), new (0, 0, 1), // Bottom vertices
+                new (0, 1, 0), new (1, 1, 0), new (1, 1, 1), new (0, 1, 1), // Top vertices
+            };
 
             // Define the edges of the cuboid
             int[] positions = {
-            0, 1, 2, 3, 0, // Bottom
-            4, 5, 6, 7, 4, // Top
-            5, 1, 2, 6, 7, 3 // Sticky
-        };
+                0, 1, 2, 3, 0, // Bottom
+                4, 5, 6, 7, 4, // Top
+                5, 1, 2, 6, 7, 3 // Sticky
+            };
 
             // Create a single LineRenderer for all edges
             LineRenderer lr = box.AddComponent<LineRenderer>();
-            lr.material = new Material(Shader.Find("Sprites/Default")); // Using a simple shader
+            lr.material = material;
             lr.startColor = Color.black;
             lr.endColor = Color.black;
             lr.startWidth = 0.03f;
