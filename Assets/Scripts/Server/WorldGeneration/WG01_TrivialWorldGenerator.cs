@@ -1,41 +1,41 @@
-using Clotzbergh;
-using Clotzbergh.Server;
-using Clotzbergh.Server.WorldGeneration;
 using UnityEngine;
 
-public class WG01_TrivialWorldGenerator : IChunkGenerator
+namespace Clotzbergh.Server.WorldGeneration
 {
-    public WorldChunk Generate(Vector3Int coords, IHeightMap heightMap)
+    public class WG01_TrivialWorldGenerator : IChunkGenerator
     {
-        WorldChunk chunk = new();
-
-        for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
+        public WorldChunk Generate(Vector3Int coords, IHeightMap heightMap)
         {
-            for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
-            {
-                int x = coords.x * WorldDef.ChunkSubDivsX + ix;
-                int z = coords.z * WorldDef.ChunkSubDivsZ + iz;
-                int groundStart = Mathf.RoundToInt(heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+            WorldChunk chunk = new();
 
-                for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
+            for (int iz = 0; iz < WorldDef.ChunkSubDivsZ; iz++)
+            {
+                for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int y = coords.y * WorldDef.ChunkSubDivsY + iy;
-                    if (y > groundStart)
+                    int x = coords.x * WorldDef.ChunkSubDivsX + ix;
+                    int z = coords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int groundStart = Mathf.RoundToInt(heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+
+                    for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        chunk.Set(ix, iy, iz, SubKlotz.Air);
-                    }
-                    else
-                    {
-                        chunk.Set(ix, iy, iz, SubKlotz.Root(
-                            KlotzType.Plate1x1,
-                            KlotzColor.White,
-                            KlotzVariant.Zero,
-                            KlotzDirection.ToPosX));
+                        int y = coords.y * WorldDef.ChunkSubDivsY + iy;
+                        if (y > groundStart)
+                        {
+                            chunk.Set(ix, iy, iz, SubKlotz.Air);
+                        }
+                        else
+                        {
+                            chunk.Set(ix, iy, iz, SubKlotz.Root(
+                                KlotzType.Plate1x1,
+                                KlotzColor.White,
+                                KlotzVariant.Zero,
+                                KlotzDirection.ToPosX));
+                        }
                     }
                 }
             }
-        }
 
-        return chunk;
+            return chunk;
+        }
     }
 }
