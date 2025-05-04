@@ -4,9 +4,21 @@ namespace Clotzbergh.Client
 {
     public class PlayerSelection : MonoBehaviour
     {
+        private enum SelectionMode
+        {
+            None,
+            Klotz,
+            HorizontalCircleSmall,
+            HorizontalCircleMedium,
+            HorizontalCircleLarge,
+        }
+
+        private SelectionMode _selectionMode = SelectionMode.None;
+
         private Vector3 _viewedPosition = Vector3.zero;
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
+        public KlotzRegion _highlightRegion = null;
 
         private bool _actIsHolding;
         private float _actHoldTime;
@@ -14,8 +26,11 @@ namespace Clotzbergh.Client
 
         public Material material;
 
-        private class Selection
+        private class PlayerView
         {
+            /// <summary>
+            /// The point in the world the player is looking at. 'Hit-point' with the world.
+            /// </summary>
             public Vector3 viewedPosition;
             public ClientChunk viewedChunk;
             public KlotzWorldData viewedKlotz;
@@ -25,6 +40,7 @@ namespace Clotzbergh.Client
         void Start()
         {
             _highlightBox = CreateHighlightCube();
+            _highlightRegion = KlotzRegion.CreateEmpty();
         }
 
         // Update is called once per frame
@@ -33,12 +49,35 @@ namespace Clotzbergh.Client
             if (_highlightBox == null)
                 return;
 
-            var selection = GetSelection();
-            if (selection != null)
-            {
-                _viewedKlotz = selection.viewedKlotz;
-                _viewedPosition = selection.viewedPosition;
+            var view = GetPlayerView();
+            bool viewChanged = _viewedKlotz != view?.viewedKlotz;
 
+            if (view != null)
+            {
+                _viewedKlotz = view.viewedKlotz;
+                _viewedPosition = view.viewedPosition;
+            }
+            else
+            {
+                _viewedKlotz = null;
+                _viewedPosition = _viewedPosition = Vector3.zero;
+            }
+
+            if (viewChanged)
+            {
+                UpdateSelection();
+            }
+
+            HandleMouseActions(view);
+        }
+
+        /// <summary>
+        /// Is only called when the viewed Klotz changes. Updates the selection box to match the currently viewed Klotz.
+        /// </summary>
+        private void UpdateSelection()
+        {
+            if (_viewedKlotz != null)
+            {
                 SetSelectionBoxColor(_viewedKlotz.isFreeToTake ? Color.green : Color.red);
                 _highlightBox.transform.position = _viewedKlotz.worldPosition;
                 _highlightBox.transform.localScale = _viewedKlotz.worldSize;
@@ -47,16 +86,15 @@ namespace Clotzbergh.Client
             }
             else
             {
-                _viewedKlotz = null;
-                _viewedPosition = _viewedPosition = Vector3.zero;
-
                 _highlightBox.SetActive(false);
+                _highlightRegion = KlotzRegion.CreateEmpty();
             }
 
-            HandleMouseActions(selection);
+            // update
+
         }
 
-        private Selection GetSelection()
+        private PlayerView GetPlayerView()
         {
             Vector3 screenCenter = new(Screen.width / 2, Screen.height / 2, 0);
             Ray ray = Camera.main.ScreenPointToRay(screenCenter);
@@ -79,7 +117,7 @@ namespace Clotzbergh.Client
             if (klotz == null)
                 return null;
 
-            return new Selection()
+            return new PlayerView()
             {
                 viewedPosition = hit.point,
                 viewedChunk = chunk,
@@ -87,7 +125,7 @@ namespace Clotzbergh.Client
             };
         }
 
-        private void HandleMouseActions(Selection selection)
+        private void HandleMouseActions(PlayerView selection)
         {
             if (Input.GetMouseButtonDown(0)) // 0 is the left mouse button
             {

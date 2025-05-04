@@ -89,6 +89,11 @@ namespace Clotzbergh.Client
             // }
         }
 
+        public void OnViewerAimChanged()
+        {
+            //
+        }
+
         public void OnWorldChunkReceived(Vector3Int coords, ulong version, WorldChunk chunk)
         {
             GetOrCreate(coords).OnWorldUpdate(version, chunk);
