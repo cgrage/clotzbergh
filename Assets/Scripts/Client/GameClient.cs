@@ -49,7 +49,6 @@ namespace Clotzbergh.Client
         private ulong _receivedChunksLastSec = 0;
         private ulong _receivedChunksPerSecLastSec;
 
-
         /// <summary>
         /// Called by Unity
         /// </summary>

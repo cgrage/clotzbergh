@@ -536,36 +536,44 @@ namespace Clotzbergh
         }
     }
 
-    public class KlotzWorldData
+    public class KlotzWorldData : IEquatable<KlotzWorldData>
     {
-        /// <summary>
-        /// 
-        /// </summary>
         public Vector3Int rootCoords;
-
-        /// <summary>
-        /// 
-        /// </summary>
         public Vector3 worldPosition;
-
-        /// <summary>
-        /// 
-        /// </summary>
         public Vector3 worldSize;
-
-        /// <summary>
-        /// 
-        /// </summary>
         public Quaternion worldRotation;
-
-        /// <summary>
-        /// 
-        /// </summary>
         public KlotzType type;
-
-        /// <summary>
-        /// 
-        /// </summary>
         public bool isFreeToTake;
+
+        // Implement IEquatable<KlotzWorldData>
+        public bool Equals(KlotzWorldData other)
+        {
+            if (other == null) return false;
+
+            return rootCoords.Equals(other.rootCoords)
+                && worldPosition.Equals(other.worldPosition)
+                && worldSize.Equals(other.worldSize)
+                && worldRotation.Equals(other.worldRotation)
+                && type == other.type
+                && isFreeToTake == other.isFreeToTake;
+        }
+
+        // Override Equals for object comparison
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as KlotzWorldData);
+        }
+
+        // Override GetHashCode
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(
+                rootCoords,
+                worldPosition,
+                worldSize,
+                worldRotation,
+                type,
+                isFreeToTake);
+        }
     }
 }
