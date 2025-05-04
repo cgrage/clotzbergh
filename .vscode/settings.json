@@ -19,5 +19,6 @@
         "voxel",
         "voxels",
         "wireframe"
-    ]
+    ],
+    "files.insertFinalNewline": true
 }
