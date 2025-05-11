@@ -19,7 +19,7 @@ namespace Clotzbergh.Client
         public int ActiveChunkCount { get => _activeChunks.Count; }
 
         /// <summary>
-        /// 
+        /// This method is expected to be run on main thread.
         /// </summary>
         public void OnUpdate()
         {

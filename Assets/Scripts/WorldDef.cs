@@ -94,19 +94,9 @@ namespace Clotzbergh
         public const int SubKlotzPerChunkCount = ChunkSubDivsX * ChunkSubDivsY * ChunkSubDivsZ; // 81,920
 
         /// <summary>
-        /// Lod (level of detail) is a number from 0..4
-        /// Lod 0 ->  1 sub-klotz packing
-        /// Lod 1 ->  2 sub-klotz packing
-        /// Lod 2 ->  4 sub-klotz packing
-        /// Lod 3 ->  8 sub-klotz packing
-        /// Lod 4 -> 16 sub-klotz packing
-        /// </summary>
-        public const int MaxLodValue = 4;
-
-        /// <summary>
         /// Helper class
         /// </summary>
-        public struct LevelOfDetailSetting
+        private struct LevelOfDetailSetting
         {
             public int LevelOfDetail;
             public int MaxThreshold;
@@ -115,14 +105,34 @@ namespace Clotzbergh
         /// <summary>
         /// Numbers are inclusive.
         /// </summary>
-        public static readonly LevelOfDetailSetting[] DetailLevels =
+        private static readonly LevelOfDetailSetting[] DetailLevels =
         {
-         new() { LevelOfDetail = 0, MaxThreshold = 4, },
-         new() { LevelOfDetail = 1, MaxThreshold = 8, },
-         new() { LevelOfDetail = 2, MaxThreshold = 12, },
-         new() { LevelOfDetail = 2, MaxThreshold = 16, },
-         new() { LevelOfDetail = -1, MaxThreshold = 32, }, // world load distance
-    };
+            new() { LevelOfDetail = 0, MaxThreshold = 4, },
+            new() { LevelOfDetail = 1, MaxThreshold = 8, },
+            new() { LevelOfDetail = 2, MaxThreshold = 12, },
+            new() { LevelOfDetail = 2, MaxThreshold = 16, },
+            new() { LevelOfDetail = -1, MaxThreshold = 32, }, // world load distance
+        };
+
+        /// <summary>
+        /// Lod (level of detail) is a number from 0..4
+        /// Lod 0 ->  1 sub-klotz packing
+        /// Lod 1 ->  2 sub-klotz packing
+        /// Lod 2 ->  4 sub-klotz packing
+        /// Lod 3 ->  8 sub-klotz packing
+        /// Lod 4 -> 16 sub-klotz packing
+        /// </summary>
+        public static int? GetLodFromDistance(int chunkDistance)
+        {
+            foreach (var entry in DetailLevels)
+            {
+                if (chunkDistance <= entry.MaxThreshold)
+                    return entry.LevelOfDetail;
+            }
+
+            // nothing found..
+            return null;
+        }
 
         /// <summary>
         /// Max threshold from <c>DetailLevels</c>
