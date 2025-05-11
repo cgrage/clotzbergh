@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ namespace Clotzbergh.Client
         private readonly MeshFilter _meshFilter;
         private readonly MeshCollider _meshCollider;
 
-        private readonly LevelOfDetailSpecificData[] _lodSpecificData = new LevelOfDetailSpecificData[WorldDef.MaxLodValue + 1];
+        private readonly Dictionary<int, LevelOfDetailSpecificData> _lodSpecificData = new();
 
         private bool _isCleanedUp = false;
         private WorldChunk _currentWorld;
@@ -70,12 +71,19 @@ namespace Clotzbergh.Client
             _gameObject.transform.position = WorldChunk.ChunkCoordsToPosition(coords);
             _gameObject.transform.parent = parent;
             _meshRenderer.material = material;
-            IsActive = false;
 
-            for (int i = 0; i < _lodSpecificData.Length; i++)
+            IsActive = false;
+        }
+
+        LevelOfDetailSpecificData GetLodData(int levelOfDetail)
+        {
+            if (!_lodSpecificData.TryGetValue(levelOfDetail, out var lodData))
             {
-                _lodSpecificData[i] = new LevelOfDetailSpecificData();
+                lodData = new LevelOfDetailSpecificData();
+                _lodSpecificData.Add(levelOfDetail, lodData);
             }
+
+            return lodData;
         }
 
         public void CleanUp()
@@ -114,7 +122,7 @@ namespace Clotzbergh.Client
             if (_isCleanedUp)
                 return;
 
-            var lodData = _lodSpecificData[levelOfDetail];
+            var lodData = GetLodData(levelOfDetail);
 
             // is update really an update?
             if (worldLocalVersion < lodData.worldLocalVersion)
@@ -127,24 +135,16 @@ namespace Clotzbergh.Client
             SetCurrentMeshIfAvailable();
         }
 
-        public static int? GetLodFromDistance(int chunkDistance)
-        {
-            foreach (var entry in WorldDef.DetailLevels)
-            {
-                if (chunkDistance <= entry.MaxThreshold)
-                    return entry.LevelOfDetail;
-            }
-
-            // nothing found..
-            return null;
-        }
-
+        /// <summary>
+        /// This method is expected to be run on main thread.
+        /// </summary>
+        /// <returns>True if a mesh update was requested or if the mesh was updated directly.</returns>
         public bool RequestMeshUpdatesIfNeeded()
         {
             if (_currentLevelOfDetail == -1 || _currentWorld == null)
                 return false;
 
-            var lodData = _lodSpecificData[_currentLevelOfDetail];
+            var lodData = GetLodData(_currentLevelOfDetail);
 
             // are we up to date?
             if (lodData.worldLocalVersion == _worldLocalVersion)
@@ -170,7 +170,7 @@ namespace Clotzbergh.Client
                 return;
 
             // find new level of detail for this distance
-            int? levelOfDetail = GetLodFromDistance(viewerChunkDist);
+            int? levelOfDetail = WorldDef.GetLodFromDistance(viewerChunkDist);
             if (!levelOfDetail.HasValue || levelOfDetail.Value == -1)
             {
                 _currentLevelOfDetail = -1;
@@ -190,7 +190,7 @@ namespace Clotzbergh.Client
             if (_currentLevelOfDetail == -1)
                 return;
 
-            var lodData = _lodSpecificData[_currentLevelOfDetail];
+            var lodData = GetLodData(_currentLevelOfDetail);
 
             // we simply show the newest mesh we have, even if is it a bit outdated.
             _meshFilter.mesh = lodData.mesh;
@@ -252,10 +252,13 @@ namespace Clotzbergh.Client
             if (_currentLevelOfDetail != 0)
                 return null;
 
-            if (_lodSpecificData[0].voxelCoords == null)
+            if (!_lodSpecificData.TryGetValue(0, out var lodData))
                 return null;
 
-            Vector3Int subKlotzCoords = _lodSpecificData[0].voxelCoords[triangleIndex];
+            if (lodData.voxelCoords == null)
+                return null;
+
+            Vector3Int subKlotzCoords = lodData.voxelCoords[triangleIndex];
             return GetKlotzAt(subKlotzCoords);
         }
 

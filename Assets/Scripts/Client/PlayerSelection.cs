@@ -13,7 +13,7 @@ namespace Clotzbergh.Client
             HorizontalCircleLarge,
         }
 
-        private SelectionMode _selectionMode = SelectionMode.None;
+        // private SelectionMode _selectionMode = SelectionMode.None;
 
         private Vector3 _viewedPosition = Vector3.zero;
         private KlotzWorldData _viewedKlotz = null;
