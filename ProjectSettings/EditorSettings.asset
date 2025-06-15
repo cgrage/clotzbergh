@@ -3,28 +3,46 @@
 --- !u!159 &1
 EditorSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 11
-  m_ExternalVersionControlSupport: Visible Meta Files
-  m_SerializationMode: 2
-  m_LineEndingsForNewScripts: 0
-  m_DefaultBehaviorMode: 0
+  # Serialization version bumped to 12 for Unity 2023.x compatibility
+  serializedVersion: 12
+
+  # ───────── Source‑control ─────────
+  m_ExternalVersionControlSupport: Visible Meta Files   # keep .meta files under git
+  m_LineEndingsForNewScripts: 1                         # Force Unix LF → cross‑platform friendly
+  m_ProjectGenerationIncludedExtensions: >-
+    asmdef;asmref;cd;json;md;rsp;shader;txt;xml         # added json, md, shader
+  m_ProjectGenerationRootNamespace: MyStudio.Core       # auto namespace on new C# scripts
+
+  # ───────── Serialization / Prefabs ─────────
+  m_SerializationMode: 2            # Force ‘Force Text’ for merge‑friendly assets
+  m_SerializeInlineMappingsOnOneLine: 0  # multi‑line for diff clarity
   m_PrefabRegularEnvironment: {fileID: 0}
-  m_PrefabUIEnvironment: {fileID: 0}
-  m_SpritePackerMode: 0
+  m_PrefabUIEnvironment:       {fileID: 0}
+
+  # ───────── Asset Pipeline ─────────
+  m_SpritePackerMode: 2                  # Always Enabled (CacheAtlases)
   m_SpritePackerPaddingPower: 1
-  m_EtcTextureCompressorBehavior: 1
+  m_EtcTextureCompressorBehavior: 2      # Prefer ETC2, then fallback
   m_EtcTextureFastCompressor: 1
   m_EtcTextureNormalCompressor: 2
   m_EtcTextureBestCompressor: 4
-  m_ProjectGenerationIncludedExtensions: txt;xml;fnt;cd;asmdef;rsp;asmref
-  m_ProjectGenerationRootNamespace: 
-  m_CollabEditorSettings:
-    inProgressEnabled: 1
-  m_EnableTextureStreamingInEditMode: 1
+
+  # ───────── Performance in Editor ─────────
+  m_AsyncShaderCompilation: 1            # keep async compile on
+  m_CacheServerEnableDownload: 1         # leverage Unity Accelerator if available
+  m_CacheServerEnableUpload: 1
+  m_CacheServerConnection: 0             # 0 = AsConfiguredInPreferences
+
+  # Texture Streaming off while editing UI, on during play
+  m_EnableTextureStreamingInEditMode: 0
   m_EnableTextureStreamingInPlayMode: 1
-  m_AsyncShaderCompilation: 1
-  m_EnterPlayModeOptionsEnabled: 0
-  m_EnterPlayModeOptions: 3
-  m_ShowLightmapResolutionOverlay: 1
+
+  # ───────── Fast Enter Play Mode ─────────
+  m_EnterPlayModeOptionsEnabled: 1
+  #   1 = disable Domain reload, 2 = disable Scene reload → 3 disables both
+  #   Here we keep Scene reload (better for static refs), drop Domain reload
+  m_EnterPlayModeOptions: 1
+
+  # ───────── Lighting UX─────────
+  m_ShowLightmapResolutionOverlay: 0     # declutter Scene view
   m_UseLegacyProbeSampleCount: 0
-  m_SerializeInlineMappingsOnOneLine: 1
