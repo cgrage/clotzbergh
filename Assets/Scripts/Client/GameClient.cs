@@ -32,6 +32,7 @@ namespace Clotzbergh.Client
         public Transform Viewer;
         public Material Material;
         public PlayerSelection Selection;
+        public GameObject DebugPanel;
 
         private Thread _connectionThread;
 
@@ -120,6 +121,11 @@ namespace Clotzbergh.Client
             }
 
             _wasConnected = _isConnected;
+
+            if (Input.GetKeyDown(KeyCode.F12))
+            {
+                DebugPanel.SetActive(!DebugPanel.activeSelf);
+            }
         }
 
         IEnumerator TimerCoroutine()
