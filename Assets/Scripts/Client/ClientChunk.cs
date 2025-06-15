@@ -11,6 +11,7 @@ namespace Clotzbergh.Client
         private readonly int _ownerThreadId;
         private readonly GameObject _gameObject;
         private readonly IClientSideOps _asyncOps;
+        private readonly PlayerSelection _selection;
 
         private readonly MeshRenderer _meshRenderer;
         private readonly MeshFilter _meshFilter;
@@ -27,7 +28,9 @@ namespace Clotzbergh.Client
         /// </summary>
         private ulong _worldLocalVersion = 0;
         private int _currentLevelOfDetail = -1;
+        private int _viewerChunkDist = -1;
         private int _loadPriority = 1000; // less is higher priority
+        private long _lastSeenSelection = -1; // used to detect changes in selection
 
         public WorldChunk World => _currentWorld;
         public string Id => _id;
@@ -54,12 +57,13 @@ namespace Clotzbergh.Client
             public ulong requestedWorldLocalVersion = 0;
         }
 
-        public ClientChunk(Vector3Int coords, Transform parent, IClientSideOps asyncOps, Material material)
+        public ClientChunk(Vector3Int coords, Transform parent, IClientSideOps asyncOps, PlayerSelection selection, Material material)
         {
             _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
             _coords = coords;
             _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
             _asyncOps = asyncOps;
+            _selection = selection;
 
             _gameObject = new GameObject(_id);
             _gameObject.AddComponent<OwnerRef>().owner = this;
@@ -139,24 +143,49 @@ namespace Clotzbergh.Client
         /// This method is expected to be run on main thread.
         /// </summary>
         /// <returns>True if a mesh update was requested or if the mesh was updated directly.</returns>
-        public bool RequestMeshUpdatesIfNeeded()
+        public bool UpdateMeshOrRequestMeshUpdateIfNeeded()
         {
             if (_currentLevelOfDetail == -1 || _currentWorld == null)
-                return false;
+                return false; // no data available
 
             var lodData = GetLodData(_currentLevelOfDetail);
+            bool isNewestVersion = lodData.worldLocalVersion == _worldLocalVersion;
+            bool isVeryClose = _viewerChunkDist < 1;
 
-            // are we up to date?
-            if (lodData.worldLocalVersion == _worldLocalVersion)
-                return false;
+            if (isVeryClose)
+            {
+                long selectionChangeCount = _selection == null ? -1 : _selection.ChangeCount;
+                bool needsSelectionUpdate = _lastSeenSelection != selectionChangeCount;
 
-            // we are not up to date. have we at least requested the data?
-            if (lodData.requestedWorldLocalVersion >= _worldLocalVersion)
-                return false;
+                if (isNewestVersion && !needsSelectionUpdate)
+                    return false;
 
-            _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _worldLocalVersion);
-            lodData.requestedWorldLocalVersion = _worldLocalVersion;
-            return true;
+                // we are very close to the chunk, so we can generate the mesh directly on the main thread.
+                VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
+                lodData.mesh = meshData.ToMesh();
+                lodData.voxelCoords = meshData.VoxelCoords.ToArray();
+                lodData.worldLocalVersion = _worldLocalVersion;
+                lodData.requestedWorldLocalVersion = _worldLocalVersion;
+
+                _lastSeenSelection = selectionChangeCount;
+
+                SetCurrentMeshIfAvailable();
+                return true;
+            }
+            else
+            {
+                // are we up to date?
+                if (isNewestVersion)
+                    return false;
+
+                // we are not up to date. have we at least requested the data?
+                if (lodData.requestedWorldLocalVersion >= _worldLocalVersion)
+                    return false;
+
+                _asyncOps?.RequestMeshCalc(this, _currentWorld, _currentLevelOfDetail, _worldLocalVersion);
+                lodData.requestedWorldLocalVersion = _worldLocalVersion;
+                return true;
+            }
         }
 
         /// <summary>
@@ -174,11 +203,13 @@ namespace Clotzbergh.Client
             if (!levelOfDetail.HasValue || levelOfDetail.Value == -1)
             {
                 _currentLevelOfDetail = -1;
+                _viewerChunkDist = -1;
                 IsActive = false;
                 return;
             }
 
             _currentLevelOfDetail = levelOfDetail.Value;
+            _viewerChunkDist = viewerChunkDist;
             _loadPriority = viewerChunkDist;
 
             SetCurrentMeshIfAvailable();

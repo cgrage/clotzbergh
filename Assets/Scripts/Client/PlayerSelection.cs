@@ -18,13 +18,17 @@ namespace Clotzbergh.Client
         private Vector3 _viewedPosition = Vector3.zero;
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
-        public KlotzRegion _highlightRegion = null;
+        private KlotzRegion _cutout = KlotzRegion.Empty;
+        private long _changeCount = 0;
 
         private bool _actIsHolding;
         private float _actHoldTime;
         private const float RequiredHoldTime = 0.1f; // The duration required to trigger the action
 
         public Material material;
+
+        public long ChangeCount { get => _changeCount; }
+        public KlotzRegion Cutout { get => _cutout; }
 
         private class PlayerView
         {
@@ -40,7 +44,7 @@ namespace Clotzbergh.Client
         void Start()
         {
             _highlightBox = CreateHighlightCube();
-            _highlightRegion = KlotzRegion.CreateEmpty();
+            _cutout = KlotzRegion.Empty;
         }
 
         // Update is called once per frame
@@ -83,15 +87,15 @@ namespace Clotzbergh.Client
                 _highlightBox.transform.localScale = _viewedKlotz.worldSize;
                 _highlightBox.transform.rotation = _viewedKlotz.worldRotation;
                 _highlightBox.SetActive(true);
+                _cutout = KlotzRegion.Spherical(_viewedKlotz.rootCoords, 10);
             }
             else
             {
                 _highlightBox.SetActive(false);
-                _highlightRegion = KlotzRegion.CreateEmpty();
+                _cutout = KlotzRegion.Empty;
             }
 
-            // update
-
+            _changeCount++;
         }
 
         private PlayerView GetPlayerView()

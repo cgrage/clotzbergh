@@ -149,7 +149,7 @@ public class PerformanceTests
             {
                 for (int z = 0; z < worlds.GetLength(2); z++)
                 {
-                    terrains[x, y, z] = new(new(x, y, z), null, null, null);
+                    terrains[x, y, z] = new(new(x, y, z), null, null, null, null);
                     terrains[x, y, z].OnWorldUpdate(1, worlds[x, y, z]);
                 }
             }
@@ -160,7 +160,6 @@ public class PerformanceTests
 
     private VoxelMeshBuilder[,,] GenerateMeshes(ClientChunk[,,] terrains)
     {
-        MeshGenerator meshGen = new();
         VoxelMeshBuilder[,,] meshes = new VoxelMeshBuilder[
             terrains.GetLength(0), terrains.GetLength(1), terrains.GetLength(2)];
 
@@ -170,7 +169,7 @@ public class PerformanceTests
             {
                 for (int z = 0; z < terrains.GetLength(2); z++)
                 {
-                    meshes[x, y, z] = meshGen.GenerateTerrainMesh(terrains[x, y, z], 0);
+                    meshes[x, y, z] = MeshGenerator.GenerateTerrainMesh(terrains[x, y, z], 0);
                 }
             }
         }

@@ -21,6 +21,7 @@ namespace Clotzbergh.Client
         public int MeshThreadCount = 4;
         public Transform Viewer;
         public Material Material;
+        public PlayerSelection Selection;
 
         private Thread _connectionThread;
 
@@ -40,7 +41,6 @@ namespace Clotzbergh.Client
         private readonly ClientChunkStore _chunkStore = new();
         private readonly BlockingCollection<Action<WebSocket>> _connectionThreadActionQueue = new();
         private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
-        private readonly MeshGenerator _meshGenerator = new();
 
         private ulong _receivedBytes = 0;
         private ulong _receivedBytesLastSec = 0;
@@ -57,6 +57,7 @@ namespace Clotzbergh.Client
             _chunkStore.ParentObject = transform;
             _chunkStore.AsyncTerrainOps = this;
             _chunkStore.KlotzMat = Material;
+            _chunkStore.Selection = Selection;
 
             _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
             _connectionThread.Start();
@@ -194,7 +195,7 @@ namespace Clotzbergh.Client
                 while (!_runCancelTS.Token.IsCancellationRequested)
                 {
                     MeshRequest request = _meshRequestQueue.Take(_runCancelTS.Token);
-                    VoxelMeshBuilder meshData = _meshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
+                    VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(request.Owner, request.Lod);
 
                     ToMainThread(() => { request.Owner.OnMeshUpdate(meshData, request.Lod, request.WorldLocalVersion); });
                 }

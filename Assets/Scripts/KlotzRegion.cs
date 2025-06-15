@@ -1,36 +1,32 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Clotzbergh.Client
+namespace Clotzbergh
 {
     /// <summary>
     /// Represents a region of the world in 1x1x1 klotzes.
     /// </summary>
-    public class KlotzRegion
+    public readonly struct KlotzRegion
     {
-        // private ClientChunk[] _chunks;
+        private readonly Vector3Int _anchor;
+        private readonly int _a;
 
-        /// <summary>
-        /// Creates an empty region
-        /// </summary>
-        public KlotzRegion()
+        public static readonly KlotzRegion Empty = new(Vector3Int.zero, 0);
+
+        private KlotzRegion(Vector3Int anchor, int a)
         {
-
+            _anchor = anchor;
+            _a = a;
         }
 
-        public static KlotzRegion CreateEmpty()
+        public static KlotzRegion Spherical(Vector3Int center, int radius)
         {
-            return new KlotzRegion();
+            return new KlotzRegion(center, radius);
         }
 
-        public static KlotzRegion Create(/*ClientChunk center, int radius*/)
+        public bool IsCovered(Vector3Int coords)
         {
-            return new()
-            {
-                // _chunks = new ClientChunk[] { center }
-            };
+            return Vector3Int.Distance(_anchor, coords) <= _a;
         }
-
-        // IEnumerable<ClientChunk> Chunks => _chunks;
     }
 }
