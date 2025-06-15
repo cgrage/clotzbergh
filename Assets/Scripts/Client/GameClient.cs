@@ -14,6 +14,16 @@ namespace Clotzbergh.Client
         void TakeKlotz(Vector3Int chunkCoords, Vector3Int innerChunkCoords);
     }
 
+    public class Statistics
+    {
+        public ulong ReceivedBytes { get; set; }
+        public ulong ReceivedBytesLastSec { get; set; }
+        public ulong ReceivedBytesPerSecLastSec { get; set; }
+        public ulong ReceivedChunks { get; set; }
+        public ulong ReceivedChunksLastSec = 0;
+        public ulong ReceivedChunksPerSecLastSec { get; set; }
+    }
+
     public class GameClient : MonoBehaviour, IClientSideOps
     {
         public string Hostname = "localhost";
@@ -41,13 +51,10 @@ namespace Clotzbergh.Client
         private readonly ClientChunkStore _chunkStore = new();
         private readonly BlockingCollection<Action<WebSocket>> _connectionThreadActionQueue = new();
         private readonly ConcurrentQueue<Action> _mainThreadActionQueue = new();
+        private readonly Statistics _statistics = new();
 
-        private ulong _receivedBytes = 0;
-        private ulong _receivedBytesLastSec = 0;
-        private ulong _receivedBytesPerSecLastSec;
-        private ulong _receivedChunks = 0;
-        private ulong _receivedChunksLastSec = 0;
-        private ulong _receivedChunksPerSecLastSec;
+        public Statistics Stats => _statistics; // for debug UI
+        public ClientChunkStore ChunkStore => _chunkStore; // for debug UI
 
         /// <summary>
         /// Called by Unity
@@ -121,30 +128,12 @@ namespace Clotzbergh.Client
             {
                 yield return new WaitForSeconds(1.0f);
 
-                _receivedBytesPerSecLastSec = _receivedBytes - _receivedBytesLastSec;
-                _receivedChunksPerSecLastSec = _receivedChunks - _receivedChunksLastSec;
+                _statistics.ReceivedBytesPerSecLastSec = _statistics.ReceivedBytes - _statistics.ReceivedBytesLastSec;
+                _statistics.ReceivedChunksPerSecLastSec = _statistics.ReceivedChunks - _statistics.ReceivedChunksLastSec;
 
-                _receivedBytesLastSec = _receivedBytes;
-                _receivedChunksLastSec = _receivedChunks;
+                _statistics.ReceivedBytesLastSec = _statistics.ReceivedBytes;
+                _statistics.ReceivedChunksLastSec = _statistics.ReceivedChunks;
             }
-        }
-
-        void OnGUI()
-        {
-            GUIStyle style = new() { fontSize = 16 };
-            style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-
-            Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
-            GUI.Label(new Rect(Screen.width - 250 - 25, Screen.height - 250 - 25, 270, 200),
-                $"Pos: {Viewer.position}\n" +
-                $"Coord: {viewerChunkCoords}\n" +
-                $"Chk Count: {_chunkStore.ChunkCount}\n" +
-                $"Act Count: {_chunkStore.ActiveChunkCount}\n" +
-                $"Rec.Chunks (total): {_receivedChunks}\n" +
-                $"Rec.Chunks (1/s): {_receivedChunksPerSecLastSec}\n" +
-                $"Rec.MByte (total): {_receivedBytes / 1024 / 1024}\n" +
-                $"Rec.KByte (1/s): {_receivedBytesPerSecLastSec / 1024}",
-                style);
         }
 
         /// <summary>
@@ -243,7 +232,7 @@ namespace Clotzbergh.Client
         /// </summary>
         void OnDataReceivedAsync(byte[] data)
         {
-            _receivedBytes += (ulong)data.Length;
+            _statistics.ReceivedBytes += (ulong)data.Length;
             var cmd = IntercomProtocol.Command.FromBytes(data);
             // Debug.LogFormat($"Client: Cmd '{cmd.Code}', {data.Length} bytes");
 
@@ -261,7 +250,7 @@ namespace Clotzbergh.Client
                     var chunkDataCmd = (IntercomProtocol.ChunkDataCommand)cmd;
                     ToMainThread(() =>
                     {
-                        _receivedChunks++;
+                        _statistics.ReceivedChunks++;
                         _chunkStore.OnWorldChunkReceived(
                             chunkDataCmd.Coord,
                             chunkDataCmd.Version,
