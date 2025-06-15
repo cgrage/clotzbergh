@@ -454,6 +454,7 @@ MonoBehaviour:
   MeshThreadCount: 4
   Viewer: {fileID: 539553190}
   Material: {fileID: 2100000, guid: 66be6cf389d75024890c562d78254fe7, type: 2}
+  Selection: {fileID: 539553191}
 --- !u!4 &785459302
 Transform:
   m_ObjectHideFlags: 0

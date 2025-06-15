@@ -9,6 +9,7 @@ namespace Clotzbergh.Client
         public Transform ParentObject { get; set; }
         public IClientSideOps AsyncTerrainOps { get; set; }
         public Material KlotzMat { get; set; }
+        public PlayerSelection Selection { get; set; }
 
         private readonly Dictionary<Vector3Int, ClientChunk> _dict = new();
 
@@ -27,7 +28,7 @@ namespace Clotzbergh.Client
 
             foreach (var chunk in _activeChunks)
             {
-                if (reqCount < 20 && chunk.RequestMeshUpdatesIfNeeded())
+                if (reqCount < 20 && chunk.UpdateMeshOrRequestMeshUpdateIfNeeded())
                     reqCount++;
             }
         }
@@ -114,7 +115,7 @@ namespace Clotzbergh.Client
             // nothing found there. we need a new one.
             // Debug.Log($"Create new terrain chunk ${coords}");
 
-            thisChunk = new ClientChunk(coords, ParentObject, AsyncTerrainOps, KlotzMat);
+            thisChunk = new ClientChunk(coords, ParentObject, AsyncTerrainOps, Selection, KlotzMat);
             _dict.Add(coords, thisChunk);
 
             // find the neighbors

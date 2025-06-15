@@ -28,6 +28,7 @@ Game-play:
   - ☐ Thread-safe world updates
 - ☐ Player interaction with game (level 1)
   - ☐ Multi-klotz collection
+    - ☐ Cutout for multi-klotz selection
   - ☐ Placing klotzes
 
 Deployment:

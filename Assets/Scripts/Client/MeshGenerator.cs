@@ -13,17 +13,12 @@ namespace Clotzbergh.Client
     /// <c>SubKlotz</c> owns the Klotz (that is the <c>SubKlotz</c> with the sub-
     /// coords {0,0,0}).
     /// </summary>
-    public class MeshGenerator
+    public static class MeshGenerator
     {
-        public MeshGenerator()
-        {
-            // 
-        }
-
         /// <summary>
         /// 
         /// </summary>
-        public VoxelMeshBuilder GenerateTerrainMesh(ClientChunk chunk, int lod)
+        public static VoxelMeshBuilder GenerateTerrainMesh(ClientChunk chunk, int lod, KlotzRegion? cutout = null)
         {
             if (lod < 0 || lod > 4)
                 throw new ArgumentOutOfRangeException("lod", "lod must be 0 to 4");
@@ -33,7 +28,7 @@ namespace Clotzbergh.Client
                 return null;
 
             int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
-            WorldReader reader = new(chunk, lodSkip);
+            WorldReader reader = new(chunk, lodSkip, cutout);
             VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
 
             for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
@@ -83,6 +78,7 @@ namespace Clotzbergh.Client
         private readonly WorldChunk _neighborWorldZM1;
         private readonly WorldChunk _neighborWorldZP1;
         private readonly int _lodSkip = 1;
+        private readonly KlotzRegion? _cutout;
 
         private int _x, _y, _z;
         private SubKlotz _subKlotz;
@@ -91,6 +87,10 @@ namespace Clotzbergh.Client
         private bool GetExposed(int i) { return (_exposed & (1 << i)) != 0; }
         private void SetExposed(int i) { _exposed |= 1 << i; }
 
+        /// <summary>
+        /// Gets a value indicating whether any side of the current <see cref="SubKlotz"/> is exposed.
+        /// A side is considered exposed if it is adjacent to a non-opaque block or the edge of the world.
+        /// </summary>
         public bool IsExposed { get { return _exposed != 0; } }
         public bool IsExposedXM1 { get { return GetExposed(0); } }
         public bool IsExposedXP1 { get { return GetExposed(1); } }
@@ -99,7 +99,7 @@ namespace Clotzbergh.Client
         public bool IsExposedZM1 { get { return GetExposed(4); } }
         public bool IsExposedZP1 { get { return GetExposed(5); } }
 
-        public WorldReader(ClientChunk chunk, int lodSkip = 1)
+        public WorldReader(ClientChunk chunk, int lodSkip = 1, KlotzRegion? cutout = null)
         {
             _worldChunk = chunk.World;
             _neighborWorldXM1 = chunk.NeighborXM1?.World;
@@ -109,6 +109,7 @@ namespace Clotzbergh.Client
             _neighborWorldZM1 = chunk.NeighborZM1?.World;
             _neighborWorldZP1 = chunk.NeighborZP1?.World;
             _lodSkip = lodSkip;
+            _cutout = cutout;
         }
 
         public void MoveTo(int x, int y, int z)
