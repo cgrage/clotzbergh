@@ -20,5 +20,6 @@
         "voxels",
         "wireframe"
     ],
-    "files.insertFinalNewline": true
+    "files.insertFinalNewline": true,
+    "dotnet.preferCSharpExtension": true
 }
