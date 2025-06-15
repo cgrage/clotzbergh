@@ -30,6 +30,9 @@ namespace Clotzbergh.Client
         public long ChangeCount { get => _changeCount; }
         public KlotzRegion Cutout { get => _cutout; }
 
+        public Vector3 ViewedPosition { get => _viewedPosition; } // for debug UI
+        public KlotzWorldData ViewedKlotz { get => _viewedKlotz; } // for debug UI
+
         private class PlayerView
         {
             /// <summary>
@@ -152,17 +155,6 @@ namespace Clotzbergh.Client
                     _actHoldTime = 0f;
                 }
             }
-        }
-
-        void OnGUI()
-        {
-            GUIStyle style = new() { fontSize = 16 };
-            style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-
-            GUI.Label(new Rect(Screen.width - 250 - 25, Screen.height - 90 - 25, 270, 200),
-                $"Hit: {_viewedPosition}\n" +
-                $"Type: {_viewedKlotz?.type}\n",
-                style);
         }
 
         private void SetSelectionBoxColor(Color color)

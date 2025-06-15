@@ -790,8 +790,9 @@ GameObject:
   - component: {fileID: 1720647910}
   - component: {fileID: 1720647912}
   - component: {fileID: 1720647911}
+  - component: {fileID: 1720647913}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: DebugWindow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -814,7 +815,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: -30, y: 30}
-  m_SizeDelta: {x: 250, y: 250}
+  m_SizeDelta: {x: 1016, y: 807}
   m_Pivot: {x: 1, y: 0}
 --- !u!114 &1720647911
 MonoBehaviour:
@@ -854,6 +855,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1720647909}
   m_CullTransparentMesh: 1
+--- !u!114 &1720647913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1720647909}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d75a4433c5a136c44a0089176077959c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GameClient: {fileID: 785459301}
+  PlayerSelection: {fileID: 539553191}
 --- !u!1 &1868879126
 GameObject:
   m_ObjectHideFlags: 0
