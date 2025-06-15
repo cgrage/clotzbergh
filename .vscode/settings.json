@@ -1,8 +1,8 @@
 {
     "files.exclude": {
-        "**/*.meta": true,
+        "**/*.meta": true
     },
-    "dotnet.defaultSolution": "Clotzbergh.sln",
+    "dotnet.defaultSolution": "clotzbergh.sln",
     "cSpell.words": [
         "Behaviour",
         "Clotzbergh",
@@ -10,7 +10,7 @@
         "Expection",
         "Klotz",
         "Klotzes",
-        "Kloxel", // maybe?
+        "Kloxel",
         "Lacunarity",
         "Mathf",
         "Perlin",
