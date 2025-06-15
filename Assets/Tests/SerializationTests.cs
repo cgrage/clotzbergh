@@ -38,11 +38,21 @@ public class SerializationTests
                     SubKlotz k1 = orig.Get(x, y, z);
                     SubKlotz k2 = copy.Get(x, y, z);
 
-                    Assert.AreEqual(k1.Type, k2.Type);
-                    Assert.AreEqual(k1.Direction, k2.Direction);
-                    Assert.AreEqual(k1.SubKlotzIndexX, k2.SubKlotzIndexX);
-                    Assert.AreEqual(k1.SubKlotzIndexY, k2.SubKlotzIndexY);
-                    Assert.AreEqual(k1.SubKlotzIndexZ, k2.SubKlotzIndexZ);
+                    Assert.AreEqual(k1.IsRootSubKlotz, k2.IsRootSubKlotz);
+                    Assert.AreEqual(k1.IsOpaque, k2.IsOpaque);
+
+                    if (k1.IsRootSubKlotz)
+                    {
+                        Assert.AreEqual(k1.Type, k2.Type);
+                        Assert.AreEqual(k1.Color, k2.Color);
+                        Assert.AreEqual(k1.Direction, k2.Direction);
+                    }
+                    else
+                    {
+                        Assert.AreEqual(k1.SubKlotzIndexX, k2.SubKlotzIndexX);
+                        Assert.AreEqual(k1.SubKlotzIndexY, k2.SubKlotzIndexY);
+                        Assert.AreEqual(k1.SubKlotzIndexZ, k2.SubKlotzIndexZ);
+                    }
                 }
             }
         }

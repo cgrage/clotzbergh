@@ -23,11 +23,11 @@ public class WorldGenerator
 
                     if (scaledY > height)
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Air, KlotzColor.Green, KlotzDirection.ToPosX));
                     }
                     else
                     {
-                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.Green, KlotzDirection.ToPosX, 0, 0, 0));
+                        chunk.Set(ix, iy, iz, new SubKlotz(KlotzType.Plate1x1, KlotzColor.Green, KlotzDirection.ToPosX));
                     }
                 }
             }
