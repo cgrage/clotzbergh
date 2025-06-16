@@ -51,8 +51,12 @@ namespace Clotzbergh.Client
 
         class LevelOfDetailSpecificData
         {
-            public Mesh mesh = null;
-            public Vector3Int[] voxelCoords = null;
+            public Mesh colliderMesh = null;
+            /// <summary>
+            /// The voxel coordinates of the mesh triangles that can be used to find the klotz at a triangle index.
+            /// </summary>
+            public Vector3Int[] colliderMeshVoxelCoords = null;
+            public Mesh visualMesh = null;
             public ulong worldLocalVersion = 0;
             public ulong requestedWorldLocalVersion = 0;
         }
@@ -132,8 +136,9 @@ namespace Clotzbergh.Client
             if (worldLocalVersion < lodData.worldLocalVersion)
                 return;
 
-            lodData.mesh = meshData.ToMesh();
-            lodData.voxelCoords = meshData.VoxelCoords.ToArray();
+            lodData.colliderMesh = meshData.ToMesh();
+            lodData.colliderMeshVoxelCoords = meshData.VoxelCoords.ToArray();
+            lodData.visualMesh = lodData.colliderMesh; // we use the same mesh for visualization and collision
             lodData.worldLocalVersion = worldLocalVersion;
 
             SetCurrentMeshIfAvailable();
@@ -154,20 +159,29 @@ namespace Clotzbergh.Client
 
             if (isVeryClose)
             {
+                // we are very close to the chunk, so we can generate the mesh directly on the main thread.
+
                 long selectionChangeCount = _selection == null ? -1 : _selection.ChangeCount;
-                bool needsSelectionUpdate = _lastSeenSelection != selectionChangeCount;
+                bool needsSelectionUpdate = _lastSeenSelection != selectionChangeCount || !isNewestVersion;
 
                 if (isNewestVersion && !needsSelectionUpdate)
                     return false;
 
-                // we are very close to the chunk, so we can generate the mesh directly on the main thread.
-                VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
-                lodData.mesh = meshData.ToMesh();
-                lodData.voxelCoords = meshData.VoxelCoords.ToArray();
-                lodData.worldLocalVersion = _worldLocalVersion;
-                lodData.requestedWorldLocalVersion = _worldLocalVersion;
+                if (!isNewestVersion)
+                {
+                    VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail);
+                    lodData.colliderMesh = meshData.ToMesh();
+                    lodData.colliderMeshVoxelCoords = meshData.VoxelCoords.ToArray();
+                    lodData.worldLocalVersion = _worldLocalVersion;
+                    lodData.requestedWorldLocalVersion = _worldLocalVersion;
+                }
 
-                _lastSeenSelection = selectionChangeCount;
+                if (needsSelectionUpdate)
+                {
+                    VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
+                    lodData.visualMesh = meshData.ToMesh();
+                    _lastSeenSelection = selectionChangeCount;
+                }
 
                 SetCurrentMeshIfAvailable();
                 return true;
@@ -224,8 +238,8 @@ namespace Clotzbergh.Client
             var lodData = GetLodData(_currentLevelOfDetail);
 
             // we simply show the newest mesh we have, even if is it a bit outdated.
-            _meshFilter.mesh = lodData.mesh;
-            _meshCollider.sharedMesh = lodData.mesh;
+            _meshFilter.mesh = lodData.visualMesh;
+            _meshCollider.sharedMesh = lodData.colliderMesh;
         }
 
         private void IncWorldLocalVersion()
@@ -286,10 +300,10 @@ namespace Clotzbergh.Client
             if (!_lodSpecificData.TryGetValue(0, out var lodData))
                 return null;
 
-            if (lodData.voxelCoords == null)
+            if (lodData.colliderMeshVoxelCoords == null)
                 return null;
 
-            Vector3Int subKlotzCoords = lodData.voxelCoords[triangleIndex];
+            Vector3Int subKlotzCoords = lodData.colliderMeshVoxelCoords[triangleIndex];
             return GetKlotzAt(subKlotzCoords);
         }
 

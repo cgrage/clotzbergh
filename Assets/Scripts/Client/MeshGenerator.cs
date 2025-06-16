@@ -78,7 +78,7 @@ namespace Clotzbergh.Client
         private readonly WorldChunk _neighborWorldZM1;
         private readonly WorldChunk _neighborWorldZP1;
         private readonly int _lodSkip = 1;
-        private readonly KlotzRegion? _cutout;
+        private readonly KlotzRegion? _cutoutRegion;
 
         private int _x, _y, _z;
         private SubKlotz _subKlotz;
@@ -109,7 +109,7 @@ namespace Clotzbergh.Client
             _neighborWorldZM1 = chunk.NeighborZM1?.World;
             _neighborWorldZP1 = chunk.NeighborZP1?.World;
             _lodSkip = lodSkip;
-            _cutout = cutout;
+            _cutoutRegion = cutout;
         }
 
         public void MoveTo(int x, int y, int z)
@@ -120,7 +120,10 @@ namespace Clotzbergh.Client
             _subKlotz = _worldChunk.Get(x, y, z);
             _exposed = 0;
 
-            if (_subKlotz.IsOpaque)
+            bool isOpaqueAndNotCut = _subKlotz.IsOpaque &&
+                (!_cutoutRegion.HasValue || !_cutoutRegion.Value.Contains(new Vector3Int(x, y, z)));
+
+            if (isOpaqueAndNotCut)
             {
                 if (IsSideExposedXM1()) SetExposed(0);
                 if (IsSideExposedXP1()) SetExposed(1);
@@ -136,15 +139,20 @@ namespace Clotzbergh.Client
             MoveTo(coords.x, coords.y, coords.z);
         }
 
+        private bool IsOpaqueAndNotCut(WorldChunk chunk, int x, int y, int z)
+        {
+            return chunk.Get(x, y, z).IsOpaque;
+        }
+
         private bool IsSideExposedXM1()
         {
             if (_x > 0) // if within current chunk: regular case
-                return !_worldChunk.Get(_x - _lodSkip, _y, _z).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x - _lodSkip, _y, _z);
 
             if (_neighborWorldXM1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip, _y, _z).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldXM1, WorldDef.ChunkSubDivsX - _lodSkip, _y, _z))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -152,21 +160,21 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z).IsOpaque ||
-                !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z + _lodSkip / 2).IsOpaque ||
-                !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z).IsOpaque ||
-                !_neighborWorldXM1.Get(WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldXM1, WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldXM1, WorldDef.ChunkSubDivsX - _lodSkip / 2, _y, _z + _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldXM1, WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldXM1, WorldDef.ChunkSubDivsX - _lodSkip / 2, _y + _lodSkip / 2, _z + _lodSkip / 2);
         }
 
         private bool IsSideExposedXP1()
         {
             if (_x < WorldDef.ChunkSubDivsX - _lodSkip) // if within current chunk: regular case
-                return !_worldChunk.Get(_x + _lodSkip, _y, _z).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x + _lodSkip, _y, _z);
 
             if (_neighborWorldXP1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldXP1.Get(0, _y, _z).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldXP1, 0, _y, _z))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -174,20 +182,20 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldXP1.Get(0, _y, _z + _lodSkip / 2).IsOpaque ||
-                !_neighborWorldXP1.Get(0, _y + _lodSkip / 2, _z).IsOpaque ||
-                !_neighborWorldXP1.Get(0, _y + _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldXP1, 0, _y, _z + _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldXP1, 0, _y + _lodSkip / 2, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldXP1, 0, _y + _lodSkip / 2, _z + _lodSkip / 2);
         }
 
         private bool IsSideExposedYM1()
         {
             if (_y > 0) // if within current chunk: regular case
-                return !_worldChunk.Get(_x, _y - _lodSkip, _z).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x, _y - _lodSkip, _z);
 
             if (_neighborWorldYM1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip, _z).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldYM1, _x, WorldDef.ChunkSubDivsY - _lodSkip, _z))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -195,21 +203,21 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z).IsOpaque ||
-                !_neighborWorldYM1.Get(_x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2).IsOpaque ||
-                !_neighborWorldYM1.Get(_x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z).IsOpaque ||
-                !_neighborWorldYM1.Get(_x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldYM1, _x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldYM1, _x, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldYM1, _x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldYM1, _x + _lodSkip / 2, WorldDef.ChunkSubDivsY - _lodSkip / 2, _z + _lodSkip / 2);
         }
 
         private bool IsSideExposedYP1()
         {
             if (_y < WorldDef.ChunkSubDivsY - _lodSkip) // if within current chunk: regular case
-                return !_worldChunk.Get(_x, _y + _lodSkip, _z).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x, _y + _lodSkip, _z);
 
             if (_neighborWorldYP1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldYP1.Get(_x, 0, _z).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldYP1, _x, 0, _z))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -217,20 +225,20 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldYP1.Get(_x, 0, _z + _lodSkip / 2).IsOpaque ||
-                !_neighborWorldYP1.Get(_x + _lodSkip / 2, 0, _z).IsOpaque ||
-                !_neighborWorldYP1.Get(_x + _lodSkip / 2, 0, _z + _lodSkip / 2).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldYP1, _x, 0, _z + _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldYP1, _x + _lodSkip / 2, 0, _z) ||
+                !IsOpaqueAndNotCut(_neighborWorldYP1, _x + _lodSkip / 2, 0, _z + _lodSkip / 2);
         }
 
         private bool IsSideExposedZM1()
         {
             if (_z > 0) // if within current chunk: regular case
-                return !_worldChunk.Get(_x, _y, _z - _lodSkip).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x, _y, _z - _lodSkip);
 
             if (_neighborWorldZM1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldZM1.Get(_x, _y, WorldDef.ChunkSubDivsZ - _lodSkip).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldZM1, _x, _y, WorldDef.ChunkSubDivsZ - _lodSkip))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -238,21 +246,21 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldZM1.Get(_x, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
-                !_neighborWorldZM1.Get(_x, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
-                !_neighborWorldZM1.Get(_x + _lodSkip / 2, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque ||
-                !_neighborWorldZM1.Get(_x + _lodSkip / 2, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldZM1, _x, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldZM1, _x, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldZM1, _x + _lodSkip / 2, _y, WorldDef.ChunkSubDivsX - _lodSkip / 2) ||
+                !IsOpaqueAndNotCut(_neighborWorldZM1, _x + _lodSkip / 2, _y + _lodSkip / 2, WorldDef.ChunkSubDivsX - _lodSkip / 2);
         }
 
         private bool IsSideExposedZP1()
         {
             if (_z < WorldDef.ChunkSubDivsX - _lodSkip) // if within current chunk: regular case
-                return !_worldChunk.Get(_x, _y, _z + _lodSkip).IsOpaque;
+                return !IsOpaqueAndNotCut(_worldChunk, _x, _y, _z + _lodSkip);
 
             if (_neighborWorldZP1 == null)
                 return false; // neighbor chunk not known
 
-            if (!_neighborWorldZP1.Get(_x, _y, 0).IsOpaque)
+            if (!IsOpaqueAndNotCut(_neighborWorldZP1, _x, _y, 0))
                 return true; // same LOD neighbor block missing
 
             // check one LOD below the current one
@@ -260,9 +268,9 @@ namespace Clotzbergh.Client
                 return false;
 
             return
-                !_neighborWorldZP1.Get(_x, _y + _lodSkip / 2, 0).IsOpaque ||
-                !_neighborWorldZP1.Get(_x + _lodSkip / 2, _y, 0).IsOpaque ||
-                !_neighborWorldZP1.Get(_x + _lodSkip / 2, _y + _lodSkip / 2, 0).IsOpaque;
+                !IsOpaqueAndNotCut(_neighborWorldZP1, _x, _y + _lodSkip / 2, 0) ||
+                !IsOpaqueAndNotCut(_neighborWorldZP1, _x + _lodSkip / 2, _y, 0) ||
+                !IsOpaqueAndNotCut(_neighborWorldZP1, _x + _lodSkip / 2, _y + _lodSkip / 2, 0);
         }
 
         public Vector3Int RootPos { get { return _subKlotz.RootPos(new(_x, _y, _z)); } }
@@ -348,7 +356,6 @@ namespace Clotzbergh.Client
                 vertices = Vertices.ToArray(),
                 triangles = Triangles.ToArray(),
                 uv = UvData.ToArray(),
-
             };
 
             return mesh;

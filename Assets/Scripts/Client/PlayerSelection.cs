@@ -90,7 +90,7 @@ namespace Clotzbergh.Client
                 _highlightBox.transform.localScale = _viewedKlotz.worldSize;
                 _highlightBox.transform.rotation = _viewedKlotz.worldRotation;
                 _highlightBox.SetActive(true);
-                _cutout = KlotzRegion.Spherical(_viewedKlotz.rootCoords, 10);
+                _cutout = KlotzRegion.Spherical(_viewedKlotz.rootCoords, 5);
             }
             else
             {

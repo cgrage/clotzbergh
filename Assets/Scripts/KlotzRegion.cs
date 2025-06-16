@@ -24,7 +24,7 @@ namespace Clotzbergh
             return new KlotzRegion(center, radius);
         }
 
-        public bool IsCovered(Vector3Int coords)
+        public bool Contains(Vector3Int coords)
         {
             return Vector3Int.Distance(_anchor, coords) <= _a;
         }
