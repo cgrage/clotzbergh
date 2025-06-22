@@ -15,6 +15,8 @@ namespace Clotzbergh.Client
     /// </summary>
     public static class MeshGenerator
     {
+        public static bool DoStudsAndHoles { get; set; } = true;
+
         /// <summary>
         /// 
         /// </summary>
@@ -50,10 +52,21 @@ namespace Clotzbergh.Client
                         builder.SetColor(kRoot.Value.Color);
                         builder.SetVariant(kRoot.Value.Variant);
 
+                        KlotzSideFlags topFlags = 0;
+                        KlotzSideFlags bottomFlags = 0;
+
+                        if (lod == 0 && DoStudsAndHoles)
+                        {
+                            if (KlotzKB.TypeHasTopStuds(type))
+                                topFlags |= KlotzSideFlags.HasStuds;
+                            if (KlotzKB.TypeHasBottomHoles(type))
+                                bottomFlags |= KlotzSideFlags.HasHoles;
+                        }
+
                         if (reader.IsExposedXM1) builder.AddLeftFace();
                         if (reader.IsExposedXP1) builder.AddRightFace();
-                        if (reader.IsExposedYM1) builder.AddBottomFace(lod == 0 && KlotzKB.TypeHasBottomHoles(type) ? KlotzSideFlags.HasHoles : 0);
-                        if (reader.IsExposedYP1) builder.AddTopFace(lod == 0 && KlotzKB.TypeHasTopStuds(type) ? KlotzSideFlags.HasStuds : 0);
+                        if (reader.IsExposedYM1) builder.AddBottomFace(bottomFlags);
+                        if (reader.IsExposedYP1) builder.AddTopFace(topFlags);
                         if (reader.IsExposedZM1) builder.AddBackFace();
                         if (reader.IsExposedZP1) builder.AddFrontFace();
                     }

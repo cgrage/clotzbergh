@@ -122,6 +122,11 @@ namespace Clotzbergh.Client
 
             _wasConnected = _isConnected;
 
+            if (Input.GetKeyDown(KeyCode.F11))
+            {
+                MeshGenerator.DoStudsAndHoles = !MeshGenerator.DoStudsAndHoles;
+            }
+
             if (Input.GetKeyDown(KeyCode.F12))
             {
                 DebugPanel.SetActive(!DebugPanel.activeSelf);
