@@ -6,27 +6,50 @@ namespace Clotzbergh
     /// <summary>
     /// Represents a region of the world in 1x1x1 klotzes.
     /// </summary>
-    public readonly struct KlotzRegion
+    public abstract class KlotzRegion
+    {
+        public static readonly KlotzRegion Empty = new EmptyKlotzRegion();
+
+        protected KlotzRegion() { }
+
+        public static KlotzRegion Cylindrical(Vector3Int anchor, int radius, int height)
+        {
+            return new CylindricalKlotzRegion(anchor, radius, height);
+        }
+
+        public abstract bool Contains(Vector3Int coords);
+    }
+
+    public sealed class EmptyKlotzRegion : KlotzRegion
+    {
+        public EmptyKlotzRegion() { }
+
+        public override bool Contains(Vector3Int coords)
+        {
+            return false;
+        }
+    }
+
+    public class CylindricalKlotzRegion : KlotzRegion
     {
         private readonly Vector3Int _anchor;
-        private readonly int _a;
+        private readonly int _radius;
+        private readonly int _height;
 
-        public static readonly KlotzRegion Empty = new(Vector3Int.zero, 0);
-
-        private KlotzRegion(Vector3Int anchor, int a)
+        public CylindricalKlotzRegion(Vector3Int anchor, int radius, int height)
         {
             _anchor = anchor;
-            _a = a;
+            _radius = radius;
+            _height = height;
         }
 
-        public static KlotzRegion Spherical(Vector3Int center, int radius)
+        public override bool Contains(Vector3Int coords)
         {
-            return new KlotzRegion(center, radius);
-        }
+            if (coords.y < _anchor.y || coords.y > _anchor.y + _height)
+                return false;
 
-        public bool Contains(Vector3Int coords)
-        {
-            return Vector3Int.Distance(_anchor, coords) <= _a;
+            var horizontalDistance = new Vector2(coords.x - _anchor.x, coords.z - _anchor.z).magnitude;
+            return horizontalDistance <= _radius;
         }
     }
 }

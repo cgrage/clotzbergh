@@ -1,11 +1,12 @@
-using Stopwatch = System.Diagnostics.Stopwatch;
+using System;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
-using System;
-using Clotzbergh.Server.WorldGeneration;
-using Clotzbergh.Client;
+using Stopwatch = System.Diagnostics.Stopwatch;
 using Clotzbergh;
+using Clotzbergh.Client;
+using Clotzbergh.Client.MeshGeneration;
+using Clotzbergh.Server.WorldGeneration;
 
 public class PerformanceTests
 {

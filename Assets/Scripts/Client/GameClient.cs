@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using WebSocketSharp;
+using Clotzbergh.Client.MeshGeneration;
 
 namespace Clotzbergh.Client
 {
