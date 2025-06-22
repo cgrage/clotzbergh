@@ -10,10 +10,37 @@ namespace Clotzbergh.Client
     {
         public GameClient GameClient;
         public PlayerSelection PlayerSelection;
+        
+        private readonly ScreenInfo _screenInfo = new();
+
+        private class ScreenInfo
+        {
+            private int _frames = 0;
+            private float _timer = 0f;
+            private int _lastFPS = 0;
+
+            public int FPS => _lastFPS;
+
+            public void Calculate()
+            {
+                _frames++;
+                _timer += Time.unscaledDeltaTime;
+
+                if (_timer >= 1f)
+                {
+                    _lastFPS = _frames;
+                    _frames = 0;
+                    _timer -= 1f;
+                }
+            }
+        }
+
 
         void OnGUI()
         {
-            GUIStyle style = new() { fontSize = 16 };
+            _screenInfo.Calculate();
+
+            GUIStyle style = new() { fontSize = 12 };
             style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
 
             if (!TryGetComponent<RectTransform>(out var rectTransform))
@@ -24,9 +51,14 @@ namespace Clotzbergh.Client
             Vector2 topLeft = RectTransformUtility.WorldToScreenPoint(null, corners[1]);
             Vector2 guiTopLeft = new(topLeft.x, Screen.height - topLeft.y);  // Y is inverted in GUI
 
-            if (GameClient != null)
             {
                 Vector2 location = guiTopLeft + new Vector2(10, 10);
+                RenderScreenInfo(_screenInfo, location, style);
+            }
+
+            if (GameClient != null)
+            {
+                Vector2 location = guiTopLeft + new Vector2(10, 50);
                 RenderGameClientInfo(GameClient, location, style);
             }
 
@@ -35,6 +67,13 @@ namespace Clotzbergh.Client
                 Vector2 location = guiTopLeft + new Vector2(10, 200);
                 RenderPlayerSelectionInfo(PlayerSelection, location, style);
             }
+        }
+
+        private void RenderScreenInfo(ScreenInfo screenInfo, Vector2 location, GUIStyle style)
+        {
+            GUI.Label(new Rect(location, new Vector2(270, 200)),
+                $"FPS: {screenInfo.FPS}",
+                style);
         }
 
         private static void RenderGameClientInfo(GameClient gameClient, Vector2 location, GUIStyle style)
