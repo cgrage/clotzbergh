@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using UnityEngine;
+using System.Threading;
 
 namespace Clotzbergh.Client.MeshGeneration
 {
@@ -15,7 +14,11 @@ namespace Clotzbergh.Client.MeshGeneration
     /// </summary>
     public static class MeshGenerator
     {
+        private static long _meshGenerationCount = 0;
+
         public static bool DoStudsAndHoles { get; set; } = true;
+
+        public static long MeshGenerationCount { get => Interlocked.Read(ref _meshGenerationCount); }
 
         /// <summary>
         /// 
@@ -73,6 +76,7 @@ namespace Clotzbergh.Client.MeshGeneration
                 }
             }
 
+            Interlocked.Increment(ref _meshGenerationCount);
             return builder;
         }
     }

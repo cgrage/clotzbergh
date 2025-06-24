@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,12 +16,9 @@ namespace Clotzbergh.Client
 
     public class Statistics
     {
-        public ulong ReceivedBytes { get; set; }
-        public ulong ReceivedBytesLastSec { get; set; }
-        public ulong ReceivedBytesPerSecLastSec { get; set; }
-        public ulong ReceivedChunks { get; set; }
-        public ulong ReceivedChunksLastSec = 0;
-        public ulong ReceivedChunksPerSecLastSec { get; set; }
+        public long RenderedFrames { get; set; }
+        public long ReceivedBytes { get; set; }
+        public long ReceivedChunks { get; set; }
     }
 
     public class GameClient : MonoBehaviour, IClientSideOps
@@ -77,13 +73,12 @@ namespace Clotzbergh.Client
                 _meshThreads.Add(thread);
                 thread.Start();
             }
-
-            StartCoroutine(TimerCoroutine());
         }
 
         void Update()
         {
             _timeSinceLastClientStatus += Time.deltaTime;
+            _statistics.RenderedFrames++;
 
             if (_isConnected && !_wasConnected)
             {
@@ -131,20 +126,6 @@ namespace Clotzbergh.Client
             if (Input.GetKeyDown(KeyCode.F12))
             {
                 DebugPanel.SetActive(!DebugPanel.activeSelf);
-            }
-        }
-
-        IEnumerator TimerCoroutine()
-        {
-            while (true)
-            {
-                yield return new WaitForSeconds(1.0f);
-
-                _statistics.ReceivedBytesPerSecLastSec = _statistics.ReceivedBytes - _statistics.ReceivedBytesLastSec;
-                _statistics.ReceivedChunksPerSecLastSec = _statistics.ReceivedChunks - _statistics.ReceivedChunksLastSec;
-
-                _statistics.ReceivedBytesLastSec = _statistics.ReceivedBytes;
-                _statistics.ReceivedChunksLastSec = _statistics.ReceivedChunks;
             }
         }
 
@@ -244,7 +225,7 @@ namespace Clotzbergh.Client
         /// </summary>
         void OnDataReceivedAsync(byte[] data)
         {
-            _statistics.ReceivedBytes += (ulong)data.Length;
+            _statistics.ReceivedBytes += data.Length;
             var cmd = IntercomProtocol.Command.FromBytes(data);
             // Debug.LogFormat($"Client: Cmd '{cmd.Code}', {data.Length} bytes");
 

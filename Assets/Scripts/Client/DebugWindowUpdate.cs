@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace Clotzbergh.Client
@@ -10,36 +11,69 @@ namespace Clotzbergh.Client
     {
         public GameClient GameClient;
         public PlayerSelection PlayerSelection;
-        
-        private readonly ScreenInfo _screenInfo = new();
 
-        private class ScreenInfo
+        private readonly SampledInfo _sampledInfo = new();
+
+        private class SampledCounter
         {
-            private int _frames = 0;
-            private float _timer = 0f;
-            private int _lastFPS = 0;
+            public const float SampleInterval = 1f; // Interval in seconds for sampling
 
-            public int FPS => _lastFPS;
+            private float _timeSinceLastSample = 0f;
 
-            public void Calculate()
+            private long _lastValue = 0;
+            private int _delta = 0;
+            private float _deltaPerSecond = 0f;
+
+            public long LastValue => _lastValue;
+            public int Delta => _delta;
+            public float PerSecond => _deltaPerSecond;
+
+            public bool Advance(float deltaTime)
             {
-                _frames++;
-                _timer += Time.unscaledDeltaTime;
+                _timeSinceLastSample += deltaTime;
+                return _timeSinceLastSample >= SampleInterval;
+            }
 
-                if (_timer >= 1f)
+            public void Sample(long currentValue)
+            {
+                if (_timeSinceLastSample >= SampleInterval)
                 {
-                    _lastFPS = _frames;
-                    _frames = 0;
-                    _timer -= 1f;
+                    _delta = (int)(currentValue - _lastValue);
+                    _deltaPerSecond = _delta / SampleInterval;
+
+                    _lastValue = currentValue;
+                    _timeSinceLastSample -= SampleInterval;
                 }
+
             }
         }
 
+        private class SampledInfo
+        {
+            public SampledCounter Frames { get; private set; } = new();
+            public SampledCounter ReceivedBytes { get; private set; } = new();
+            public SampledCounter ReceivedChunks { get; private set; } = new();
+            public SampledCounter GeneratedMeshes { get; private set; } = new();
+
+            public void Update(GameClient gameClient, float deltaTime)
+            {
+                if (Frames.Advance(deltaTime)) Frames.Sample(gameClient.Stats.RenderedFrames);
+                if (ReceivedBytes.Advance(deltaTime)) ReceivedBytes.Sample(gameClient.Stats.ReceivedBytes);
+                if (ReceivedChunks.Advance(deltaTime)) ReceivedChunks.Sample(gameClient.Stats.ReceivedChunks);
+                if (GeneratedMeshes.Advance(deltaTime)) GeneratedMeshes.Sample(MeshGeneration.MeshGenerator.MeshGenerationCount);
+            }
+        }
+
+        void Update()
+        {
+            if (GameClient == null)
+                return;
+
+            _sampledInfo.Update(GameClient, Time.deltaTime);
+        }
 
         void OnGUI()
         {
-            _screenInfo.Calculate();
-
             GUIStyle style = new() { fontSize = 12 };
             style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
 
@@ -53,12 +87,12 @@ namespace Clotzbergh.Client
 
             {
                 Vector2 location = guiTopLeft + new Vector2(10, 10);
-                RenderScreenInfo(_screenInfo, location, style);
+                RenderSampledInfo(_sampledInfo, location, style);
             }
 
             if (GameClient != null)
             {
-                Vector2 location = guiTopLeft + new Vector2(10, 50);
+                Vector2 location = guiTopLeft + new Vector2(10, 80);
                 RenderGameClientInfo(GameClient, location, style);
             }
 
@@ -69,10 +103,13 @@ namespace Clotzbergh.Client
             }
         }
 
-        private void RenderScreenInfo(ScreenInfo screenInfo, Vector2 location, GUIStyle style)
+        private void RenderSampledInfo(SampledInfo sampledInfo, Vector2 location, GUIStyle style)
         {
             GUI.Label(new Rect(location, new Vector2(270, 200)),
-                $"FPS: {screenInfo.FPS}",
+                $"Frames/s: {sampledInfo.Frames.PerSecond:F0}\n" +
+                $"RecChunks/s: {sampledInfo.ReceivedChunks.PerSecond:F0}\n" +
+                $"RecKB/s: {sampledInfo.ReceivedBytes.PerSecond / 1024:F0}\n" +
+                $"Meshes/s: {sampledInfo.GeneratedMeshes.PerSecond:F0}\n",
                 style);
         }
 
@@ -82,12 +119,10 @@ namespace Clotzbergh.Client
             GUI.Label(new Rect(location, new Vector2(270, 200)),
                 $"Pos: {gameClient.Viewer.position}\n" +
                 $"Coord: {viewerChunkCoords}\n" +
-                $"Chk Count: {gameClient.ChunkStore.ChunkCount}\n" +
-                $"Act Count: {gameClient.ChunkStore.ActiveChunkCount}\n" +
-                $"Rec.Chunks (total): {gameClient.Stats.ReceivedChunks}\n" +
-                $"Rec.Chunks (1/s): {gameClient.Stats.ReceivedChunksPerSecLastSec}\n" +
-                $"Rec.MByte (total): {gameClient.Stats.ReceivedBytes / 1024 / 1024}\n" +
-                $"Rec.KByte (1/s): {gameClient.Stats.ReceivedBytesPerSecLastSec / 1024}",
+                $"ChkCount: {gameClient.ChunkStore.ChunkCount}\n" +
+                $"ActCount: {gameClient.ChunkStore.ActiveChunkCount}\n" +
+                $"RecChunks: {gameClient.Stats.ReceivedChunks}\n" +
+                $"RecMB: {gameClient.Stats.ReceivedBytes / 1024 / 1024}\n",
                 style);
         }
 
