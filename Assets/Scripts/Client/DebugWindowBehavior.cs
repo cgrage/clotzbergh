@@ -7,7 +7,7 @@ namespace Clotzbergh.Client
     /// Debug window behavior that displays information about the game client and player selection.
     /// This script is attached to a panel in the UI and renders the debug information.
     /// </summary>
-    public class DebugWindowUpdate : MonoBehaviour
+    public class DebugWindowBehavior : MonoBehaviour
     {
         public GameClient GameClient;
         public PlayerSelection PlayerSelection;
