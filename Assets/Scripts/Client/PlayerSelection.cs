@@ -1,10 +1,11 @@
+using System;
 using UnityEngine;
 
 namespace Clotzbergh.Client
 {
     public class PlayerSelection : MonoBehaviour
     {
-        private enum SelectionMode
+        public enum SelectionModes
         {
             None,
             Klotz,
@@ -13,8 +14,7 @@ namespace Clotzbergh.Client
             HorizontalCircleLarge,
         }
 
-        // private SelectionMode _selectionMode = SelectionMode.None;
-
+        private SelectionModes _selectionMode = SelectionModes.None;
         private Vector3 _viewedPosition = Vector3.zero;
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
@@ -32,6 +32,8 @@ namespace Clotzbergh.Client
 
         public Vector3 ViewedPosition { get => _viewedPosition; } // for debug UI
         public KlotzWorldData ViewedKlotz { get => _viewedKlotz; } // for debug UI
+
+        public SelectionModes SelectionMode { get => _selectionMode; }
 
         private class PlayerView
         {
@@ -55,6 +57,8 @@ namespace Clotzbergh.Client
         {
             if (_highlightBox == null)
                 return;
+
+            HandleModeChanges();
 
             var view = GetPlayerView();
             bool viewChanged = _viewedKlotz != view?.viewedKlotz;
@@ -130,6 +134,23 @@ namespace Clotzbergh.Client
                 viewedChunk = chunk,
                 viewedKlotz = klotz,
             };
+        }
+
+        private static SelectionModes NextSelectionMode(SelectionModes current, int direction)
+        {
+            var modes = (SelectionModes[])Enum.GetValues(typeof(SelectionModes));
+            int newIndex = (Array.IndexOf(modes, current) + direction + modes.Length) % modes.Length;
+            return modes[newIndex];
+        }
+
+        private void HandleModeChanges()
+        {
+            // IF mouse wheel is used, change selection mode
+            if (Input.mouseScrollDelta.y != 0)
+            {
+                int direction = Input.mouseScrollDelta.y > 0 ? 1 : -1;
+                _selectionMode = NextSelectionMode(_selectionMode, direction);
+            }
         }
 
         private void HandleMouseActions(PlayerView selection)
