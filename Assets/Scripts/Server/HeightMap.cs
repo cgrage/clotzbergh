@@ -8,6 +8,21 @@ namespace Clotzbergh.Server
         float At(int x, int y);
     }
 
+    public class FlatHeightMap : IHeightMap
+    {
+        private readonly float _height;
+
+        public FlatHeightMap(float height)
+        {
+            _height = height;
+        }
+
+        public float At(int x, int y)
+        {
+            return _height;
+        }
+    }
+
     public class DefaultHeightMap : IHeightMap
     {
         public const float NoisePlaneScale = 0.003f;

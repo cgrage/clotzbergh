@@ -10,8 +10,17 @@ using Clotzbergh.Server.WorldGeneration;
 
 namespace Clotzbergh.Server
 {
+    public enum WorldType
+    {
+        FlatMicroBlocks,
+        FlatRegular,
+        HillyMicroBlocks,
+        HillyRegular,
+    }
+
     public class WorldMap
     {
+        private readonly string _worldName;
         private readonly int _worldSeed;
         private readonly WorldGenerator _generator;
         private readonly Dictionary<Vector3Int, WorldChunkState> _worldState;
@@ -39,13 +48,14 @@ namespace Clotzbergh.Server
         public int LoaderThreadCount = 4;
         public int SaverThreadsCount = 1;
 
-        public WorldMap(int seed)
+        public WorldMap(string name, WorldType type, int seed)
         {
+            _worldName = name;
             _worldSeed = seed;
-            _generator = new(seed);
+            _generator = new(seed, type);
             _worldState = new();
             _clientStates = new();
-            _chunkDataPath = Path.Combine(Application.persistentDataPath, _worldSeed.ToString());
+            _chunkDataPath = Path.Combine(Application.persistentDataPath, name);
             _runCancelTS = new();
             _loaderThreads = new();
             _saverThreads = new();
@@ -53,10 +63,13 @@ namespace Clotzbergh.Server
             _toSaveList = new();
             _clientListVersion = 0;
 
-            Debug.Log($"Loading data from {_chunkDataPath}");
-
-            if (!Directory.Exists(_chunkDataPath))
+            if (Directory.Exists(_chunkDataPath))
             {
+                Debug.Log($"Loading data from {_chunkDataPath}");
+            }
+            else
+            {
+                Debug.Log($"Create data in {_chunkDataPath}");
                 Directory.CreateDirectory(_chunkDataPath);
             }
         }

@@ -38,7 +38,10 @@ namespace Clotzbergh.Server
         // Start is called before the first frame update
         void Start()
         {
-            _worldMap = new(0);
+            _worldMap = new("0", WorldType.HillyRegular, 0);
+            //_worldMap = new("1", WorldType.HillyMicroBlocks, 0);
+            //_worldMap = new("2", WorldType.FlatRegular, 0);
+            //_worldMap = new("3", WorldType.FlatMicroBlocks, 0);
             _clientData = new();
 
             string url = string.Format("ws://localhost:{0}", ServerPort);

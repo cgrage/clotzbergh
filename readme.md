@@ -20,6 +20,11 @@
 
 List of TODOs
 
+Bugs:
+- Fix bug when world-map is "FlatMicroBlocks" (Change in GameServer.cs)
+- Fix initial positioning of selection box
+- Fix cutout (should just be a hole)
+
 Documentation:
 - ☐ Write some initial documentation
 

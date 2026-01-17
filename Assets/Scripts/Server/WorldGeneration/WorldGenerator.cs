@@ -7,18 +7,29 @@ namespace Clotzbergh.Server.WorldGeneration
 {
     public class WorldGenerator
     {
+        private readonly WorldType _type;
         protected IHeightMap HeightMap { get; }
 
-        public WorldGenerator(int seed)
+        public WorldGenerator(int seed, WorldType type = WorldType.HillyRegular)
         {
-            HeightMap = new DefaultHeightMap(seed);
+            _type = type;
+
+            HeightMap = _type switch
+            {
+                WorldType.FlatMicroBlocks or WorldType.FlatRegular => new FlatHeightMap(0),
+                WorldType.HillyMicroBlocks or WorldType.HillyRegular => new DefaultHeightMap(seed),
+                _ => throw new ArgumentOutOfRangeException(),
+            };
         }
 
         public WorldChunk GetChunk(Vector3Int chunkCoords)
         {
-            //WG01_TrivialWorldGenerator gen = new();
-            //WG02_MicroBlockWorldGenerator gen = new();
-            WG04_WaveFunctionCollapseGeneratorV2 gen = new();
+            IChunkGenerator gen = _type switch
+            {
+                WorldType.FlatMicroBlocks or WorldType.HillyMicroBlocks => new WG02_MicroBlockWorldGenerator(),
+                WorldType.FlatRegular or WorldType.HillyRegular => new WG04_WaveFunctionCollapseGeneratorV2(),
+                _ => throw new ArgumentOutOfRangeException(),
+            };
 
             return gen.Generate(chunkCoords, HeightMap);
         }
@@ -192,7 +203,6 @@ namespace Clotzbergh.Server.WorldGeneration
             return list[Math.Min(biasedIndex, n - 1)];
         }
     }
-
 
     public enum GeneralVoxelType
     {
