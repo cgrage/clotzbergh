@@ -1,0 +1,10 @@
+root = true
+
+[*.cs]
+# Disable IDE0130 (namespace vs folder mismatch)
+# Options:
+#  - Rename namespaces to match the file path (e.g. Assets.Scripts.Your.Namespace)
+#  - Move files so the folder path matches the desired namespace root
+#  - Suppress the analyzer (chosen): keep logical namespaces like Clotzbergh.Client.* while keeping files in Unity's Assets/ folder
+# Decision: suppress IDE0130 for C# files to avoid forcing Unity's folder layout into namespaces.
+dotnet_diagnostic.IDE0130.severity = none
