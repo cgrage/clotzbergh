@@ -4,6 +4,18 @@
 
 ![Screenshot of the game](doc/game-screen.png)
 
+## Key Bindings
+
+| Action | Button | Comment |
+|--------|--------|---------|
+| Movement | W-A-S-D or arrow keys | Input.GetAxis |
+| Jump | Space-Bar | Input.GetButton("Jump") |
+| Run | Left Shift | |
+| Crouch | R | |
+| Selection Mode | Mouse Wheel | |
+| Toggle Studs | F11 | |
+| Toggle Debug Panel | F12 | |
+
 ## TODOs
 
 List of TODOs
