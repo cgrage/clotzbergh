@@ -16,7 +16,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
             HeightMap = _type switch
             {
-                WorldType.FlatMicroBlocks or WorldType.FlatRegular => new FlatHeightMap(0),
+                WorldType.FlatMicroBlocks or WorldType.FlatRegular => new FlatHeightMap(-10f),
                 WorldType.HillyMicroBlocks or WorldType.HillyRegular => new DefaultHeightMap(seed),
                 _ => throw new ArgumentOutOfRangeException(),
             };

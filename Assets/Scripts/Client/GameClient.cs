@@ -23,6 +23,8 @@ namespace Clotzbergh.Client
 
     public class GameClient : MonoBehaviour, IClientSideOps
     {
+        private static readonly Vector3Int InvalidChunkCoords = new(int.MinValue, int.MinValue, int.MinValue);
+
         public string Hostname = "localhost";
         public int Port = 3000;
         public int MeshThreadCount = 4;
@@ -35,7 +37,7 @@ namespace Clotzbergh.Client
 
         private readonly List<Thread> _meshThreads = new();
         private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
-        private Vector3Int _viewerChunkCoords = Vector3Int.zero;
+        private Vector3Int _viewerChunkCoords = InvalidChunkCoords;
         private bool _isConnected = false;
 
         /// <summary>
