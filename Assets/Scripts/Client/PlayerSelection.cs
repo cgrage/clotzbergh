@@ -188,6 +188,7 @@ namespace Clotzbergh.Client
         private GameObject CreateHighlightCube()
         {
             GameObject box = new("Highlight Box");
+            box.SetActive(false);
 
             // Define the vertices of the cuboid
             Vector3[] vertices = {
