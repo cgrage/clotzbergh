@@ -23,6 +23,7 @@ public class SerializationTests
         orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)14, new Vector3Int(20, 20, 20), KlotzDirection.ToNegX);
 
         WorldChunk copy = SerializeDeserialize(orig);
+        copy.DebugCheckIntegrity();
 
         for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
         {

@@ -22,11 +22,14 @@ namespace Clotzbergh
                 WorldDef.ChunkSubDivsZ];
         }
 
-        public void FloodFill(int toHeight = WorldDef.ChunkSubDivsY)
+        /// <summary>
+        /// Fills layers of the chunk with klotzes from fromHeight to toHeight (y-axis).
+        /// </summary>
+        public void LayerFill(int fromHeight = 0, int toHeight = WorldDef.ChunkSubDivsY)
         {
             for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
-                for (int y = 0; y < toHeight; y++)
+                for (int y = fromHeight; y < toHeight; y++)
                 {
                     for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
@@ -40,6 +43,9 @@ namespace Clotzbergh
             }
         }
 
+        /// <summary>
+        /// Fills the core of the chunk with klotzes in all three dimensions, leaving an empty border around it.
+        /// </summary>
         public void CoreFill(int startPercent = 25, int endPercent = 75)
         {
             for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
@@ -112,7 +118,10 @@ namespace Clotzbergh
             }
 
             if (i != _klotzCount)
-                throw new Exception("Internal data counting error");
+            {
+                throw new Exception(
+                    $"Failed to convert to Klotz array (miscount, expected {_klotzCount}, got {i})");
+            }
 
             return result;
         }
@@ -164,6 +173,12 @@ namespace Clotzbergh
                 {
                     chunk.PlaceKlotz(Klotz.Deserialize(r));
                 }
+
+                if (chunk._klotzCount != klotzCount)
+                {
+                    throw new Exception(
+                        $"Klotz count mismatch detected during deserialization! Expected {klotzCount}, got {chunk._klotzCount}");
+                }
             }
             else
             {
@@ -177,6 +192,8 @@ namespace Clotzbergh
                         }
                     }
                 }
+
+                chunk._klotzCount = klotzCount;
             }
 
             return chunk;
@@ -269,6 +286,45 @@ namespace Clotzbergh
         public static int ChunkDistance(Vector3Int a, Vector3Int b)
         {
             return (int)Vector3Int.Distance(a, b);
+        }
+
+        /// <summary>
+        /// Recounts the number of klotzes in the chunk and returns it.
+        /// This function should only be used for debugging purposes.
+        /// </summary>
+        protected int RecountKlotzes()
+        {
+            int count = 0;
+
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+            {
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+                {
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                    {
+                        if (Get(x, y, z).IsRootAndNotAir)
+                        {
+                            count++;
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Debug function to check the integrity of the chunk's klotz count.
+        /// Throws an exception if a mismatch is detected.
+        /// </summary>
+        public void DebugCheckIntegrity()
+        {
+            int recount = RecountKlotzes();
+            if (recount != _klotzCount)
+            {
+                throw new Exception(
+                    $"Klotz count mismatch detected! Expected {_klotzCount}, recounted {recount}");
+            }
         }
     }
 }
