@@ -5,6 +5,8 @@ namespace Clotzbergh.Client
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMovement : MonoBehaviour
     {
+        public float initialMoveDelay = 1f;
+
         public Camera playerCamera;
         public float walkSpeed = 6f;
         public float runSpeed = 12f;
@@ -31,7 +33,7 @@ namespace Clotzbergh.Client
 
         void Update()
         {
-            if (Time.time < 1)
+            if (Time.time < initialMoveDelay)
                 return;
 
             Vector3 forward = transform.TransformDirection(Vector3.forward);

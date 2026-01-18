@@ -2,7 +2,7 @@
     "files.exclude": {
         "**/*.meta": true
     },
-    "dotnet.defaultSolution": "clotzbergh.sln",
+    "dotnet.defaultSolution": "clotzbergh.slnx",
     "cSpell.words": [
         "Behaviour",
         "Clotzbergh",
