@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace Clotzbergh
 {
-    public struct KlotzSize
+    public readonly struct KlotzSize
     {
-        private Vector3Int value;
+        private readonly Vector3Int value;
 
         public KlotzSize(Vector3Int value) => this.value = value;
         public KlotzSize(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
@@ -28,9 +28,9 @@ namespace Clotzbergh
         public static KlotzSize operator /(KlotzSize a, int b) { return new KlotzSize(a.value / b); }
     }
 
-    public struct ChunkCoords
+    public readonly struct ChunkCoords
     {
-        private Vector3Int value;
+        private readonly Vector3Int value;
 
         public ChunkCoords(Vector3Int value) => this.value = value;
         public ChunkCoords(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
@@ -57,9 +57,9 @@ namespace Clotzbergh
         }
     }
 
-    public struct RelKlotzCoords
+    public readonly struct RelKlotzCoords
     {
-        private Vector3Int value;
+        private readonly Vector3Int value;
 
         public RelKlotzCoords(Vector3Int value) => this.value = value;
         public RelKlotzCoords(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
@@ -85,9 +85,9 @@ namespace Clotzbergh
         }
     }
 
-    public struct KlotzIndex
+    public readonly struct KlotzIndex
     {
-        private Vector3Int value;
+        private readonly Vector3Int value;
 
         public KlotzIndex(Vector3Int value) => this.value = value;
         public KlotzIndex(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
