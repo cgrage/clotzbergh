@@ -95,19 +95,22 @@ namespace Clotzbergh.Client
             if (GameClient != null)
             {
                 debugText.AppendLine();
-                debugText.AppendLine($"Pos: {GameClient.Viewer.position}");
-                debugText.AppendLine($"Coords: {WorldChunk.PositionToChunkCoords(GameClient.Viewer.position)}");
-                debugText.AppendLine($"ChkCount: {GameClient.ChunkStore.ChunkCount}");
-                debugText.AppendLine($"ActCount: {GameClient.ChunkStore.ActiveChunkCount}");
-                debugText.AppendLine($"RecChunks: {GameClient.Stats.ReceivedChunks}");
-                debugText.AppendLine($"RecMB: {GameClient.Stats.ReceivedBytes / 1024 / 1024}");
+                debugText.AppendLine($"Viewer.Pos: {GameClient.Viewer.position}");
+                debugText.AppendLine($"Viewer.ChunkCoords: {WorldChunk.PositionToChunkCoords(GameClient.Viewer.position)}");
+                debugText.AppendLine($"ChunkStore.Count: {GameClient.ChunkStore.ChunkCount}");
+                debugText.AppendLine($"ChunkStore.Active: {GameClient.ChunkStore.ActiveChunkCount}");
+                debugText.AppendLine($"Client.ReceivedChunks: {GameClient.Stats.ReceivedChunks}");
+                debugText.AppendLine($"Client.ReceivedMB: {GameClient.Stats.ReceivedBytes / 1024 / 1024}");
             }
 
             if (PlayerSelection != null)
             {
                 debugText.AppendLine();
-                debugText.AppendLine($"Hit: {PlayerSelection.ViewedPosition}");
-                debugText.AppendLine($"Type: {PlayerSelection.ViewedKlotz?.type}");
+                debugText.AppendLine($"Viewed.Pos: {PlayerSelection.ViewedPosition}");
+                debugText.AppendLine($"Viewed.Chunk.Coord: {PlayerSelection.ViewedChunk?.Coords}");
+                debugText.AppendLine($"Viewed.Chunk.SelectionUpdates: {PlayerSelection.ViewedChunk?.SelectionUpdateCounter}");
+                debugText.AppendLine($"Viewed.Klotz.Root: {PlayerSelection.ViewedKlotz?.RootCoords}");
+                debugText.AppendLine($"Viewed.Klotz.Type: {PlayerSelection.ViewedKlotz?.Type}");
             }
 
             textMeshPro.SetText(debugText.ToString());

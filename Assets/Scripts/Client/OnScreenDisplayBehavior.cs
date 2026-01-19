@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Clotzbergh.Client
@@ -27,6 +25,8 @@ namespace Clotzbergh.Client
             string selectionMode = PlayerSelection.SelectionMode.ToString();
 
             Rect pos = new(guiTopLeft + new Vector2(10, 10), new Vector2(270, 200));
+
+            // TODO: Use text mesh pro here too
             GUI.Label(pos, selectionMode, style);
         }
     }

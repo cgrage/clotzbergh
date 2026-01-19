@@ -16,6 +16,7 @@ namespace Clotzbergh.Client
 
         private SelectionModes _selectionMode = SelectionModes.None;
         private Vector3 _viewedPosition = Vector3.zero;
+        private ClientChunk _viewedChunk = null;
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
         private KlotzRegion _cutout = KlotzRegion.Empty;
@@ -31,6 +32,7 @@ namespace Clotzbergh.Client
         public KlotzRegion Cutout { get => _cutout; }
 
         public Vector3 ViewedPosition { get => _viewedPosition; } // for debug UI
+        public ClientChunk ViewedChunk { get => _viewedChunk; } // for debug UI
         public KlotzWorldData ViewedKlotz { get => _viewedKlotz; } // for debug UI
 
         public SelectionModes SelectionMode { get => _selectionMode; }
@@ -65,13 +67,15 @@ namespace Clotzbergh.Client
 
             if (view != null)
             {
+                _viewedChunk = view.viewedChunk;
                 _viewedKlotz = view.viewedKlotz;
                 _viewedPosition = view.viewedPosition;
             }
             else
             {
+                _viewedChunk = null;
                 _viewedKlotz = null;
-                _viewedPosition = _viewedPosition = Vector3.zero;
+                _viewedPosition = Vector3.zero;
             }
 
             if (viewChanged)
@@ -89,12 +93,12 @@ namespace Clotzbergh.Client
         {
             if (_viewedKlotz != null)
             {
-                SetSelectionBoxColor(_viewedKlotz.isFreeToTake ? Color.green : Color.red);
-                _highlightBox.transform.position = _viewedKlotz.worldPosition;
-                _highlightBox.transform.localScale = _viewedKlotz.worldSize;
-                _highlightBox.transform.rotation = _viewedKlotz.worldRotation;
+                SetSelectionBoxColor(_viewedKlotz.IsFreeToTake ? Color.green : Color.red);
+                _highlightBox.transform.position = _viewedKlotz.WorldPosition;
+                _highlightBox.transform.localScale = _viewedKlotz.WorldSize;
+                _highlightBox.transform.rotation = _viewedKlotz.WorldRotation;
                 _highlightBox.SetActive(true);
-                _cutout = KlotzRegion.Empty; // KlotzRegion.Cylindrical(_viewedKlotz.rootCoords, 50, 10);
+                _cutout = KlotzRegion.Empty; // KlotzRegion.Cylindrical(_viewedKlotz.rootCoords, 5, 10);
             }
             else
             {
@@ -172,7 +176,7 @@ namespace Clotzbergh.Client
                 _actHoldTime += Time.deltaTime;
                 if (_actHoldTime >= RequiredHoldTime)
                 {
-                    selection?.viewedChunk.TakeKlotz(selection.viewedKlotz.rootCoords);
+                    selection?.viewedChunk.TakeKlotz(selection.viewedKlotz.RootCoords);
                     _actHoldTime = 0f;
                 }
             }

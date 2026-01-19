@@ -538,24 +538,40 @@ namespace Clotzbergh
 
     public class KlotzWorldData : IEquatable<KlotzWorldData>
     {
-        public RelKlotzCoords rootCoords;
-        public Vector3 worldPosition;
-        public Vector3 worldSize;
-        public Quaternion worldRotation;
-        public KlotzType type;
-        public bool isFreeToTake;
+        public RelKlotzCoords RootCoords { get; private set; }
+        public Vector3 WorldPosition { get; private set; }
+        public Vector3 WorldSize { get; private set; }
+        public Quaternion WorldRotation { get; private set; }
+        public KlotzType Type { get; private set; }
+        public bool IsFreeToTake { get; private set; }
+
+        public KlotzWorldData(
+            RelKlotzCoords rootCoords,
+            Vector3 worldPosition,
+            Vector3 worldSize,
+            Quaternion worldRotation,
+            KlotzType type,
+            bool isFreeToTake)
+        {
+            RootCoords = rootCoords;
+            WorldPosition = worldPosition;
+            WorldSize = worldSize;
+            WorldRotation = worldRotation;
+            Type = type;
+            IsFreeToTake = isFreeToTake;
+        }
 
         // Implement IEquatable<KlotzWorldData>
         public bool Equals(KlotzWorldData other)
         {
             if (other == null) return false;
 
-            return rootCoords.Equals(other.rootCoords)
-                && worldPosition.Equals(other.worldPosition)
-                && worldSize.Equals(other.worldSize)
-                && worldRotation.Equals(other.worldRotation)
-                && type == other.type
-                && isFreeToTake == other.isFreeToTake;
+            return RootCoords.Equals(other.RootCoords)
+                && WorldPosition.Equals(other.WorldPosition)
+                && WorldSize.Equals(other.WorldSize)
+                && WorldRotation.Equals(other.WorldRotation)
+                && Type == other.Type
+                && IsFreeToTake == other.IsFreeToTake;
         }
 
         // Override Equals for object comparison
@@ -568,12 +584,12 @@ namespace Clotzbergh
         public override int GetHashCode()
         {
             return HashCode.Combine(
-                rootCoords,
-                worldPosition,
-                worldSize,
-                worldRotation,
-                type,
-                isFreeToTake);
+                RootCoords,
+                WorldPosition,
+                WorldSize,
+                WorldRotation,
+                Type,
+                IsFreeToTake);
         }
     }
 }

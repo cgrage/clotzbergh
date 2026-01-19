@@ -45,6 +45,9 @@ namespace Clotzbergh.Client
         public ClientChunk NeighborZM1 { get; set; }
         public ClientChunk NeighborZP1 { get; set; }
 
+        public ulong Version => _worldLocalVersion; // debug info
+        public ulong SelectionUpdateCounter { get; private set; } = 0; // debug info
+
         public class OwnerRef : MonoBehaviour
         {
             public ClientChunk owner;
@@ -182,6 +185,8 @@ namespace Clotzbergh.Client
                     VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
                     lodData.visualMesh = meshData.ToMesh();
                     _lastSeenSelection = selectionChangeCount;
+
+                    SelectionUpdateCounter++;
                 }
 
                 SetCurrentMeshIfAvailable();
@@ -282,15 +287,7 @@ namespace Clotzbergh.Client
             Vector3 size = Vector3.Scale(KlotzKB.Size(type).ToVector(), WorldDef.SubKlotzSize);
             Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(dir);
 
-            return new()
-            {
-                rootCoords = reader.RootPos,
-                worldPosition = pos,
-                worldSize = size,
-                worldRotation = rotation,
-                type = type,
-                isFreeToTake = true,
-            };
+            return new(reader.RootPos, pos, size, rotation, type, true);
         }
 
         public KlotzWorldData GetKlotzFromTriangleIndex(int triangleIndex)
