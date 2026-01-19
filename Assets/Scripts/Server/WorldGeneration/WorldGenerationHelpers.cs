@@ -36,9 +36,9 @@ namespace Clotzbergh.Server.WorldGeneration
             List<KlotzType> list = new(types);
             list.Sort((a, b) =>
             {
-                Vector3Int sa = KlotzKB.KlotzSize(a);
-                Vector3Int sb = KlotzKB.KlotzSize(b);
-                return (sb.x * sb.y * sb.z).CompareTo(sa.x * sa.y * sa.z);
+                KlotzSize sa = KlotzKB.Size(a);
+                KlotzSize sb = KlotzKB.Size(b);
+                return (sb.X * sb.Y * sb.Z).CompareTo(sa.X * sa.Y * sa.Z);
             });
             return list.ToArray();
         }
@@ -187,23 +187,23 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private static HitCube8x3x8 Draw(KlotzType type)
         {
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
             return new HitCube8x3x8(
                 DrawKlotzLayer(size, 0, Vector3Int.zero),
                 DrawKlotzLayer(size, 1, Vector3Int.zero),
                 DrawKlotzLayer(size, 2, Vector3Int.zero));
         }
 
-        private static ulong DrawKlotzLayer(Vector3Int klotzSize, int yLayer, Vector3Int relPos)
+        private static ulong DrawKlotzLayer(KlotzSize klotzSize, int yLayer, Vector3Int relPos)
         {
             int y = yLayer + relPos.y;
-            if (y < 0 || y >= klotzSize.y)
+            if (y < 0 || y >= klotzSize.Y)
                 return 0;
 
             int xStart = Math.Clamp(0 - relPos.x, 0, 7);
             int zStart = Math.Clamp(0 - relPos.z, 0, 7);
-            int xEnd = Math.Clamp(klotzSize.x - relPos.x, 0, 8);
-            int zEnd = Math.Clamp(klotzSize.z - relPos.z, 0, 8);
+            int xEnd = Math.Clamp(klotzSize.X - relPos.x, 0, 8);
+            int zEnd = Math.Clamp(klotzSize.Z - relPos.z, 0, 8);
 
             ulong value = 0;
             for (int z = zStart; z < zEnd; z++)
@@ -218,7 +218,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
         public static HitCube8x3x8 Draw(KlotzType type, Vector3Int relPos)
         {
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
             return new HitCube8x3x8(
                 DrawKlotzLayer(size, 0, relPos),
                 DrawKlotzLayer(size, 1, relPos),

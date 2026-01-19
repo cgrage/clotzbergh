@@ -119,12 +119,12 @@ namespace Clotzbergh.Server.WorldGeneration
         {
             SubKlotz subKlotz = SubKlotzAt(coords);
             KlotzType type = subKlotz.Type;
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
             KlotzDirection dir = subKlotz.Direction;
 
-            Vector3Int worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
-            Vector3Int aStart = coords - worstCaseSize;
-            Vector3Int aEnd = coords + size;
+            KlotzSize worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
+            Vector3Int aStart = coords - worstCaseSize.ToVector();
+            Vector3Int aEnd = coords + size.ToVector();
 
             aStart.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
             aEnd.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);

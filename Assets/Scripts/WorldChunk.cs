@@ -206,13 +206,13 @@ namespace Clotzbergh
 
         public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, Vector3Int rootCoords, KlotzDirection dir)
         {
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
 
-            for (int subZ = 0; subZ < size.z; subZ++)
+            for (int subZ = 0; subZ < size.Z; subZ++)
             {
-                for (int subX = 0; subX < size.x; subX++)
+                for (int subX = 0; subX < size.X; subX++)
                 {
-                    for (int subY = 0; subY < size.y; subY++)
+                    for (int subY = 0; subY < size.Y; subY++)
                     {
                         Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                             rootCoords, new(subX, subY, subZ), dir);
@@ -246,13 +246,13 @@ namespace Clotzbergh
                 return;
             }
 
-            Vector3Int size = KlotzKB.KlotzSize(k.Type);
+            KlotzSize size = KlotzKB.Size(k.Type);
 
-            for (int subZ = 0; subZ < size.z; subZ++)
+            for (int subZ = 0; subZ < size.Z; subZ++)
             {
-                for (int subX = 0; subX < size.x; subX++)
+                for (int subX = 0; subX < size.X; subX++)
                 {
-                    for (int subY = 0; subY < size.y; subY++)
+                    for (int subY = 0; subY < size.Y; subY++)
                     {
                         Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                             klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);

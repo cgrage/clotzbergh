@@ -104,7 +104,7 @@ namespace Clotzbergh
         /// <summary>
         /// Return the size of the Klotz when placed in <c>ToPosX</c> direction.
         /// </summary>
-        public static Vector3Int KlotzSize(KlotzType t)
+        public static KlotzSize Size(KlotzType t)
         {
             return t switch
             {
@@ -138,7 +138,7 @@ namespace Clotzbergh
                 KlotzType.Brick2x8 => new(8, 3, 2),
                 KlotzType.Brick4x6 => new(6, 3, 4),
 
-                KlotzType.Air => Vector3Int.zero,
+                KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
             };
         }

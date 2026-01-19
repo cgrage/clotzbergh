@@ -187,13 +187,13 @@ public class WorldGeneratorTests
 
                     KlotzType type = k.Type;
                     KlotzDirection dir = k.Direction;
-                    Vector3Int typeSize = KlotzKB.KlotzSize(type);
+                    KlotzSize typeSize = KlotzKB.Size(type);
 
-                    for (int zi = 0; zi < typeSize.z; zi++)
+                    for (int zi = 0; zi < typeSize.Z; zi++)
                     {
-                        for (int yi = 0; yi < typeSize.y; yi++)
+                        for (int yi = 0; yi < typeSize.Y; yi++)
                         {
-                            for (int xi = 0; xi < typeSize.x; xi++)
+                            for (int xi = 0; xi < typeSize.X; xi++)
                             {
                                 Vector3Int subIndex = new(xi, yi, zi);
                                 Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(pos, subIndex, dir);

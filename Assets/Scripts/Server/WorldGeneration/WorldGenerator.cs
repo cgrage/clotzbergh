@@ -304,15 +304,15 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected void PlaceKlotz(Vector3Int rootCoords, KlotzType type, KlotzDirection dir)
         {
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
             KlotzColor color = ColorFromHeight(ChunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
             KlotzVariant variant = NextRandVariant();
 
-            for (int subZ = 0; subZ < size.z; subZ++)
+            for (int subZ = 0; subZ < size.Z; subZ++)
             {
-                for (int subX = 0; subX < size.x; subX++)
+                for (int subX = 0; subX < size.X; subX++)
                 {
-                    for (int subY = 0; subY < size.y; subY++)
+                    for (int subY = 0; subY < size.Y; subY++)
                     {
                         Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                             rootCoords, new(subX, subY, subZ), dir);
@@ -371,13 +371,13 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected bool IsFreeToComplete(Vector3Int root, KlotzType type, KlotzDirection dir)
         {
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
 
-            for (int subZ = 0; subZ < size.z; subZ++)
+            for (int subZ = 0; subZ < size.Z; subZ++)
             {
-                for (int subX = 0; subX < size.x; subX++)
+                for (int subX = 0; subX < size.X; subX++)
                 {
-                    for (int subY = 0; subY < size.y; subY++)
+                    for (int subY = 0; subY < size.Y; subY++)
                     {
                         Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
                             root, new(subX, subY, subZ), dir);

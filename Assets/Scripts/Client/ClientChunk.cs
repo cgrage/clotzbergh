@@ -279,7 +279,7 @@ namespace Clotzbergh.Client
 
             Vector3 innerPos = SubKlotz.TranslateSubKlotzCoordToWorldLocation(reader.RootPos, dir);
             Vector3 pos = innerPos + WorldChunk.ChunkCoordsToPosition(_coords);
-            Vector3 size = Vector3.Scale(KlotzKB.KlotzSize(type), WorldDef.SubKlotzSize);
+            Vector3 size = Vector3.Scale(KlotzKB.Size(type).ToVector(), WorldDef.SubKlotzSize);
             Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(dir);
 
             return new()

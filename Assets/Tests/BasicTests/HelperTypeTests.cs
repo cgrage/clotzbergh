@@ -109,12 +109,12 @@ public class HelperTypeTests
             throw new NotImplementedException();
         }
 
-        Vector3Int sizeA = KlotzKB.KlotzSize(typeA);
-        Vector3Int sizeB = KlotzKB.KlotzSize(typeB);
+        KlotzSize sizeA = KlotzKB.Size(typeA);
+        KlotzSize sizeB = KlotzKB.Size(typeB);
 
         return
-            posA.x < posB.x + sizeB.x && posA.x + sizeA.x > posB.x &&
-            posA.y < posB.y + sizeB.y && posA.y + sizeA.y > posB.y &&
-            posA.z < posB.z + sizeB.z && posA.z + sizeA.z > posB.z;
+            posA.x < posB.x + sizeB.X && posA.x + sizeA.X > posB.x &&
+            posA.y < posB.y + sizeB.Y && posA.y + sizeA.Y > posB.y &&
+            posA.z < posB.z + sizeB.Z && posA.z + sizeA.Z > posB.z;
     }
 }

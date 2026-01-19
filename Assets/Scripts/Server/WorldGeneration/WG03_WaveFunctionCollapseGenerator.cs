@@ -110,12 +110,12 @@ namespace Clotzbergh.Server.WorldGeneration
         {
             SubKlotz subKlotz = SubKlotzAt(coords);
             KlotzType type = subKlotz.Type;
-            Vector3Int size = KlotzKB.KlotzSize(type);
+            KlotzSize size = KlotzKB.Size(type);
             KlotzDirection dir = subKlotz.Direction;
 
-            Vector3Int worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
-            Vector3Int aStart = coords - worstCaseSize;
-            Vector3Int aEnd = coords + size;
+            KlotzSize worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
+            Vector3Int aStart = coords - worstCaseSize.ToVector();
+            Vector3Int aEnd = coords + size.ToVector();
 
             aStart.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
             aEnd.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
@@ -165,13 +165,13 @@ namespace Clotzbergh.Server.WorldGeneration
                 throw new NotImplementedException();
             }
 
-            Vector3Int sizeA = KlotzKB.KlotzSize(typeA);
-            Vector3Int sizeB = KlotzKB.KlotzSize(typeB);
+            KlotzSize sizeA = KlotzKB.Size(typeA);
+            KlotzSize sizeB = KlotzKB.Size(typeB);
 
             return
-                posA.x < posB.x + sizeB.x && posA.x + sizeA.x > posB.x &&
-                posA.y < posB.y + sizeB.y && posA.y + sizeA.y > posB.y &&
-                posA.z < posB.z + sizeB.z && posA.z + sizeA.z > posB.z;
+                posA.x < posB.x + sizeB.X && posA.x + sizeA.X > posB.x &&
+                posA.y < posB.y + sizeB.Y && posA.y + sizeA.Y > posB.y &&
+                posA.z < posB.z + sizeB.Z && posA.z + sizeA.Z > posB.z;
         }
 
         private void Collapse(Vector3Int rootCoords)
