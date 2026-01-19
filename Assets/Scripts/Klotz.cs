@@ -406,14 +406,14 @@ namespace Clotzbergh
             };
         }
 
-        public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coord, Vector3Int subIndex, KlotzDirection dir)
+        public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coords, Vector3Int subIndex, KlotzDirection dir)
         {
             return dir switch
             {
-                KlotzDirection.ToPosX => new(coord.x - subIndex.x, coord.y - subIndex.y, coord.z - subIndex.z),
-                KlotzDirection.ToNegX => new(coord.x + subIndex.x, coord.y - subIndex.y, coord.z + subIndex.z),
-                KlotzDirection.ToPosZ => new(coord.x + subIndex.z, coord.y - subIndex.y, coord.z - subIndex.x),
-                KlotzDirection.ToNegZ => new(coord.x - subIndex.z, coord.y - subIndex.y, coord.z + subIndex.x),
+                KlotzDirection.ToPosX => new(coords.x - subIndex.x, coords.y - subIndex.y, coords.z - subIndex.z),
+                KlotzDirection.ToNegX => new(coords.x + subIndex.x, coords.y - subIndex.y, coords.z + subIndex.z),
+                KlotzDirection.ToPosZ => new(coords.x + subIndex.z, coords.y - subIndex.y, coords.z - subIndex.x),
+                KlotzDirection.ToNegZ => new(coords.x - subIndex.z, coords.y - subIndex.y, coords.z + subIndex.x),
                 _ => throw new ArgumentException("Invalid direction")
             };
         }
