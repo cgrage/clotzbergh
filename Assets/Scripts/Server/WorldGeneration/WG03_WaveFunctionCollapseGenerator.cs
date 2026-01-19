@@ -41,7 +41,7 @@ namespace Clotzbergh.Server.WorldGeneration
         protected override WorldChunk InnerGenerate()
         {
             PlaceGround();
-            RecalculateSuperpositionsInRange(WorldDef.ChunkSubDivs);
+            RecalculateSuperpositionsInRange(Vector3Int.zero, WorldDef.ChunkSubDivs);
 
             while (NonCompleted.Count > 0)
             {
@@ -72,13 +72,13 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        private void RecalculateSuperpositionsInRange(KlotzSize size)
+        private void RecalculateSuperpositionsInRange(Vector3Int from, Vector3Int to)
         {
-            for (int z = 0; z < size.Z; z++)
+            for (int z = from.z; z < to.z; z++)
             {
-                for (int y = 0; y < size.Y; y++)
+                for (int y = from.y; y < to.y; y++)
                 {
-                    for (int x = 0; x < size.X; x++)
+                    for (int x = from.x; x < to.x; x++)
                     {
                         RecalculateSuperpositionsOfPos(x, y, z);
                     }
@@ -114,17 +114,17 @@ namespace Clotzbergh.Server.WorldGeneration
             KlotzDirection dir = subKlotz.Direction;
 
             KlotzSize worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
-            KlotzSize aStart = new(coords.ToVector() - worstCaseSize.ToVector());
-            KlotzSize aEnd = new(coords.ToVector() + size.ToVector());
+            Vector3Int aStart = coords.ToVector() - worstCaseSize.ToVector();
+            Vector3Int aEnd = coords.ToVector() + size.ToVector();
 
-            aStart.Clamp(KlotzSize.Zero, WorldDef.ChunkSubDivs);
-            aEnd.Clamp(KlotzSize.Zero, WorldDef.ChunkSubDivs);
+            aStart.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
+            aEnd.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
 
-            for (int z = aStart.Z; z < aEnd.Z; z++)
+            for (int z = aStart.z; z < aEnd.z; z++)
             {
-                for (int y = aStart.Y; y < aEnd.Y; y++)
+                for (int y = aStart.y; y < aEnd.y; y++)
                 {
-                    for (int x = aStart.X; x < aEnd.X; x++)
+                    for (int x = aStart.x; x < aEnd.x; x++)
                     {
                         if (IsCompletedAt(x, y, z))
                             continue;

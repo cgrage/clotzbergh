@@ -69,13 +69,12 @@ namespace Clotzbergh.Server.WorldGeneration
         private void RecalculateScoreOfPos(RelKlotzCoords pos)
         {
             int score = 0;
-            int px = pos.X, py = pos.Y, pz = pos.Z;
 
-            for (int iz = pz - (Range - 1); iz < pz + Range; iz++)
+            for (int iz = pos.Z - (Range - 1); iz < pos.Z + Range; iz++)
             {
-                for (int ix = px - (Range - 1); ix < px + Range; ix++)
+                for (int ix = pos.X - (Range - 1); ix < pos.X + Range; ix++)
                 {
-                    for (int iy = py - (Range - 1); iy < py + Range; iy++)
+                    for (int iy = pos.Y - (Range - 1); iy < pos.Y + Range; iy++)
                     {
                         if (IsOutOfBounds(ix, iy, iz))
                             continue;

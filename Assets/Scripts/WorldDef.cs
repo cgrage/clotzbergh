@@ -81,7 +81,7 @@ namespace Clotzbergh
         /// <summary>
         /// 
         /// </summary>
-        public static readonly KlotzSize ChunkSubDivs = new(ChunkSubDivsX, ChunkSubDivsY, ChunkSubDivsZ);
+        public static readonly Vector3Int ChunkSubDivs = new(ChunkSubDivsX, ChunkSubDivsY, ChunkSubDivsZ);
 
         /// <summary>
         /// 32 * 0.36 = 80 * 0.144 = 11,52

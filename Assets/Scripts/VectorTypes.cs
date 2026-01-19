@@ -1,8 +1,9 @@
+using System;
 using UnityEngine;
 
 namespace Clotzbergh
 {
-    public readonly struct KlotzSize
+    public readonly struct KlotzSize : IEquatable<KlotzSize>
     {
         private readonly Vector3Int value;
 
@@ -15,6 +16,7 @@ namespace Clotzbergh
 
         public override readonly string ToString() => value.ToString();
         public override readonly bool Equals(object obj) => obj is KlotzSize ks && value.Equals(ks.value);
+        public bool Equals(KlotzSize other) { return value.Equals(other.value); }
         public override readonly int GetHashCode() => value.GetHashCode();
 
         public static readonly KlotzSize Zero = new(0, 0, 0);
@@ -23,12 +25,9 @@ namespace Clotzbergh
 
         public static bool operator ==(KlotzSize a, KlotzSize b) => a.value == b.value;
         public static bool operator !=(KlotzSize a, KlotzSize b) => a.value != b.value;
-
-        public void Clamp(KlotzSize min, KlotzSize max) { value.Clamp(min.value, max.value); }
-        public static KlotzSize operator /(KlotzSize a, int b) { return new KlotzSize(a.value / b); }
     }
 
-    public readonly struct ChunkCoords
+    public readonly struct ChunkCoords : IEquatable<ChunkCoords>
     {
         private readonly Vector3Int value;
 
@@ -41,6 +40,7 @@ namespace Clotzbergh
 
         public override readonly string ToString() => value.ToString();
         public override readonly bool Equals(object obj) => obj is ChunkCoords cc && value.Equals(cc.value);
+        public bool Equals(ChunkCoords other) { return value.Equals(other.value); }
         public override readonly int GetHashCode() => value.GetHashCode();
 
         public static readonly ChunkCoords Zero = new(0, 0, 0);
@@ -57,7 +57,7 @@ namespace Clotzbergh
         }
     }
 
-    public readonly struct RelKlotzCoords
+    public readonly struct RelKlotzCoords : IEquatable<RelKlotzCoords>
     {
         private readonly Vector3Int value;
 
@@ -70,6 +70,7 @@ namespace Clotzbergh
 
         public override readonly string ToString() => value.ToString();
         public override readonly bool Equals(object obj) => obj is RelKlotzCoords cc && value.Equals(cc.value);
+        public bool Equals(RelKlotzCoords other) { return value.Equals(other.value); }
         public override readonly int GetHashCode() => value.GetHashCode();
 
         public static readonly RelKlotzCoords Zero = new(0, 0, 0);
@@ -79,13 +80,14 @@ namespace Clotzbergh
         public static bool operator ==(RelKlotzCoords a, RelKlotzCoords b) => a.value == b.value;
         public static bool operator !=(RelKlotzCoords a, RelKlotzCoords b) => a.value != b.value;
 
+
         public static int Distance(RelKlotzCoords a, RelKlotzCoords b)
         {
             return (int)Vector3Int.Distance(a.value, b.value);
         }
     }
 
-    public readonly struct KlotzIndex
+    public readonly struct KlotzIndex : IEquatable<KlotzIndex>
     {
         private readonly Vector3Int value;
 
@@ -98,6 +100,7 @@ namespace Clotzbergh
 
         public override readonly string ToString() => value.ToString();
         public override readonly bool Equals(object obj) => obj is KlotzIndex cc && value.Equals(cc.value);
+        public bool Equals(KlotzIndex other) { return value.Equals(other.value); }
         public override readonly int GetHashCode() => value.GetHashCode();
 
         public static readonly KlotzIndex Zero = new(0, 0, 0);
