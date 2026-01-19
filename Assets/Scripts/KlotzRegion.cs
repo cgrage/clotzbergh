@@ -17,14 +17,14 @@ namespace Clotzbergh
             return new CylindricalKlotzRegion(anchor, radius, height);
         }
 
-        public abstract bool Contains(RelKlotzCoords coords);
+        public abstract bool Contains(int x, int y, int z);
     }
 
     public sealed class EmptyKlotzRegion : KlotzRegion
     {
         public EmptyKlotzRegion() { }
 
-        public override bool Contains(RelKlotzCoords coords)
+        public override bool Contains(int x, int y, int z)
         {
             return false;
         }
@@ -43,13 +43,16 @@ namespace Clotzbergh
             _height = height;
         }
 
-        public override bool Contains(RelKlotzCoords coords)
+        public override bool Contains(int x, int y, int z)
         {
-            if (coords.Y < _anchor.Y || coords.Y > _anchor.Y + _height)
+            if (y < _anchor.Y - _height / 2 || y > _anchor.Y + _height / 2)
                 return false;
 
-            var horizontalDistance = new Vector2(coords.X - _anchor.X, coords.Z - _anchor.Z).magnitude;
-            return horizontalDistance <= _radius;
+            var hDist = new Vector2(x - _anchor.X, z - _anchor.Z).magnitude;
+            if (hDist > _radius)
+                return false;
+
+            return true;
         }
     }
 }

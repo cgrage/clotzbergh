@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Clotzbergh.Client.MeshGeneration
@@ -47,7 +48,7 @@ namespace Clotzbergh.Client.MeshGeneration
             _neighborWorldZM1 = chunk.NeighborZM1?.World;
             _neighborWorldZP1 = chunk.NeighborZP1?.World;
             _lodSkip = lodSkip;
-            _cutoutRegion = cutout;
+            _cutoutRegion = cutout ?? KlotzRegion.Empty;
         }
 
         public void MoveTo(int x, int y, int z)
@@ -59,7 +60,7 @@ namespace Clotzbergh.Client.MeshGeneration
             _exposed = 0;
 
             bool isOpaqueAndNotCut = _subKlotz.IsOpaque &&
-                (_cutoutRegion == null || !_cutoutRegion.Contains(new RelKlotzCoords(x, y, z)));
+               !_cutoutRegion.Contains(x, y, z);
 
             if (isOpaqueAndNotCut)
             {
@@ -79,7 +80,7 @@ namespace Clotzbergh.Client.MeshGeneration
 
         private bool IsOpaqueAndNotCut(WorldChunk chunk, int x, int y, int z)
         {
-            return chunk.Get(x, y, z).IsOpaque;
+            return chunk.Get(x, y, z).IsOpaque && !_cutoutRegion.Contains(x, y, z);
         }
 
         private bool IsSideExposedXM1()
