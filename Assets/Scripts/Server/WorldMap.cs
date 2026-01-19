@@ -216,7 +216,7 @@ namespace Clotzbergh.Server
             return update;
         }
 
-        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, Vector3Int innerChunkCoords)
+        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
         {
             // Debug.Log($"ServerMap: PlayerTakeKlotz ${id} ${chunkCoords} ${innerChunkCoords}");
             WorldChunkState worldState = GetWorldState(chunkCoords);

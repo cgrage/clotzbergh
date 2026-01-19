@@ -308,7 +308,7 @@ namespace Clotzbergh.Client
             return GetKlotzAt(subKlotzCoords);
         }
 
-        public void TakeKlotz(Vector3Int innerChunkCoords)
+        public void TakeKlotz(RelKlotzCoords innerChunkCoords)
         {
             _asyncOps?.TakeKlotz(_coords, innerChunkCoords);
         }

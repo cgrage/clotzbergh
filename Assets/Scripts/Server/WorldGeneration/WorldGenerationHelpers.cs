@@ -189,21 +189,21 @@ namespace Clotzbergh.Server.WorldGeneration
         {
             KlotzSize size = KlotzKB.Size(type);
             return new HitCube8x3x8(
-                DrawKlotzLayer(size, 0, Vector3Int.zero),
-                DrawKlotzLayer(size, 1, Vector3Int.zero),
-                DrawKlotzLayer(size, 2, Vector3Int.zero));
+                DrawKlotzLayer(size, 0, RelKlotzCoords.Zero),
+                DrawKlotzLayer(size, 1, RelKlotzCoords.Zero),
+                DrawKlotzLayer(size, 2, RelKlotzCoords.Zero));
         }
 
-        private static ulong DrawKlotzLayer(KlotzSize klotzSize, int yLayer, Vector3Int relPos)
+        private static ulong DrawKlotzLayer(KlotzSize klotzSize, int yLayer, RelKlotzCoords relPos)
         {
-            int y = yLayer + relPos.y;
+            int y = yLayer + relPos.Y;
             if (y < 0 || y >= klotzSize.Y)
                 return 0;
 
-            int xStart = Math.Clamp(0 - relPos.x, 0, 7);
-            int zStart = Math.Clamp(0 - relPos.z, 0, 7);
-            int xEnd = Math.Clamp(klotzSize.X - relPos.x, 0, 8);
-            int zEnd = Math.Clamp(klotzSize.Z - relPos.z, 0, 8);
+            int xStart = Math.Clamp(0 - relPos.X, 0, 7);
+            int zStart = Math.Clamp(0 - relPos.Z, 0, 7);
+            int xEnd = Math.Clamp(klotzSize.X - relPos.X, 0, 8);
+            int zEnd = Math.Clamp(klotzSize.Z - relPos.Z, 0, 8);
 
             ulong value = 0;
             for (int z = zStart; z < zEnd; z++)
@@ -216,7 +216,7 @@ namespace Clotzbergh.Server.WorldGeneration
             return value;
         }
 
-        public static HitCube8x3x8 Draw(KlotzType type, Vector3Int relPos)
+        public static HitCube8x3x8 Draw(KlotzType type, RelKlotzCoords relPos)
         {
             KlotzSize size = KlotzKB.Size(type);
             return new HitCube8x3x8(

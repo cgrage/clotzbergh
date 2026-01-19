@@ -12,19 +12,19 @@ namespace Clotzbergh
 
         protected KlotzRegion() { }
 
-        public static KlotzRegion Cylindrical(Vector3Int anchor, int radius, int height)
+        public static KlotzRegion Cylindrical(RelKlotzCoords anchor, int radius, int height)
         {
             return new CylindricalKlotzRegion(anchor, radius, height);
         }
 
-        public abstract bool Contains(Vector3Int coords);
+        public abstract bool Contains(RelKlotzCoords coords);
     }
 
     public sealed class EmptyKlotzRegion : KlotzRegion
     {
         public EmptyKlotzRegion() { }
 
-        public override bool Contains(Vector3Int coords)
+        public override bool Contains(RelKlotzCoords coords)
         {
             return false;
         }
@@ -32,23 +32,23 @@ namespace Clotzbergh
 
     public class CylindricalKlotzRegion : KlotzRegion
     {
-        private readonly Vector3Int _anchor;
+        private readonly RelKlotzCoords _anchor;
         private readonly int _radius;
         private readonly int _height;
 
-        public CylindricalKlotzRegion(Vector3Int anchor, int radius, int height)
+        public CylindricalKlotzRegion(RelKlotzCoords anchor, int radius, int height)
         {
             _anchor = anchor;
             _radius = radius;
             _height = height;
         }
 
-        public override bool Contains(Vector3Int coords)
+        public override bool Contains(RelKlotzCoords coords)
         {
-            if (coords.y < _anchor.y || coords.y > _anchor.y + _height)
+            if (coords.Y < _anchor.Y || coords.Y > _anchor.Y + _height)
                 return false;
 
-            var horizontalDistance = new Vector2(coords.x - _anchor.x, coords.z - _anchor.z).magnitude;
+            var horizontalDistance = new Vector2(coords.X - _anchor.X, coords.Z - _anchor.Z).magnitude;
             return horizontalDistance <= _radius;
         }
     }

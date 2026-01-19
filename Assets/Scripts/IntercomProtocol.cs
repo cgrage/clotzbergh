@@ -145,9 +145,9 @@ namespace Clotzbergh
             const CodeValue CommandCode = CodeValue.TakeKlotz;
 
             public ChunkCoords ChunkCoords;
-            public Vector3Int InnerChunkCoord;
+            public RelKlotzCoords InnerChunkCoord;
 
-            public TakeKlotzCommand(ChunkCoords coords, Vector3Int innerChunkCoord) : base(CommandCode)
+            public TakeKlotzCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord) : base(CommandCode)
             {
                 ChunkCoords = coords;
                 InnerChunkCoord = innerChunkCoord;
@@ -159,7 +159,7 @@ namespace Clotzbergh
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
-                InnerChunkCoord = new Vector3Int(
+                InnerChunkCoord = new RelKlotzCoords(
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
@@ -170,9 +170,9 @@ namespace Clotzbergh
                 w.Write(ChunkCoords.X);
                 w.Write(ChunkCoords.Y);
                 w.Write(ChunkCoords.Z);
-                w.Write(InnerChunkCoord.x);
-                w.Write(InnerChunkCoord.y);
-                w.Write(InnerChunkCoord.z);
+                w.Write(InnerChunkCoord.X);
+                w.Write(InnerChunkCoord.Y);
+                w.Write(InnerChunkCoord.Z);
             }
         }
     }

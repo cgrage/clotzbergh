@@ -23,6 +23,9 @@ namespace Clotzbergh
 
         public static bool operator ==(KlotzSize a, KlotzSize b) => a.value == b.value;
         public static bool operator !=(KlotzSize a, KlotzSize b) => a.value != b.value;
+
+        public void Clamp(KlotzSize min, KlotzSize max) { value.Clamp(min.value, max.value); }
+        public static KlotzSize operator /(KlotzSize a, int b) { return new KlotzSize(a.value / b); }
     }
 
     public struct ChunkCoords
@@ -49,6 +52,62 @@ namespace Clotzbergh
         public static bool operator !=(ChunkCoords a, ChunkCoords b) => a.value != b.value;
 
         public static int Distance(ChunkCoords a, ChunkCoords b)
+        {
+            return (int)Vector3Int.Distance(a.value, b.value);
+        }
+    }
+
+    public struct RelKlotzCoords
+    {
+        private Vector3Int value;
+
+        public RelKlotzCoords(Vector3Int value) => this.value = value;
+        public RelKlotzCoords(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
+
+        public readonly int X => value.x;
+        public readonly int Y => value.y;
+        public readonly int Z => value.z;
+
+        public override readonly string ToString() => value.ToString();
+        public override readonly bool Equals(object obj) => obj is RelKlotzCoords cc && value.Equals(cc.value);
+        public override readonly int GetHashCode() => value.GetHashCode();
+
+        public static readonly RelKlotzCoords Zero = new(0, 0, 0);
+
+        public readonly Vector3Int ToVector() => value;
+
+        public static bool operator ==(RelKlotzCoords a, RelKlotzCoords b) => a.value == b.value;
+        public static bool operator !=(RelKlotzCoords a, RelKlotzCoords b) => a.value != b.value;
+
+        public static int Distance(RelKlotzCoords a, RelKlotzCoords b)
+        {
+            return (int)Vector3Int.Distance(a.value, b.value);
+        }
+    }
+
+    public struct KlotzIndex
+    {
+        private Vector3Int value;
+
+        public KlotzIndex(Vector3Int value) => this.value = value;
+        public KlotzIndex(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
+
+        public readonly int X => value.x;
+        public readonly int Y => value.y;
+        public readonly int Z => value.z;
+
+        public override readonly string ToString() => value.ToString();
+        public override readonly bool Equals(object obj) => obj is KlotzIndex cc && value.Equals(cc.value);
+        public override readonly int GetHashCode() => value.GetHashCode();
+
+        public static readonly KlotzIndex Zero = new(0, 0, 0);
+
+        public readonly Vector3Int ToVector() => value;
+
+        public static bool operator ==(KlotzIndex a, KlotzIndex b) => a.value == b.value;
+        public static bool operator !=(KlotzIndex a, KlotzIndex b) => a.value != b.value;
+
+        public static int Distance(KlotzIndex a, KlotzIndex b)
         {
             return (int)Vector3Int.Distance(a.value, b.value);
         }

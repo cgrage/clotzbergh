@@ -20,38 +20,38 @@ namespace Clotzbergh.Server.WorldGeneration
                 WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
         }
 
-        public KlotzTypeSet64 PossibleTypesAt(Vector3Int coords, KlotzDirection dir)
+        public KlotzTypeSet64 PossibleTypesAt(RelKlotzCoords coords, KlotzDirection dir)
         {
             if (dir == SupportedDirs[0])
-                return _possibleTypes[coords.x, coords.y, coords.z, 0];
-            else return _possibleTypes[coords.x, coords.y, coords.z, 1];
+                return _possibleTypes[coords.X, coords.Y, coords.Z, 0];
+            else return _possibleTypes[coords.X, coords.Y, coords.Z, 1];
         }
 
-        public void SetPossibleTypesAt(Vector3Int coords, KlotzDirection dir, KlotzTypeSet64 types)
+        public void SetPossibleTypesAt(RelKlotzCoords coords, KlotzDirection dir, KlotzTypeSet64 types)
         {
             if (dir == SupportedDirs[0])
-                _possibleTypes[coords.x, coords.y, coords.z, 0] = types;
-            else _possibleTypes[coords.x, coords.y, coords.z, 1] = types;
+                _possibleTypes[coords.X, coords.Y, coords.Z, 0] = types;
+            else _possibleTypes[coords.X, coords.Y, coords.Z, 1] = types;
         }
 
-        public HitCube8x3x8 GetHitCube(Vector3Int coords)
+        public HitCube8x3x8 GetHitCube(RelKlotzCoords coords)
         {
-            return _hitCubes[coords.x, coords.y, coords.z];
+            return _hitCubes[coords.X, coords.Y, coords.Z];
         }
 
-        public void SetHitCube(Vector3Int coords, HitCube8x3x8 hitCube)
+        public void SetHitCube(RelKlotzCoords coords, HitCube8x3x8 hitCube)
         {
-            _hitCubes[coords.x, coords.y, coords.z] = hitCube;
+            _hitCubes[coords.X, coords.Y, coords.Z] = hitCube;
         }
 
         protected override WorldChunk InnerGenerate()
         {
             PlaceGround();
-            RecalculateSuperpositionsInRange(Vector3Int.zero, WorldDef.ChunkSubDivs);
+            RecalculateSuperpositionsInRange(WorldDef.ChunkSubDivs);
 
             while (NonCompleted.Count > 0)
             {
-                Vector3Int coords = NextRandomElement(NonCompleted);
+                RelKlotzCoords coords = NextRandomElement(NonCompleted);
                 Collapse(coords);
 
                 RecalculateSuperpositionsAffectedBy(coords);
@@ -78,18 +78,18 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        private void RecalculateSuperpositionsInRange(Vector3Int from, Vector3Int to)
+        private void RecalculateSuperpositionsInRange(KlotzSize size)
         {
-            for (int z = from.z; z < to.z; z++)
+            for (int z = 0; z < size.Z; z++)
             {
-                for (int y = from.y; y < to.y; y++)
+                for (int y = 0; y < size.Y; y++)
                 {
-                    for (int x = from.x; x < to.x; x++)
+                    for (int x = 0; x < size.X; x++)
                     {
                         if (IsCompletedAt(x, y, z))
                             continue;
 
-                        Vector3Int coords = new(x, y, z);
+                        RelKlotzCoords coords = new(x, y, z);
                         foreach (var dir in SupportedDirs)
                         {
                             RecalculateSuperpositionsOfPos(coords, dir);
@@ -99,7 +99,7 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        private void RecalculateSuperpositionsOfPos(Vector3Int coords, KlotzDirection dir)
+        private void RecalculateSuperpositionsOfPos(RelKlotzCoords coords, KlotzDirection dir)
         {
             KlotzTypeSet64 newPossibleTypes = KlotzTypeSet64.Empty;
 
@@ -115,7 +115,7 @@ namespace Clotzbergh.Server.WorldGeneration
             SetHitCube(coords, HitCube8x3x8.FromSet(newPossibleTypes));
         }
 
-        private void RecalculateSuperpositionsAffectedBy(Vector3Int coords)
+        private void RecalculateSuperpositionsAffectedBy(RelKlotzCoords coords)
         {
             SubKlotz subKlotz = SubKlotzAt(coords);
             KlotzType type = subKlotz.Type;
@@ -123,23 +123,23 @@ namespace Clotzbergh.Server.WorldGeneration
             KlotzDirection dir = subKlotz.Direction;
 
             KlotzSize worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
-            Vector3Int aStart = coords - worstCaseSize.ToVector();
-            Vector3Int aEnd = coords + size.ToVector();
+            KlotzSize aStart = new(coords.ToVector() - worstCaseSize.ToVector());
+            KlotzSize aEnd = new(coords.ToVector() + size.ToVector());
 
-            aStart.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
-            aEnd.Clamp(Vector3Int.zero, WorldDef.ChunkSubDivs);
+            aStart.Clamp(KlotzSize.Zero, WorldDef.ChunkSubDivs);
+            aEnd.Clamp(KlotzSize.Zero, WorldDef.ChunkSubDivs);
 
-            for (int x = aStart.x; x < aEnd.x; x++)
+            for (int x = aStart.X; x < aEnd.X; x++)
             {
-                for (int z = aStart.z; z < aEnd.z; z++)
+                for (int z = aStart.Z; z < aEnd.Z; z++)
                 {
-                    for (int y = aStart.y; y < aEnd.y; y++)
+                    for (int y = aStart.Y; y < aEnd.Y; y++)
                     {
                         if (IsCompletedAt(x, y, z))
                             continue;
 
-                        Vector3Int pCoords = new(x, y, z);
-                        Vector3Int relPos = pCoords - coords;
+                        RelKlotzCoords pCoords = new(x, y, z);
+                        RelKlotzCoords relPos = new(pCoords.ToVector() - coords.ToVector());
                         HitCube8x3x8 relHitMask = HitCube8x3x8.Draw(type, relPos);
 
                         bool only1x1x1 = true;
@@ -167,7 +167,7 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        private void Collapse(Vector3Int rootCoords)
+        private void Collapse(RelKlotzCoords rootCoords)
         {
             if (IsCompletedAt(rootCoords))
                 throw new InvalidOperationException("Already collapsed (Collapse)");

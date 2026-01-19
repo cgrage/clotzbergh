@@ -11,7 +11,7 @@ namespace Clotzbergh.Client
     public interface IClientSideOps
     {
         void RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
-        void TakeKlotz(ChunkCoords chunkCoords, Vector3Int innerChunkCoords);
+        void TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords);
     }
 
     public class Statistics
@@ -347,7 +347,7 @@ namespace Clotzbergh.Client
             _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
         }
 
-        void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, Vector3Int innerChunkCoords)
+        void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
         {
             _connectionThreadActionQueue.Add((ws) =>
             {

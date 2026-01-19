@@ -310,9 +310,9 @@ namespace Clotzbergh
             }
         }
 
-        public readonly Vector3Int SubKlotzIndex
+        public readonly KlotzIndex SubKlotzIndex
         {
-            get { return new(SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
+            get { return new KlotzIndex(SubKlotzIndexX, SubKlotzIndexY, SubKlotzIndexZ); }
         }
 
         public readonly bool IsAir
@@ -340,7 +340,7 @@ namespace Clotzbergh
         /// <summary>
         /// Calculates the position of the RootSubKlotz based on the position of this SubKlotz.
         /// </summary>
-        public readonly Vector3Int RootPos(Vector3Int myPos)
+        public readonly RelKlotzCoords RootPos(RelKlotzCoords myPos)
         {
             return TranslateCoordsWithSubIndexToRootCoord(myPos, SubKlotzIndex, Direction);
         }
@@ -394,38 +394,38 @@ namespace Clotzbergh
             }
         }
 
-        public static Vector3Int TranslateSubIndexToCoords(Vector3Int rootCoords, Vector3Int subIndex, KlotzDirection dir)
+        public static RelKlotzCoords TranslateSubIndexToCoords(RelKlotzCoords rootCoords, KlotzIndex subIndex, KlotzDirection dir)
         {
             return dir switch
             {
-                KlotzDirection.ToPosX => new(rootCoords.x + subIndex.x, rootCoords.y + subIndex.y, rootCoords.z + subIndex.z),
-                KlotzDirection.ToNegX => new(rootCoords.x - subIndex.x, rootCoords.y + subIndex.y, rootCoords.z - subIndex.z),
-                KlotzDirection.ToPosZ => new(rootCoords.x - subIndex.z, rootCoords.y + subIndex.y, rootCoords.z + subIndex.x),
-                KlotzDirection.ToNegZ => new(rootCoords.x + subIndex.z, rootCoords.y + subIndex.y, rootCoords.z - subIndex.x),
+                KlotzDirection.ToPosX => new(rootCoords.X + subIndex.X, rootCoords.Y + subIndex.Y, rootCoords.Z + subIndex.Z),
+                KlotzDirection.ToNegX => new(rootCoords.X - subIndex.X, rootCoords.Y + subIndex.Y, rootCoords.Z - subIndex.Z),
+                KlotzDirection.ToPosZ => new(rootCoords.X - subIndex.Z, rootCoords.Y + subIndex.Y, rootCoords.Z + subIndex.X),
+                KlotzDirection.ToNegZ => new(rootCoords.X + subIndex.Z, rootCoords.Y + subIndex.Y, rootCoords.Z - subIndex.X),
                 _ => throw new ArgumentException("Invalid direction")
             };
         }
 
-        public static Vector3Int TranslateCoordsWithSubIndexToRootCoord(Vector3Int coords, Vector3Int subIndex, KlotzDirection dir)
+        public static RelKlotzCoords TranslateCoordsWithSubIndexToRootCoord(RelKlotzCoords coords, KlotzIndex subIndex, KlotzDirection dir)
         {
             return dir switch
             {
-                KlotzDirection.ToPosX => new(coords.x - subIndex.x, coords.y - subIndex.y, coords.z - subIndex.z),
-                KlotzDirection.ToNegX => new(coords.x + subIndex.x, coords.y - subIndex.y, coords.z + subIndex.z),
-                KlotzDirection.ToPosZ => new(coords.x + subIndex.z, coords.y - subIndex.y, coords.z - subIndex.x),
-                KlotzDirection.ToNegZ => new(coords.x - subIndex.z, coords.y - subIndex.y, coords.z + subIndex.x),
+                KlotzDirection.ToPosX => new(coords.X - subIndex.X, coords.Y - subIndex.Y, coords.Z - subIndex.Z),
+                KlotzDirection.ToNegX => new(coords.X + subIndex.X, coords.Y - subIndex.Y, coords.Z + subIndex.Z),
+                KlotzDirection.ToPosZ => new(coords.X + subIndex.Z, coords.Y - subIndex.Y, coords.Z - subIndex.X),
+                KlotzDirection.ToNegZ => new(coords.X - subIndex.Z, coords.Y - subIndex.Y, coords.Z + subIndex.X),
                 _ => throw new ArgumentException("Invalid direction")
             };
         }
 
-        public static Vector3 TranslateSubKlotzCoordToWorldLocation(Vector3Int rootCoords, KlotzDirection dir)
+        public static Vector3 TranslateSubKlotzCoordToWorldLocation(RelKlotzCoords rootCoords, KlotzDirection dir)
         {
             return dir switch
             {
-                KlotzDirection.ToPosX => Vector3.Scale(rootCoords + new Vector3Int(0, 0, 0), WorldDef.SubKlotzSize),
-                KlotzDirection.ToPosZ => Vector3.Scale(rootCoords + new Vector3Int(1, 0, 0), WorldDef.SubKlotzSize),
-                KlotzDirection.ToNegX => Vector3.Scale(rootCoords + new Vector3Int(1, 0, 1), WorldDef.SubKlotzSize),
-                KlotzDirection.ToNegZ => Vector3.Scale(rootCoords + new Vector3Int(0, 0, 1), WorldDef.SubKlotzSize),
+                KlotzDirection.ToPosX => Vector3.Scale(rootCoords.ToVector() + new Vector3Int(0, 0, 0), WorldDef.SubKlotzSize),
+                KlotzDirection.ToPosZ => Vector3.Scale(rootCoords.ToVector() + new Vector3Int(1, 0, 0), WorldDef.SubKlotzSize),
+                KlotzDirection.ToNegX => Vector3.Scale(rootCoords.ToVector() + new Vector3Int(1, 0, 1), WorldDef.SubKlotzSize),
+                KlotzDirection.ToNegZ => Vector3.Scale(rootCoords.ToVector() + new Vector3Int(0, 0, 1), WorldDef.SubKlotzSize),
                 _ => throw new ArgumentException("Invalid direction")
             };
         }
@@ -519,7 +519,7 @@ namespace Clotzbergh
             get { return (int)((_rawBits1 >> 15) & 0x1f); }
         }
 
-        public readonly Vector3Int Coords
+        public readonly RelKlotzCoords Coords
         {
             get { return new(CoordsX, CoordsY, CoordsZ); }
         }
@@ -538,7 +538,7 @@ namespace Clotzbergh
 
     public class KlotzWorldData : IEquatable<KlotzWorldData>
     {
-        public Vector3Int rootCoords;
+        public RelKlotzCoords rootCoords;
         public Vector3 worldPosition;
         public Vector3 worldSize;
         public Quaternion worldRotation;

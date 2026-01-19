@@ -23,9 +23,9 @@ namespace Clotzbergh.Server.WorldGeneration
             return _scoresArray[coords.x, coords.y, coords.z];
         }
 
-        public void SetScoreAt(Vector3Int coords, int score)
+        public void SetScoreAt(RelKlotzCoords coords, int score)
         {
-            _scoresArray[coords.x, coords.y, coords.z] = score;
+            _scoresArray[coords.X, coords.Y, coords.Z] = score;
         }
 
         protected override WorldChunk InnerGenerate()
@@ -38,7 +38,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 int failCount = 0;
                 while (failCount < 3 && NonCompleted.Count > 0)
                 {
-                    Vector3Int coords = NextRandomElement(NonCompleted);
+                    RelKlotzCoords coords = NextRandomElement(NonCompleted);
                     KlotzDirection dir = NextRandDirection();
                     bool possible = IsFreeToComplete(coords, type, dir);
 
@@ -66,15 +66,16 @@ namespace Clotzbergh.Server.WorldGeneration
             }
         }
 
-        private void RecalculateScoreOfPos(Vector3Int pos)
+        private void RecalculateScoreOfPos(RelKlotzCoords pos)
         {
             int score = 0;
+            int px = pos.X, py = pos.Y, pz = pos.Z;
 
-            for (int iz = pos.z - (Range - 1); iz < pos.z + Range; iz++)
+            for (int iz = pz - (Range - 1); iz < pz + Range; iz++)
             {
-                for (int ix = pos.x - (Range - 1); ix < pos.x + Range; ix++)
+                for (int ix = px - (Range - 1); ix < px + Range; ix++)
                 {
-                    for (int iy = pos.y - (Range - 1); iy < pos.y + Range; iy++)
+                    for (int iy = py - (Range - 1); iy < py + Range; iy++)
                     {
                         if (IsOutOfBounds(ix, iy, iz))
                             continue;

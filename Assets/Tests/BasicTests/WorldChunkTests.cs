@@ -106,7 +106,7 @@ public class WorldChunkTests
     public void TestBrickPlacement(KlotzType type, int dimX, int dimZ)
     {
         WorldChunk chunk = new();
-        chunk.PlaceKlotz(type, KlotzColor.White, KlotzVariant.Zero, Vector3Int.zero, KlotzDirection.ToPosX);
+        chunk.PlaceKlotz(type, KlotzColor.White, KlotzVariant.Zero, RelKlotzCoords.Zero, KlotzDirection.ToPosX);
 
         SubKlotz k = chunk.Get(0, 0, 0);
         Assert.IsTrue(k.IsRoot);
@@ -121,8 +121,8 @@ public class WorldChunkTests
             {
                 for (int x = 0; x < dimX; x++)
                 {
-                    Vector3Int coords = new(x, y, z);
-                    if (coords == Vector3Int.zero)
+                    RelKlotzCoords coords = new(x, y, z);
+                    if (coords == RelKlotzCoords.Zero)
                         continue; // skip root-klotz
 
                     k = chunk.Get(coords);
@@ -159,7 +159,7 @@ public class WorldChunkTests
             {
                 for (int x = 0; x < 8; x++)
                 {
-                    Vector3Int coords = new(x, y, z);
+                    RelKlotzCoords coords = new(x, y, z);
                     bool isZEven = z % 2 == 0;
 
                     bool expectRoot = (y == 0) && ((x == 0 && isZEven) || (x == 7 && !isZEven));
@@ -182,12 +182,12 @@ public class WorldChunkTests
                     Assert.AreEqual(expectedDir, k.Direction, $"Unexpected direction at {coords}");
 
                     // --- root ---
-                    Vector3Int rootPos = k.RootPos(coords);
+                    RelKlotzCoords rootPos = k.RootPos(coords);
 
                     // root-pos
-                    Assert.AreEqual(z % 2 == 0 ? 0 : 7, rootPos.x);
-                    Assert.AreEqual(0, rootPos.y);
-                    Assert.AreEqual(z, rootPos.z);
+                    Assert.AreEqual(z % 2 == 0 ? 0 : 7, rootPos.X);
+                    Assert.AreEqual(0, rootPos.Y);
+                    Assert.AreEqual(z, rootPos.Z);
 
                     SubKlotz kRoot = chunk.Get(rootPos);
                     Assert.AreEqual(KlotzType.Brick1x8, kRoot.Type);

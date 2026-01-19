@@ -29,62 +29,62 @@ public class HelperTypeTests
     {
         HitCube8x3x8 hc1 = HitCube8x3x8.FromType(KlotzType.Brick2x4);
 
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(6, 0, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(5, 0, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(4, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(3, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(2, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(1, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-1, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-2, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-3, 0, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-4, 0, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-5, 0, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(-6, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(6, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(5, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(4, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(3, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(2, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(1, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-1, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-2, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-3, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-4, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-5, 0, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(-6, 0, 0))));
 
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 6, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 5, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 4, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 3, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 2, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 1, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -1, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -2, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -3, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -4, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -5, 0))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, -6, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 6, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 5, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 4, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 3, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 2, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 1, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -1, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -2, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -3, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -4, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -5, 0))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, -6, 0))));
 
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 6))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 5))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 4))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 3))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 2))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 1))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, 0))));
-        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -1))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -2))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -3))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -4))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -5))));
-        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new Vector3Int(0, 0, -6))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 6))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 5))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 4))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 3))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 2))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 1))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, 0))));
+        Assert.IsTrue(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -1))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -2))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -3))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -4))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -5))));
+        Assert.IsFalse(hc1.Hits(HitCube8x3x8.Draw(KlotzType.Brick2x4, new RelKlotzCoords(0, 0, -6))));
     }
 
     [Test]
     public void HitCubeTest2()
     {
         // Klotz 1: Plate8x8 at (7, 53, 23)
-        Vector3Int k1Pos = new(7, 53, 23);
+        RelKlotzCoords k1Pos = new(7, 53, 23);
         KlotzType k1Type = KlotzType.Plate8x8;
 
         // Klotz 2: Brick1x8 at (0, 51, 27)
-        Vector3Int k2Pos = new(0, 51, 27);
+        RelKlotzCoords k2Pos = new(0, 51, 27);
         KlotzType k2Type = KlotzType.Brick1x8;
 
         // Point of interest: Root of Klotz 2 -> (-7, -2, 4)
-        Vector3Int relPos = k2Pos - k1Pos;
+        RelKlotzCoords relPos = new(k2Pos.ToVector() - k1Pos.ToVector());
 
         HitCube8x3x8 k2hc = HitCube8x3x8.FromType(k2Type);
         HitCube8x3x8 k1hc = HitCube8x3x8.Draw(k1Type, relPos);
@@ -101,7 +101,7 @@ public class HelperTypeTests
         Assert.AreEqual(doIntersect, k2hc.Hits(k1hc));
     }
 
-    public static bool DoIntersectReferenceImpl(Vector3Int posA, KlotzType typeA, KlotzDirection dirA, Vector3Int posB, KlotzType typeB, KlotzDirection dirB)
+    public static bool DoIntersectReferenceImpl(RelKlotzCoords posA, KlotzType typeA, KlotzDirection dirA, RelKlotzCoords posB, KlotzType typeB, KlotzDirection dirB)
     {
         // Limitations
         if (dirA != KlotzDirection.ToPosX || dirB != KlotzDirection.ToPosX)
@@ -113,8 +113,8 @@ public class HelperTypeTests
         KlotzSize sizeB = KlotzKB.Size(typeB);
 
         return
-            posA.x < posB.x + sizeB.X && posA.x + sizeA.X > posB.x &&
-            posA.y < posB.y + sizeB.Y && posA.y + sizeA.Y > posB.y &&
-            posA.z < posB.z + sizeB.Z && posA.z + sizeA.Z > posB.z;
+            posA.X < posB.X + sizeB.X && posA.X + sizeA.X > posB.X &&
+            posA.Y < posB.Y + sizeB.Y && posA.Y + sizeA.Y > posB.Y &&
+            posA.Z < posB.Z + sizeB.Z && posA.Z + sizeA.Z > posB.Z;
     }
 }

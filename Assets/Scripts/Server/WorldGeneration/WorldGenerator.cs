@@ -107,9 +107,9 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected abstract WorldChunk InnerGenerate();
 
-        protected bool IsOutOfBounds(Vector3Int coords)
+        protected bool IsOutOfBounds(RelKlotzCoords coords)
         {
-            return IsOutOfBounds(coords.x, coords.y, coords.z);
+            return IsOutOfBounds(coords.X, coords.Y, coords.Z);
         }
 
         protected bool IsOutOfBounds(int x, int y, int z)
@@ -215,7 +215,7 @@ namespace Clotzbergh.Server.WorldGeneration
         private readonly GeneralVoxelType[,,] _generalTypeArray;
         private readonly bool[,,] _isCompletedArray;
 
-        private readonly List<Vector3Int> _nonCompleted;
+        private readonly List<RelKlotzCoords> _nonCompleted;
 
         public VoxelChunkGenerator(bool trackNonCompleted = true)
         {
@@ -225,16 +225,16 @@ namespace Clotzbergh.Server.WorldGeneration
             _nonCompleted = trackNonCompleted ? new() : null;
         }
 
-        protected IReadOnlyList<Vector3Int> NonCompleted => _nonCompleted;
+        protected IReadOnlyList<RelKlotzCoords> NonCompleted => _nonCompleted;
 
         protected bool IsCompletedAt(int x, int y, int z)
         {
             return _isCompletedArray[x, y, z];
         }
 
-        protected bool IsCompletedAt(Vector3Int coords)
+        protected bool IsCompletedAt(RelKlotzCoords coords)
         {
-            return _isCompletedArray[coords.x, coords.y, coords.z];
+            return _isCompletedArray[coords.X, coords.Y, coords.Z];
         }
 
         protected bool SetCompletedAt(int x, int y, int z)
@@ -242,9 +242,9 @@ namespace Clotzbergh.Server.WorldGeneration
             return _isCompletedArray[x, y, z] = true;
         }
 
-        protected bool SetCompletedAt(Vector3Int coords)
+        protected bool SetCompletedAt(RelKlotzCoords coords)
         {
-            return _isCompletedArray[coords.x, coords.y, coords.z] = true;
+            return _isCompletedArray[coords.X, coords.Y, coords.Z] = true;
         }
 
         protected SubKlotz SubKlotzAt(int x, int y, int z)
@@ -252,7 +252,7 @@ namespace Clotzbergh.Server.WorldGeneration
             return _chunk.Get(x, y, z);
         }
 
-        protected SubKlotz SubKlotzAt(Vector3Int coords)
+        protected SubKlotz SubKlotzAt(RelKlotzCoords coords)
         {
             return _chunk.Get(coords);
         }
@@ -295,17 +295,17 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected virtual void OnGeneralVoxelTypeDecided(int x, int y, int z, GeneralVoxelType generalType) { }
 
-        protected void PlaceAir(Vector3Int coords)
+        protected void PlaceAir(RelKlotzCoords coords)
         {
             _chunk.Set(coords, SubKlotz.Air);
             SetCompletedAt(coords);
             _nonCompleted?.Remove(coords);
         }
 
-        protected void PlaceKlotz(Vector3Int rootCoords, KlotzType type, KlotzDirection dir)
+        protected void PlaceKlotz(RelKlotzCoords rootCoords, KlotzType type, KlotzDirection dir)
         {
             KlotzSize size = KlotzKB.Size(type);
-            KlotzColor color = ColorFromHeight(ChunkCoords.Y * WorldDef.ChunkSubDivsY + rootCoords.y);
+            KlotzColor color = ColorFromHeight(ChunkCoords.Y * WorldDef.ChunkSubDivsY + rootCoords.Y);
             KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.Z; subZ++)
@@ -314,7 +314,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 {
                     for (int subY = 0; subY < size.Y; subY++)
                     {
-                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                        RelKlotzCoords coords = SubKlotz.TranslateSubIndexToCoords(
                             rootCoords, new(subX, subY, subZ), dir);
 
                         if (IsOutOfBounds(coords))
@@ -369,7 +369,7 @@ namespace Clotzbergh.Server.WorldGeneration
             return IsFreeToComplete(new(x, y, z), type, dir);
         }
 
-        protected bool IsFreeToComplete(Vector3Int root, KlotzType type, KlotzDirection dir)
+        protected bool IsFreeToComplete(RelKlotzCoords root, KlotzType type, KlotzDirection dir)
         {
             KlotzSize size = KlotzKB.Size(type);
 
@@ -379,7 +379,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 {
                     for (int subY = 0; subY < size.Y; subY++)
                     {
-                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                        RelKlotzCoords coords = SubKlotz.TranslateSubIndexToCoords(
                             root, new(subX, subY, subZ), dir);
 
                         if (IsOutOfBounds(coords))

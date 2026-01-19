@@ -20,9 +20,9 @@ namespace Clotzbergh.Client.MeshGeneration
         /// </summary>
         public List<Vector3Int> VoxelCoords { get; private set; }
 
-        public VoxelMeshBuilder(Vector3 size, Vector3Int subDivs)
+        public VoxelMeshBuilder(Vector3 size, KlotzSize subDivs)
         {
-            _segmentSize = new(size.x / subDivs.x, size.y / subDivs.y, size.z / subDivs.z);
+            _segmentSize = new(size.x / subDivs.X, size.y / subDivs.Y, size.z / subDivs.Z);
             _color = KlotzColor.White;
             _variant = KlotzVariant.Zero;
 

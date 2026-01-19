@@ -19,8 +19,8 @@ public class SerializationTests
     {
         WorldChunk orig = new();
         orig.CoreFill(startPercent, endPercent);
-        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)127, new Vector3Int(10, 10, 10), KlotzDirection.ToNegZ);
-        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)14, new Vector3Int(20, 20, 20), KlotzDirection.ToNegX);
+        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)127, new RelKlotzCoords(10, 10, 10), KlotzDirection.ToNegZ);
+        orig.PlaceKlotz(KlotzType.Plate2x8, KlotzColor.Red, (KlotzVariant)14, new RelKlotzCoords(20, 20, 20), KlotzDirection.ToNegX);
 
         WorldChunk copy = SerializeDeserialize(orig);
         copy.DebugCheckIntegrity();

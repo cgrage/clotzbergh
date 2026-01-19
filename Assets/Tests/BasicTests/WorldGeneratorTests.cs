@@ -171,7 +171,7 @@ public class WorldGeneratorTests
 
     private void CheckChunkHasNoContradictions(WorldChunk chunk)
     {
-        Vector3Int?[,,] usedBy = new Vector3Int?[WorldDef.ChunkSubDivsX,
+        RelKlotzCoords?[,,] usedBy = new RelKlotzCoords?[WorldDef.ChunkSubDivsX,
             WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ];
 
         for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
@@ -180,7 +180,7 @@ public class WorldGeneratorTests
             {
                 for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                 {
-                    Vector3Int pos = new(x, y, z);
+                    RelKlotzCoords pos = new(x, y, z);
                     SubKlotz k = chunk.Get(pos);
                     if (!k.IsRoot)
                         continue;
@@ -195,15 +195,15 @@ public class WorldGeneratorTests
                         {
                             for (int xi = 0; xi < typeSize.X; xi++)
                             {
-                                Vector3Int subIndex = new(xi, yi, zi);
-                                Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(pos, subIndex, dir);
+                                KlotzIndex subIndex = new(xi, yi, zi);
+                                RelKlotzCoords coords = SubKlotz.TranslateSubIndexToCoords(pos, subIndex, dir);
 
-                                Vector3Int? use = usedBy[coords.x, coords.y, coords.z];
+                                RelKlotzCoords? use = usedBy[coords.X, coords.Y, coords.Z];
                                 if (use.HasValue)
                                 {
-                                    Assert.Fail($"Double use at {coords} {chunk.Get(subIndex)} by {use.Value} {chunk.Get(use.Value)} and {pos} {chunk.Get(pos)}");
+                                    Assert.Fail($"Double use at {coords} by {use.Value} {chunk.Get(use.Value)} and {pos} {chunk.Get(pos)}");
                                 }
-                                usedBy[coords.x, coords.y, coords.z] = pos;
+                                usedBy[coords.X, coords.Y, coords.Z] = pos;
                             }
                         }
                     }

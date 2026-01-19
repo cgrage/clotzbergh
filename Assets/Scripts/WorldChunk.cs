@@ -78,7 +78,7 @@ namespace Clotzbergh
 
         public SubKlotz Get(int x, int y, int z) { return _klotzData[x, y, z]; }
 
-        public SubKlotz Get(Vector3Int coords) { return Get(coords.x, coords.y, coords.z); }
+        public SubKlotz Get(RelKlotzCoords coords) { return Get(coords.X, coords.Y, coords.Z); }
 
         public void Set(int x, int y, int z, SubKlotz t)
         {
@@ -92,7 +92,7 @@ namespace Clotzbergh
             }
         }
 
-        public void Set(Vector3Int coords, SubKlotz t) { Set(coords.x, coords.y, coords.z, t); }
+        public void Set(RelKlotzCoords coords, SubKlotz t) { Set(coords.X, coords.Y, coords.Z, t); }
 
         protected void SetUncounted(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
 
@@ -204,7 +204,7 @@ namespace Clotzbergh
             PlaceKlotz(klotz.Type, klotz.Color, klotz.Variant, klotz.Coords, klotz.Direction);
         }
 
-        public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, Vector3Int rootCoords, KlotzDirection dir)
+        public void PlaceKlotz(KlotzType type, KlotzColor color, KlotzVariant variant, RelKlotzCoords rootCoords, KlotzDirection dir)
         {
             KlotzSize size = KlotzKB.Size(type);
 
@@ -214,7 +214,7 @@ namespace Clotzbergh
                 {
                     for (int subY = 0; subY < size.Y; subY++)
                     {
-                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
+                        RelKlotzCoords coords = SubKlotz.TranslateSubIndexToCoords(
                             rootCoords, new(subX, subY, subZ), dir);
 
                         if (subX == 0 && subY == 0 && subZ == 0)
@@ -230,7 +230,7 @@ namespace Clotzbergh
             }
         }
 
-        public void RemoveKlotz(Vector3Int klotzCoords)
+        public void RemoveKlotz(RelKlotzCoords klotzCoords)
         {
             SubKlotz k = Get(klotzCoords);
 
@@ -254,8 +254,8 @@ namespace Clotzbergh
                 {
                     for (int subY = 0; subY < size.Y; subY++)
                     {
-                        Vector3Int coords = SubKlotz.TranslateSubIndexToCoords(
-                            klotzCoords, new Vector3Int(subX, subY, subZ), k.Direction);
+                        RelKlotzCoords coords = SubKlotz.TranslateSubIndexToCoords(
+                            klotzCoords, new KlotzIndex(subX, subY, subZ), k.Direction);
 
                         Set(coords, SubKlotz.Air);
                     }

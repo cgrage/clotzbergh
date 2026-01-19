@@ -59,7 +59,7 @@ namespace Clotzbergh.Client.MeshGeneration
             _exposed = 0;
 
             bool isOpaqueAndNotCut = _subKlotz.IsOpaque &&
-                (_cutoutRegion == null || !_cutoutRegion.Contains(new Vector3Int(x, y, z)));
+                (_cutoutRegion == null || !_cutoutRegion.Contains(new RelKlotzCoords(x, y, z)));
 
             if (isOpaqueAndNotCut)
             {
@@ -211,7 +211,7 @@ namespace Clotzbergh.Client.MeshGeneration
                 !IsOpaqueAndNotCut(_neighborWorldZP1, _x + _lodSkip / 2, _y + _lodSkip / 2, 0);
         }
 
-        public Vector3Int RootPos { get { return _subKlotz.RootPos(new(_x, _y, _z)); } }
+        public RelKlotzCoords RootPos { get { return _subKlotz.RootPos(new(_x, _y, _z)); } }
 
         public SubKlotz? RootSubKlotz
         {
@@ -247,9 +247,9 @@ namespace Clotzbergh.Client.MeshGeneration
             return _worldChunk.Get(x, y, z);
         }
 
-        private SubKlotz? At(Vector3Int coords)
+        private SubKlotz? At(RelKlotzCoords coords)
         {
-            return At(coords.x, coords.y, coords.z);
+            return At(coords.X, coords.Y, coords.Z);
         }
     }
 
