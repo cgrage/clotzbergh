@@ -37,7 +37,7 @@ namespace Clotzbergh.Server
 
     public class WorldChunkUpdate
     {
-        public Vector3Int Coords { get; set; }
+        public ChunkCoords Coords { get; set; }
         public ulong Version { get; set; }
         public WorldChunk Chunk { get; set; }
     }
@@ -46,10 +46,10 @@ namespace Clotzbergh.Server
     {
         public string PlayerName { get; private set; }
         public Vector3 PlayerPosition { get; set; }
-        public Vector3Int PlayerChunkCoords { get; set; }
+        public ChunkCoords PlayerChunkCoords { get; set; }
         public ulong SeenClientListVersion { get; set; }
 
-        private readonly Dictionary<Vector3Int, PlayerChunkData> _chunkData = new();
+        private readonly Dictionary<ChunkCoords, PlayerChunkData> _chunkData = new();
         private List<PlayerChunkData> _sortedChunks = new();
 
         public ClientWorldMapState(string name)
@@ -57,16 +57,16 @@ namespace Clotzbergh.Server
             PlayerName = name;
         }
 
-        public void ResetChunkPriority(Vector3Int newCoords)
+        public void ResetChunkPriority(ChunkCoords newCoords)
         {
             int loadDist = WorldDef.ChunkLoadDistance;
 
-            int xStart = Math.Max(newCoords.x - loadDist, WorldDef.Limits.MinCoordsX);
-            int xEnd = Math.Min(newCoords.x + loadDist, WorldDef.Limits.MaxCoordsX);
-            int yStart = Math.Max(newCoords.y - loadDist, WorldDef.Limits.MinCoordsY);
-            int yEnd = Math.Min(newCoords.y + loadDist, WorldDef.Limits.MaxCoordsY);
-            int zStart = Math.Max(newCoords.z - loadDist, WorldDef.Limits.MinCoordsZ);
-            int zEnd = Math.Min(newCoords.z + loadDist, WorldDef.Limits.MaxCoordsZ);
+            int xStart = Math.Max(newCoords.X - loadDist, WorldDef.Limits.MinCoordsX);
+            int xEnd = Math.Min(newCoords.X + loadDist, WorldDef.Limits.MaxCoordsX);
+            int yStart = Math.Max(newCoords.Y - loadDist, WorldDef.Limits.MinCoordsY);
+            int yEnd = Math.Min(newCoords.Y + loadDist, WorldDef.Limits.MaxCoordsY);
+            int zStart = Math.Max(newCoords.Z - loadDist, WorldDef.Limits.MinCoordsZ);
+            int zEnd = Math.Min(newCoords.Z + loadDist, WorldDef.Limits.MaxCoordsZ);
 
             for (int z = zStart; z <= zEnd; z++)
             {
@@ -74,9 +74,9 @@ namespace Clotzbergh.Server
                 {
                     for (int x = xStart; x <= xEnd; x++)
                     {
-                        Vector3Int chunkCoords = new(x, y, z);
+                        ChunkCoords chunkCoords = new(x, y, z);
 
-                        int dist = WorldChunk.ChunkDistance(newCoords, chunkCoords);
+                        int dist = ChunkCoords.Distance(newCoords, chunkCoords);
                         if (dist > loadDist)
                             continue;
 
@@ -107,7 +107,7 @@ namespace Clotzbergh.Server
         /// <summary>
         /// Called by <c>ClientUpdaterThread</c>
         /// </summary>
-        public Vector3Int? GetNextAndSetUpdated(Func<Vector3Int, ulong> worldVersionFunc)
+        public ChunkCoords? GetNextAndSetUpdated(Func<ChunkCoords, ulong> worldVersionFunc)
         {
             foreach (var chunk in _sortedChunks)
             {
@@ -125,7 +125,7 @@ namespace Clotzbergh.Server
 
     public class PlayerChunkData
     {
-        public Vector3Int Coords { get; set; }
+        public ChunkCoords Coords { get; set; }
         public int Priority { get; set; }
         public ulong SentOutVersion { get; set; }
     }

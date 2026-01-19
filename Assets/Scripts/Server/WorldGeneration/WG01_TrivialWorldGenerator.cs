@@ -4,7 +4,7 @@ namespace Clotzbergh.Server.WorldGeneration
 {
     public class WG01_TrivialWorldGenerator : IChunkGenerator
     {
-        public WorldChunk Generate(Vector3Int coords, IHeightMap heightMap)
+        public WorldChunk Generate(ChunkCoords coords, IHeightMap heightMap)
         {
             WorldChunk chunk = new();
 
@@ -12,13 +12,13 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = coords.x * WorldDef.ChunkSubDivsX + ix;
-                    int z = coords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int x = coords.X * WorldDef.ChunkSubDivsX + ix;
+                    int z = coords.Z * WorldDef.ChunkSubDivsZ + iz;
                     int groundStart = Mathf.RoundToInt(heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = coords.y * WorldDef.ChunkSubDivsY + iy;
+                        int y = coords.Y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             chunk.Set(ix, iy, iz, SubKlotz.Air);

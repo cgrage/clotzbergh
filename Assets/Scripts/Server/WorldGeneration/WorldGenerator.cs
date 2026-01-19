@@ -22,7 +22,7 @@ namespace Clotzbergh.Server.WorldGeneration
             };
         }
 
-        public WorldChunk GetChunk(Vector3Int chunkCoords)
+        public WorldChunk GetChunk(ChunkCoords chunkCoords)
         {
             IChunkGenerator gen = _type switch
             {
@@ -83,7 +83,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
     public interface IChunkGenerator
     {
-        WorldChunk Generate(Vector3Int chunkCoords, IHeightMap heightMap);
+        WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap);
     }
 
     public abstract class ChunkGenerator : IChunkGenerator
@@ -92,13 +92,13 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private Random _random;
 
-        private Vector3Int _chunkCoords;
+        private ChunkCoords _chunkCoords;
 
         private IHeightMap _heightMap;
 
-        public virtual WorldChunk Generate(Vector3Int chunkCoords, IHeightMap heightMap)
+        public virtual WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap)
         {
-            lock (RandomCreationLock) { _random = new(chunkCoords.x + chunkCoords.y * 1000 + chunkCoords.z * 1000000); }
+            lock (RandomCreationLock) { _random = new(chunkCoords.X + chunkCoords.Y * 1000 + chunkCoords.Z * 1000000); }
             _chunkCoords = chunkCoords;
             _heightMap = heightMap;
 
@@ -121,7 +121,7 @@ namespace Clotzbergh.Server.WorldGeneration
                 z >= WorldDef.ChunkSubDivsZ;
         }
 
-        protected Vector3Int ChunkCoords { get => _chunkCoords; }
+        protected ChunkCoords ChunkCoords { get => _chunkCoords; }
 
         protected float HeightAt(int x, int y)
         {
@@ -263,13 +263,13 @@ namespace Clotzbergh.Server.WorldGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = ChunkCoords.x * WorldDef.ChunkSubDivsX + ix;
-                    int z = ChunkCoords.z * WorldDef.ChunkSubDivsZ + iz;
+                    int x = ChunkCoords.X * WorldDef.ChunkSubDivsX + ix;
+                    int z = ChunkCoords.Z * WorldDef.ChunkSubDivsZ + iz;
                     int groundStart = Mathf.RoundToInt(HeightAt(x, z) / WorldDef.SubKlotzSize.y);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = ChunkCoords.y * WorldDef.ChunkSubDivsY + iy;
+                        int y = ChunkCoords.Y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             _generalTypeArray[ix, iy, iz] = GeneralVoxelType.Air;
@@ -305,7 +305,7 @@ namespace Clotzbergh.Server.WorldGeneration
         protected void PlaceKlotz(Vector3Int rootCoords, KlotzType type, KlotzDirection dir)
         {
             KlotzSize size = KlotzKB.Size(type);
-            KlotzColor color = ColorFromHeight(ChunkCoords.y * WorldDef.ChunkSubDivsY + rootCoords.y);
+            KlotzColor color = ColorFromHeight(ChunkCoords.Y * WorldDef.ChunkSubDivsY + rootCoords.y);
             KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.Z; subZ++)
@@ -342,7 +342,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected void FillNonCompletedWith1x1Plates()
         {
-            int baseHeight = ChunkCoords.y * WorldDef.ChunkSubDivsY;
+            int baseHeight = ChunkCoords.Y * WorldDef.ChunkSubDivsY;
 
             for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {

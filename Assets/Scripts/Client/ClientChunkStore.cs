@@ -11,7 +11,7 @@ namespace Clotzbergh.Client
         public Material KlotzMat { get; set; }
         public PlayerSelection Selection { get; set; }
 
-        private readonly Dictionary<Vector3Int, ClientChunk> _dict = new();
+        private readonly Dictionary<ChunkCoords, ClientChunk> _dict = new();
 
         // _activeChunks is sorted by their priority
         private readonly List<ClientChunk> _activeChunks = new();
@@ -36,17 +36,16 @@ namespace Clotzbergh.Client
         /// <summary>
         /// This method is expected to be run on main thread.
         /// </summary>
-        public void OnViewerMoved(Vector3Int newCoords)
+        public void OnViewerMoved(ChunkCoords newCoords)
         {
             int loadDist = WorldDef.ChunkLoadDistance;
 
-            int xStart = Math.Max(newCoords.x - loadDist, WorldDef.Limits.MinCoordsX);
-            int xEnd = Math.Min(newCoords.x + loadDist, WorldDef.Limits.MaxCoordsX);
-            int yStart = Math.Max(newCoords.y - loadDist, WorldDef.Limits.MinCoordsY);
-            int yEnd = Math.Min(newCoords.y + loadDist, WorldDef.Limits.MaxCoordsY);
-            int zStart = Math.Max(newCoords.z - loadDist, WorldDef.Limits.MinCoordsZ);
-            int zEnd = Math.Min(newCoords.z + loadDist, WorldDef.Limits.MaxCoordsZ);
-
+            int xStart = Math.Max(newCoords.X - loadDist, WorldDef.Limits.MinCoordsX);
+            int xEnd = Math.Min(newCoords.X + loadDist, WorldDef.Limits.MaxCoordsX);
+            int yStart = Math.Max(newCoords.Y - loadDist, WorldDef.Limits.MinCoordsY);
+            int yEnd = Math.Min(newCoords.Y + loadDist, WorldDef.Limits.MaxCoordsY);
+            int zStart = Math.Max(newCoords.Z - loadDist, WorldDef.Limits.MinCoordsZ);
+            int zEnd = Math.Min(newCoords.Z + loadDist, WorldDef.Limits.MaxCoordsZ);
             // HashSet<ClientChunk> killList = new(_activeChunks);
 
             for (int z = zStart; z <= zEnd; z++)
@@ -55,8 +54,8 @@ namespace Clotzbergh.Client
                 {
                     for (int x = xStart; x <= xEnd; x++)
                     {
-                        Vector3Int chunkCoords = new(x, y, z);
-                        int dist = WorldChunk.ChunkDistance(newCoords, chunkCoords);
+                        ChunkCoords chunkCoords = new(x, y, z);
+                        int dist = ChunkCoords.Distance(newCoords, chunkCoords);
 
                         if (dist <= loadDist)
                         {
@@ -95,7 +94,7 @@ namespace Clotzbergh.Client
             //
         }
 
-        public void OnWorldChunkReceived(Vector3Int coords, ulong version, WorldChunk chunk)
+        public void OnWorldChunkReceived(ChunkCoords coords, ulong version, WorldChunk chunk)
         {
             GetOrCreate(coords).OnWorldUpdate(version, chunk);
         }
@@ -106,7 +105,7 @@ namespace Clotzbergh.Client
         /// This method shall be the only method that creates <c>ClientChunk</c>s.
         /// This method is expected to be run on main thread.
         /// </summary>
-        private ClientChunk GetOrCreate(Vector3Int coords)
+        private ClientChunk GetOrCreate(ChunkCoords coords)
         {
             // try to find the existing
             if (_dict.TryGetValue(coords, out ClientChunk thisChunk))
@@ -119,12 +118,12 @@ namespace Clotzbergh.Client
             _dict.Add(coords, thisChunk);
 
             // find the neighbors
-            _dict.TryGetValue(new Vector3Int(coords.x - 1, coords.y, coords.z), out ClientChunk neighborXM1);
-            _dict.TryGetValue(new Vector3Int(coords.x + 1, coords.y, coords.z), out ClientChunk neighborXP1);
-            _dict.TryGetValue(new Vector3Int(coords.x, coords.y - 1, coords.z), out ClientChunk neighborYM1);
-            _dict.TryGetValue(new Vector3Int(coords.x, coords.y + 1, coords.z), out ClientChunk neighborYP1);
-            _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z - 1), out ClientChunk neighborZM1);
-            _dict.TryGetValue(new Vector3Int(coords.x, coords.y, coords.z + 1), out ClientChunk neighborZP1);
+            _dict.TryGetValue(new ChunkCoords(coords.X - 1, coords.Y, coords.Z), out ClientChunk neighborXM1);
+            _dict.TryGetValue(new ChunkCoords(coords.X + 1, coords.Y, coords.Z), out ClientChunk neighborXP1);
+            _dict.TryGetValue(new ChunkCoords(coords.X, coords.Y - 1, coords.Z), out ClientChunk neighborYM1);
+            _dict.TryGetValue(new ChunkCoords(coords.X, coords.Y + 1, coords.Z), out ClientChunk neighborYP1);
+            _dict.TryGetValue(new ChunkCoords(coords.X, coords.Y, coords.Z - 1), out ClientChunk neighborZM1);
+            _dict.TryGetValue(new ChunkCoords(coords.X, coords.Y, coords.Z + 1), out ClientChunk neighborZP1);
 
             // and link the neighbors
             if (neighborXM1 != null) { thisChunk.NeighborXM1 = neighborXM1; neighborXM1.NeighborXP1 = thisChunk; }

@@ -11,7 +11,7 @@ namespace Clotzbergh.Client
     public interface IClientSideOps
     {
         void RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
-        void TakeKlotz(Vector3Int chunkCoords, Vector3Int innerChunkCoords);
+        void TakeKlotz(ChunkCoords chunkCoords, Vector3Int innerChunkCoords);
     }
 
     public class Statistics
@@ -23,8 +23,6 @@ namespace Clotzbergh.Client
 
     public class GameClient : MonoBehaviour, IClientSideOps
     {
-        private static readonly Vector3Int InvalidChunkCoords = new(int.MinValue, int.MinValue, int.MinValue);
-
         public string Hostname = "localhost";
         public int Port = 3000;
         public int MeshThreadCount = 4;
@@ -37,7 +35,7 @@ namespace Clotzbergh.Client
 
         private readonly List<Thread> _meshThreads = new();
         private readonly BlockingCollection<MeshRequest> _meshRequestQueue = new();
-        private Vector3Int _viewerChunkCoords = InvalidChunkCoords;
+        private ChunkCoords _viewerChunkCoords = ChunkCoords.Invalid;
         private bool _isConnected = false;
 
         /// <summary>
@@ -100,7 +98,7 @@ namespace Clotzbergh.Client
                     action();
                 }
 
-                Vector3Int newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
+                ChunkCoords newCoords = WorldChunk.PositionToChunkCoords(Viewer.position);
                 if (newCoords != _viewerChunkCoords)
                 {
                     // Debug.Log($"Viewer moved to chunk ${newCoords}");
@@ -247,7 +245,7 @@ namespace Clotzbergh.Client
                     {
                         _statistics.ReceivedChunks++;
                         _chunkStore.OnWorldChunkReceived(
-                            chunkDataCmd.Coord,
+                            chunkDataCmd.Coords,
                             chunkDataCmd.Version,
                             chunkDataCmd.Chunk);
                     });
@@ -349,7 +347,7 @@ namespace Clotzbergh.Client
             _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
         }
 
-        void IClientSideOps.TakeKlotz(Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+        void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, Vector3Int innerChunkCoords)
         {
             _connectionThreadActionQueue.Add((ws) =>
             {

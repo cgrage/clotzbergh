@@ -101,7 +101,7 @@ public class WorldGeneratorTests
 
     public void GeneratorTest(IChunkGenerator gen, IHeightMap heightMap, bool testEmpty, bool testPacked)
     {
-        Vector3Int coords = new(0, 0, 0);
+        ChunkCoords coords = new(0, 0, 0);
         List<WorldChunk> chunks = new();
         Stopwatch stopwatch = new();
 
@@ -109,7 +109,7 @@ public class WorldGeneratorTests
         while (stopwatch.ElapsedMilliseconds < 1000)
         {
             chunks.Add(gen.Generate(coords, heightMap));
-            coords += new Vector3Int(1, 0, 0);
+            coords = new(coords.X + 1, coords.Y, coords.Z);
         }
         stopwatch.Stop();
 

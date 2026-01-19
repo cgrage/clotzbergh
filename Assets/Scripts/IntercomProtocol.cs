@@ -109,20 +109,20 @@ namespace Clotzbergh
         {
             const CodeValue CommandCode = CodeValue.ChuckData;
 
-            public Vector3Int Coord;
+            public ChunkCoords Coords;
             public ulong Version;
             public WorldChunk Chunk;
 
-            public ChunkDataCommand(Vector3Int coord, ulong version, WorldChunk chunk) : base(CommandCode)
+            public ChunkDataCommand(ChunkCoords coords, ulong version, WorldChunk chunk) : base(CommandCode)
             {
-                Coord = coord;
+                Coords = coords;
                 Version = version;
                 Chunk = chunk;
             }
 
             public ChunkDataCommand(BinaryReader r) : base(CommandCode)
             {
-                Coord = new Vector3Int(
+                Coords = new ChunkCoords(
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
@@ -132,9 +132,9 @@ namespace Clotzbergh
 
             protected override void Serialize(BinaryWriter w)
             {
-                w.Write(Coord.x);
-                w.Write(Coord.y);
-                w.Write(Coord.z);
+                w.Write(Coords.X);
+                w.Write(Coords.Y);
+                w.Write(Coords.Z);
                 w.Write(Version);
                 Chunk.Serialize(w);
             }
@@ -144,18 +144,18 @@ namespace Clotzbergh
         {
             const CodeValue CommandCode = CodeValue.TakeKlotz;
 
-            public Vector3Int ChunkCoord;
+            public ChunkCoords ChunkCoords;
             public Vector3Int InnerChunkCoord;
 
-            public TakeKlotzCommand(Vector3Int coord, Vector3Int innerChunkCoord) : base(CommandCode)
+            public TakeKlotzCommand(ChunkCoords coords, Vector3Int innerChunkCoord) : base(CommandCode)
             {
-                ChunkCoord = coord;
+                ChunkCoords = coords;
                 InnerChunkCoord = innerChunkCoord;
             }
 
             public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
             {
-                ChunkCoord = new Vector3Int(
+                ChunkCoords = new ChunkCoords(
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
@@ -167,9 +167,9 @@ namespace Clotzbergh
 
             protected override void Serialize(BinaryWriter w)
             {
-                w.Write(ChunkCoord.x);
-                w.Write(ChunkCoord.y);
-                w.Write(ChunkCoord.z);
+                w.Write(ChunkCoords.X);
+                w.Write(ChunkCoords.Y);
+                w.Write(ChunkCoords.Z);
                 w.Write(InnerChunkCoord.x);
                 w.Write(InnerChunkCoord.y);
                 w.Write(InnerChunkCoord.z);

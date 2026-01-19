@@ -263,7 +263,7 @@ namespace Clotzbergh
             }
         }
 
-        public static Vector3Int PositionToChunkCoords(Vector3 position)
+        public static ChunkCoords PositionToChunkCoords(Vector3 position)
         {
             return new(
                 Mathf.FloorToInt(position.x / WorldDef.ChunkSize.x),
@@ -271,21 +271,16 @@ namespace Clotzbergh
                 Mathf.FloorToInt(position.z / WorldDef.ChunkSize.z));
         }
 
-        public static Vector3 ChunkCoordsToPosition(Vector3Int coords)
+        public static Vector3 ChunkCoordsToPosition(ChunkCoords coords)
         {
-            return Vector3.Scale(coords, WorldDef.ChunkSize);
+            return Vector3.Scale(coords.ToVector(), WorldDef.ChunkSize);
         }
 
-        public static float DistanceToChunkCenter(Vector3 position, Vector3Int chunkCoords)
+        public static float DistanceToChunkCenter(Vector3 position, ChunkCoords chunkCoords)
         {
             Vector3 chunkPosition = ChunkCoordsToPosition(chunkCoords);
             Vector3 chunkCenter = chunkPosition + WorldDef.ChunkSize / 2;
             return Vector3.Distance(position, chunkCenter);
-        }
-
-        public static int ChunkDistance(Vector3Int a, Vector3Int b)
-        {
-            return (int)Vector3Int.Distance(a, b);
         }
 
         /// <summary>

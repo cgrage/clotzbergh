@@ -8,7 +8,7 @@ namespace Clotzbergh.Client
     public class ClientChunk
     {
         private readonly string _id;
-        private readonly Vector3Int _coords;
+        private readonly ChunkCoords _coords;
         private readonly int _ownerThreadId;
         private readonly GameObject _gameObject;
         private readonly IClientSideOps _asyncOps;
@@ -35,7 +35,7 @@ namespace Clotzbergh.Client
 
         public WorldChunk World => _currentWorld;
         public string Id => _id;
-        public Vector3Int Coords => _coords;
+        public ChunkCoords Coords => _coords;
         public int LoadPriority => _loadPriority;
 
         public ClientChunk NeighborXM1 { get; set; }
@@ -62,9 +62,9 @@ namespace Clotzbergh.Client
             public ulong requestedWorldLocalVersion = 0;
         }
 
-        public ClientChunk(Vector3Int coords, Transform parent, IClientSideOps asyncOps, PlayerSelection selection, Material material)
+        public ClientChunk(ChunkCoords coords, Transform parent, IClientSideOps asyncOps, PlayerSelection selection, Material material)
         {
-            _id = $"Terrain Chunk ({coords.x},{coords.y},{coords.z})";
+            _id = $"Terrain Chunk ({coords.X},{coords.Y},{coords.Z})";
             _coords = coords;
             _ownerThreadId = Thread.CurrentThread.ManagedThreadId;
             _asyncOps = asyncOps;

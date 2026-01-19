@@ -115,10 +115,10 @@ namespace Clotzbergh.Client
 
         private static void RenderGameClientInfo(GameClient gameClient, Vector2 location, GUIStyle style)
         {
-            Vector3Int viewerChunkCoords = WorldChunk.PositionToChunkCoords(gameClient.Viewer.position);
+            ChunkCoords viewerChunkCoords = WorldChunk.PositionToChunkCoords(gameClient.Viewer.position);
             GUI.Label(new Rect(location, new Vector2(270, 200)),
                 $"Pos: {gameClient.Viewer.position}\n" +
-                $"Coord: {viewerChunkCoords}\n" +
+                $"Coords: {viewerChunkCoords}\n" +
                 $"ChkCount: {gameClient.ChunkStore.ChunkCount}\n" +
                 $"ActCount: {gameClient.ChunkStore.ActiveChunkCount}\n" +
                 $"RecChunks: {gameClient.Stats.ReceivedChunks}\n" +

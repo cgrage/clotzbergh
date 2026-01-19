@@ -23,19 +23,19 @@ namespace Clotzbergh.Server
         private readonly string _worldName;
         private readonly int _worldSeed;
         private readonly WorldGenerator _generator;
-        private readonly Dictionary<Vector3Int, WorldChunkState> _worldState;
+        private readonly Dictionary<ChunkCoords, WorldChunkState> _worldState;
         private readonly Dictionary<ClientId, ClientWorldMapState> _clientStates;
         private readonly string _chunkDataPath;
         private readonly CancellationTokenSource _runCancelTS;
         private readonly List<Thread> _loaderThreads;
         private readonly List<Thread> _saverThreads;
         private readonly BlockingCollection<LoaderThreadArgs> _generationRequestQueue;
-        private readonly List<Vector3Int> _toSaveList;
+        private readonly List<ChunkCoords> _toSaveList;
         private ulong _clientListVersion;
 
         private class LoaderThreadArgs
         {
-            public Vector3Int coords;
+            public ChunkCoords coords;
         }
 
         private class WorldChunkState
@@ -79,7 +79,7 @@ namespace Clotzbergh.Server
             return _generator.GeneratePreviewMesh(dist);
         }
 
-        private WorldChunkState GetWorldState(Vector3Int coords, bool requestIfNotPresent = false)
+        private WorldChunkState GetWorldState(ChunkCoords coords, bool requestIfNotPresent = false)
         {
             lock (_worldState)
             {
@@ -101,7 +101,7 @@ namespace Clotzbergh.Server
             }
         }
 
-        public ulong GetWorldChunkStateVersion(Vector3Int coords)
+        public ulong GetWorldChunkStateVersion(ChunkCoords coords)
         {
             WorldChunkState state = GetWorldState(coords, true);
             if (state == null)
@@ -127,7 +127,7 @@ namespace Clotzbergh.Server
                 bool added = _clientStates.TryAdd(id, new($"Player {id.Value}")
                 {
                     PlayerPosition = Vector3.zero,
-                    PlayerChunkCoords = Vector3Int.zero,
+                    PlayerChunkCoords = ChunkCoords.Zero,
                 });
 
                 if (!added)
@@ -142,7 +142,7 @@ namespace Clotzbergh.Server
             // Debug.Log($"ServerMap: PlayerMoved ${id} ${newCoords}");
             ClientWorldMapState state = GetClientState(id);
 
-            Vector3Int newChunkCoords = WorldChunk.PositionToChunkCoords(newPosition);
+            ChunkCoords newChunkCoords = WorldChunk.PositionToChunkCoords(newPosition);
             bool movedChunk = state.PlayerChunkCoords != newChunkCoords;
 
             state.PlayerPosition = newPosition;
@@ -170,7 +170,7 @@ namespace Clotzbergh.Server
         {
             ClientWorldMapState state = GetClientState(id);
 
-            Vector3Int? next = state.GetNextAndSetUpdated(GetWorldChunkStateVersion);
+            ChunkCoords? next = state.GetNextAndSetUpdated(GetWorldChunkStateVersion);
             if (!next.HasValue)
                 return null;
 
@@ -216,7 +216,7 @@ namespace Clotzbergh.Server
             return update;
         }
 
-        public void PlayerTakeKlotz(ClientId id, Vector3Int chunkCoords, Vector3Int innerChunkCoords)
+        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, Vector3Int innerChunkCoords)
         {
             // Debug.Log($"ServerMap: PlayerTakeKlotz ${id} ${chunkCoords} ${innerChunkCoords}");
             WorldChunkState worldState = GetWorldState(chunkCoords);
@@ -285,7 +285,7 @@ namespace Clotzbergh.Server
                 while (!_runCancelTS.Token.IsCancellationRequested)
                 {
                     LoaderThreadArgs args = _generationRequestQueue.Take(_runCancelTS.Token);
-                    Vector3Int coords = args.coords;
+                    ChunkCoords coords = args.coords;
                     WorldChunk chunk = LoadWorldChunk(coords);
 
                     if (chunk == null)
@@ -328,7 +328,7 @@ namespace Clotzbergh.Server
                 {
                     Thread.Sleep(1000);
 
-                    Vector3Int[] toSave;
+                    ChunkCoords[] toSave;
                     lock (_toSaveList)
                     {
                         toSave = _toSaveList.ToArray();
@@ -338,7 +338,7 @@ namespace Clotzbergh.Server
                     if (toSave.Length == 0)
                         continue;
 
-                    foreach (Vector3Int coords in toSave)
+                    foreach (var coords in toSave)
                     {
                         WorldChunk chunk;
                         ulong version;
@@ -377,9 +377,9 @@ namespace Clotzbergh.Server
             }
         }
 
-        private WorldChunk LoadWorldChunk(Vector3Int coords)
+        private WorldChunk LoadWorldChunk(ChunkCoords coords)
         {
-            string path = Path.Combine(_chunkDataPath, $"{coords.x},{coords.y},{coords.z}.chunk");
+            string path = Path.Combine(_chunkDataPath, $"{coords.X},{coords.Y},{coords.Z}.chunk");
             if (!File.Exists(path))
                 return null;
 
@@ -400,7 +400,7 @@ namespace Clotzbergh.Server
             }
         }
 
-        private void SaveWorldChunk(WorldChunk chunk, Vector3Int coords)
+        private void SaveWorldChunk(WorldChunk chunk, ChunkCoords coords)
         {
             using MemoryStream memoryStream = new();
             using (GZipStream gzipStream = new(memoryStream, CompressionMode.Compress))
@@ -410,7 +410,7 @@ namespace Clotzbergh.Server
             }
 
             byte[] data = memoryStream.ToArray();
-            string path = Path.Combine(_chunkDataPath, $"{coords.x},{coords.y},{coords.z}.chunk");
+            string path = Path.Combine(_chunkDataPath, $"{coords.X},{coords.Y},{coords.Z}.chunk");
 
             File.WriteAllBytes(path, data);
         }
