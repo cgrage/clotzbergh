@@ -29,7 +29,7 @@ namespace Clotzbergh.Client
         /// </summary>
         private ulong _worldLocalVersion = 0;
         private int _currentLevelOfDetail = -1;
-        private int _viewerChunkDist = -1;
+        private float _viewerChunkDist = float.NaN;
         private int _loadPriority = 1000; // less is higher priority
         private long _lastSeenSelection = -1; // used to detect changes in selection
 
@@ -156,7 +156,7 @@ namespace Clotzbergh.Client
 
             var lodData = GetLodData(_currentLevelOfDetail);
             bool isNewestVersion = lodData.worldLocalVersion == _worldLocalVersion;
-            bool isVeryClose = _viewerChunkDist < 1;
+            bool isVeryClose = _viewerChunkDist <= 1.5f; // the chunk we are in and the immediate neighbors
 
             if (isVeryClose)
             {
@@ -206,7 +206,7 @@ namespace Clotzbergh.Client
         /// <summary>
         /// This method is expected to be run on main thread.
         /// </summary>
-        public void OnViewerMoved(int viewerChunkDist)
+        public void OnViewerMoved(float viewerChunkDist)
         {
             ExpectRunningOnOwnerThread();
 
@@ -218,14 +218,14 @@ namespace Clotzbergh.Client
             if (!levelOfDetail.HasValue || levelOfDetail.Value == -1)
             {
                 _currentLevelOfDetail = -1;
-                _viewerChunkDist = -1;
+                _viewerChunkDist = float.NaN;
                 IsActive = false;
                 return;
             }
 
             _currentLevelOfDetail = levelOfDetail.Value;
             _viewerChunkDist = viewerChunkDist;
-            _loadPriority = viewerChunkDist;
+            _loadPriority = (int)viewerChunkDist;
 
             SetCurrentMeshIfAvailable();
             IsActive = true;

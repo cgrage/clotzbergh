@@ -99,7 +99,7 @@ namespace Clotzbergh
         private struct LevelOfDetailSetting
         {
             public int LevelOfDetail;
-            public int MaxThreshold;
+            public float MaxThreshold;
         }
 
         /// <summary>
@@ -107,11 +107,11 @@ namespace Clotzbergh
         /// </summary>
         private static readonly LevelOfDetailSetting[] DetailLevels =
         {
-            new() { LevelOfDetail = 0, MaxThreshold = 4, },
-            new() { LevelOfDetail = 1, MaxThreshold = 8, },
-            new() { LevelOfDetail = 2, MaxThreshold = 12, },
-            new() { LevelOfDetail = 2, MaxThreshold = 16, },
-            new() { LevelOfDetail = -1, MaxThreshold = 32, }, // world load distance
+            new() { LevelOfDetail = 0, MaxThreshold = 4.0f, },
+            new() { LevelOfDetail = 1, MaxThreshold = 8.0f, },
+            new() { LevelOfDetail = 2, MaxThreshold = 12.0f, },
+            new() { LevelOfDetail = 2, MaxThreshold = 16.0f, },
+            new() { LevelOfDetail = -1, MaxThreshold = 32.0f, }, // world load distance
         };
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace Clotzbergh
         /// Lod 3 ->  8 sub-klotz packing
         /// Lod 4 -> 16 sub-klotz packing
         /// </summary>
-        public static int? GetLodFromDistance(int chunkDistance)
+        public static int? GetLodFromDistance(float chunkDistance)
         {
             foreach (var entry in DetailLevels)
             {
@@ -137,6 +137,6 @@ namespace Clotzbergh
         /// <summary>
         /// Max threshold from <c>DetailLevels</c>
         /// </summary>
-        public static int ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
+        public static float ChunkLoadDistance { get { return DetailLevels.Last().MaxThreshold; } }
     }
 }

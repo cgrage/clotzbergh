@@ -59,14 +59,14 @@ namespace Clotzbergh.Server
 
         public void ResetChunkPriority(ChunkCoords newCoords)
         {
-            int loadDist = WorldDef.ChunkLoadDistance;
+            int intLoadDist = (int)WorldDef.ChunkLoadDistance;
 
-            int xStart = Math.Max(newCoords.X - loadDist, WorldDef.Limits.MinCoordsX);
-            int xEnd = Math.Min(newCoords.X + loadDist, WorldDef.Limits.MaxCoordsX);
-            int yStart = Math.Max(newCoords.Y - loadDist, WorldDef.Limits.MinCoordsY);
-            int yEnd = Math.Min(newCoords.Y + loadDist, WorldDef.Limits.MaxCoordsY);
-            int zStart = Math.Max(newCoords.Z - loadDist, WorldDef.Limits.MinCoordsZ);
-            int zEnd = Math.Min(newCoords.Z + loadDist, WorldDef.Limits.MaxCoordsZ);
+            int xStart = Math.Max(newCoords.X - intLoadDist, WorldDef.Limits.MinCoordsX);
+            int xEnd = Math.Min(newCoords.X + intLoadDist, WorldDef.Limits.MaxCoordsX);
+            int yStart = Math.Max(newCoords.Y - intLoadDist, WorldDef.Limits.MinCoordsY);
+            int yEnd = Math.Min(newCoords.Y + intLoadDist, WorldDef.Limits.MaxCoordsY);
+            int zStart = Math.Max(newCoords.Z - intLoadDist, WorldDef.Limits.MinCoordsZ);
+            int zEnd = Math.Min(newCoords.Z + intLoadDist, WorldDef.Limits.MaxCoordsZ);
 
             for (int z = zStart; z <= zEnd; z++)
             {
@@ -76,20 +76,20 @@ namespace Clotzbergh.Server
                     {
                         ChunkCoords chunkCoords = new(x, y, z);
 
-                        int dist = ChunkCoords.Distance(newCoords, chunkCoords);
-                        if (dist > loadDist)
+                        float dist = ChunkCoords.Distance(newCoords, chunkCoords);
+                        if (dist > WorldDef.ChunkLoadDistance)
                             continue;
 
                         if (_chunkData.TryGetValue(chunkCoords, out PlayerChunkData thisChunk))
                         {
-                            thisChunk.Priority = dist;
+                            thisChunk.Priority = (int)dist;
                         }
                         else
                         {
                             thisChunk = new PlayerChunkData()
                             {
                                 Coords = chunkCoords,
-                                Priority = dist,
+                                Priority = (int)dist,
                                 SentOutVersion = 0,
                             };
                             _chunkData.Add(chunkCoords, thisChunk);

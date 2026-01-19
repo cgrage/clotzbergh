@@ -51,9 +51,15 @@ namespace Clotzbergh
         public static bool operator ==(ChunkCoords a, ChunkCoords b) => a.value == b.value;
         public static bool operator !=(ChunkCoords a, ChunkCoords b) => a.value != b.value;
 
-        public static int Distance(ChunkCoords a, ChunkCoords b)
+        /// <summary>
+        /// Calculates the Euclidean distance between two ChunkCoords.
+        /// Examples: 
+        ///   - Distance((0,0,0), (1,0,0)) == 1
+        ///   - Distance((0,0,0), (1,1,0)) == 1.414...
+        /// </summary>
+        public static float Distance(ChunkCoords a, ChunkCoords b)
         {
-            return (int)Vector3Int.Distance(a.value, b.value);
+            return Vector3Int.Distance(a.value, b.value);
         }
     }
 

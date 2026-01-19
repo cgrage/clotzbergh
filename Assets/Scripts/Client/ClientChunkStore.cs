@@ -38,14 +38,14 @@ namespace Clotzbergh.Client
         /// </summary>
         public void OnViewerMoved(ChunkCoords newCoords)
         {
-            int loadDist = WorldDef.ChunkLoadDistance;
+            int intLoadDist = (int)WorldDef.ChunkLoadDistance;
 
-            int xStart = Math.Max(newCoords.X - loadDist, WorldDef.Limits.MinCoordsX);
-            int xEnd = Math.Min(newCoords.X + loadDist, WorldDef.Limits.MaxCoordsX);
-            int yStart = Math.Max(newCoords.Y - loadDist, WorldDef.Limits.MinCoordsY);
-            int yEnd = Math.Min(newCoords.Y + loadDist, WorldDef.Limits.MaxCoordsY);
-            int zStart = Math.Max(newCoords.Z - loadDist, WorldDef.Limits.MinCoordsZ);
-            int zEnd = Math.Min(newCoords.Z + loadDist, WorldDef.Limits.MaxCoordsZ);
+            int xStart = Math.Max(newCoords.X - intLoadDist, WorldDef.Limits.MinCoordsX);
+            int xEnd = Math.Min(newCoords.X + intLoadDist, WorldDef.Limits.MaxCoordsX);
+            int yStart = Math.Max(newCoords.Y - intLoadDist, WorldDef.Limits.MinCoordsY);
+            int yEnd = Math.Min(newCoords.Y + intLoadDist, WorldDef.Limits.MaxCoordsY);
+            int zStart = Math.Max(newCoords.Z - intLoadDist, WorldDef.Limits.MinCoordsZ);
+            int zEnd = Math.Min(newCoords.Z + intLoadDist, WorldDef.Limits.MaxCoordsZ);
             // HashSet<ClientChunk> killList = new(_activeChunks);
 
             for (int z = zStart; z <= zEnd; z++)
@@ -55,9 +55,9 @@ namespace Clotzbergh.Client
                     for (int x = xStart; x <= xEnd; x++)
                     {
                         ChunkCoords chunkCoords = new(x, y, z);
-                        int dist = ChunkCoords.Distance(newCoords, chunkCoords);
+                        float dist = ChunkCoords.Distance(newCoords, chunkCoords);
 
-                        if (dist <= loadDist)
+                        if (dist <= WorldDef.ChunkLoadDistance)
                         {
                             var chunk = GetOrCreate(chunkCoords);
                             chunk.OnViewerMoved(dist);
