@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Text;
+using TMPro;
 using UnityEngine;
 
 namespace Clotzbergh.Client
@@ -7,7 +9,7 @@ namespace Clotzbergh.Client
     /// Debug window behavior that displays information about the game client and player selection.
     /// This script is attached to a panel in the UI and renders the debug information.
     /// </summary>
-    public class DebugWindowBehavior : MonoBehaviour
+    public class DebugTextRenderer : MonoBehaviour
     {
         public GameClient GameClient;
         public PlayerSelection PlayerSelection;
@@ -80,58 +82,35 @@ namespace Clotzbergh.Client
             if (!TryGetComponent<RectTransform>(out var rectTransform))
                 return;
 
-            Vector3[] corners = new Vector3[4];
-            rectTransform.GetWorldCorners(corners);
-            Vector2 topLeft = RectTransformUtility.WorldToScreenPoint(null, corners[1]);
-            Vector2 guiTopLeft = new(topLeft.x, Screen.height - topLeft.y);  // Y is inverted in GUI
+            if (!TryGetComponent<TextMeshProUGUI>(out var textMeshPro))
+                return;
 
-            {
-                Vector2 location = guiTopLeft + new Vector2(10, 10);
-                RenderSampledInfo(_sampledInfo, location, style);
-            }
+            StringBuilder debugText = new();
+
+            debugText.AppendLine($"Frames/s: {_sampledInfo.Frames.PerSecond:F0}");
+            debugText.AppendLine($"RecChunks/s: {_sampledInfo.ReceivedChunks.PerSecond:F0}");
+            debugText.AppendLine($"RecKB/s: {_sampledInfo.ReceivedBytes.PerSecond / 1024:F0}");
+            debugText.AppendLine($"Meshes/s: {_sampledInfo.GeneratedMeshes.PerSecond:F0}");
 
             if (GameClient != null)
             {
-                Vector2 location = guiTopLeft + new Vector2(10, 80);
-                RenderGameClientInfo(GameClient, location, style);
+                debugText.AppendLine();
+                debugText.AppendLine($"Pos: {GameClient.Viewer.position}");
+                debugText.AppendLine($"Coords: {WorldChunk.PositionToChunkCoords(GameClient.Viewer.position)}");
+                debugText.AppendLine($"ChkCount: {GameClient.ChunkStore.ChunkCount}");
+                debugText.AppendLine($"ActCount: {GameClient.ChunkStore.ActiveChunkCount}");
+                debugText.AppendLine($"RecChunks: {GameClient.Stats.ReceivedChunks}");
+                debugText.AppendLine($"RecMB: {GameClient.Stats.ReceivedBytes / 1024 / 1024}");
             }
 
             if (PlayerSelection != null)
             {
-                Vector2 location = guiTopLeft + new Vector2(10, 200);
-                RenderPlayerSelectionInfo(PlayerSelection, location, style);
+                debugText.AppendLine();
+                debugText.AppendLine($"Hit: {PlayerSelection.ViewedPosition}");
+                debugText.AppendLine($"Type: {PlayerSelection.ViewedKlotz?.type}");
             }
-        }
 
-        private void RenderSampledInfo(SampledInfo sampledInfo, Vector2 location, GUIStyle style)
-        {
-            GUI.Label(new Rect(location, new Vector2(270, 200)),
-                $"Frames/s: {sampledInfo.Frames.PerSecond:F0}\n" +
-                $"RecChunks/s: {sampledInfo.ReceivedChunks.PerSecond:F0}\n" +
-                $"RecKB/s: {sampledInfo.ReceivedBytes.PerSecond / 1024:F0}\n" +
-                $"Meshes/s: {sampledInfo.GeneratedMeshes.PerSecond:F0}\n",
-                style);
-        }
-
-        private static void RenderGameClientInfo(GameClient gameClient, Vector2 location, GUIStyle style)
-        {
-            ChunkCoords viewerChunkCoords = WorldChunk.PositionToChunkCoords(gameClient.Viewer.position);
-            GUI.Label(new Rect(location, new Vector2(270, 200)),
-                $"Pos: {gameClient.Viewer.position}\n" +
-                $"Coords: {viewerChunkCoords}\n" +
-                $"ChkCount: {gameClient.ChunkStore.ChunkCount}\n" +
-                $"ActCount: {gameClient.ChunkStore.ActiveChunkCount}\n" +
-                $"RecChunks: {gameClient.Stats.ReceivedChunks}\n" +
-                $"RecMB: {gameClient.Stats.ReceivedBytes / 1024 / 1024}\n",
-                style);
-        }
-
-        private static void RenderPlayerSelectionInfo(PlayerSelection playerSelection, Vector2 location, GUIStyle style)
-        {
-            GUI.Label(new Rect(location, new Vector2(270, 200)),
-                $"Hit: {playerSelection.ViewedPosition}\n" +
-                $"Type: {playerSelection.ViewedKlotz?.type}\n",
-                style);
+            textMeshPro.SetText(debugText.ToString());
         }
     }
 }

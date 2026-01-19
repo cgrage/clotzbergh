@@ -29,7 +29,7 @@ namespace Clotzbergh.Client
         public Transform Viewer;
         public Material Material;
         public PlayerSelection Selection;
-        public GameObject DebugPanel;
+        public GameObject DebugUI;
 
         private Thread _connectionThread;
 
@@ -125,7 +125,7 @@ namespace Clotzbergh.Client
 
             if (Input.GetKeyDown(KeyCode.F12))
             {
-                DebugPanel.SetActive(!DebugPanel.activeSelf);
+                DebugUI.SetActive(!DebugUI.activeSelf);
             }
         }
 
