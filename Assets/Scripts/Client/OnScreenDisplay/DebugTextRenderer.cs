@@ -89,22 +89,23 @@ namespace Clotzbergh.Client
             if (GameClient != null)
             {
                 debugText.AppendLine();
-                debugText.AppendLine($"Viewer.Pos: {GameClient.Viewer.position}");
-                debugText.AppendLine($"Viewer.ChunkCoords: {WorldChunk.PositionToChunkCoords(GameClient.Viewer.position)}");
-                debugText.AppendLine($"ChunkStore.Count: {GameClient.ChunkStore.ChunkCount}");
-                debugText.AppendLine($"ChunkStore.Active: {GameClient.ChunkStore.ActiveChunkCount}");
-                debugText.AppendLine($"Client.ReceivedChunks: {GameClient.Stats.ReceivedChunks}");
-                debugText.AppendLine($"Client.ReceivedMB: {GameClient.Stats.ReceivedBytes / 1024 / 1024}");
+                debugText.AppendLine($"Client.Viewer.Pos: {GameClient.Viewer.position}");
+                debugText.AppendLine($"Client.Viewer.ChunkCoords: {WorldChunk.PositionToChunkCoords(GameClient.Viewer.position)}");
+                debugText.AppendLine($"Client.ChunkStore.Count: {GameClient.ChunkStore.ChunkCount}");
+                debugText.AppendLine($"Client.ChunkStore.Active: {GameClient.ChunkStore.ActiveChunkCount}");
+                debugText.AppendLine($"Client.Stats.ReceivedChunks: {GameClient.Stats.ReceivedChunks}");
+                debugText.AppendLine($"Client.Stats.ReceivedMB: {GameClient.Stats.ReceivedBytes / 1024 / 1024}");
             }
 
             if (PlayerSelection != null)
             {
                 debugText.AppendLine();
-                debugText.AppendLine($"Viewed.Pos: {PlayerSelection.ViewedPosition}");
-                debugText.AppendLine($"Viewed.Chunk.Coord: {PlayerSelection.ViewedChunk?.Coords}");
-                debugText.AppendLine($"Viewed.Chunk.SelectionUpdates: {PlayerSelection.ViewedChunk?.SelectionUpdateCounter}");
-                debugText.AppendLine($"Viewed.Klotz.Root: {PlayerSelection.ViewedKlotz?.RootCoords}");
-                debugText.AppendLine($"Viewed.Klotz.Type: {PlayerSelection.ViewedKlotz?.Type}");
+                debugText.AppendLine($"Select.ChangeCount: {PlayerSelection.ChangeCount}");
+                debugText.AppendLine($"Select.ViewedPos: {PlayerSelection.ViewedPosition}");
+                debugText.AppendLine($"Select.Chunk.Coord: {PlayerSelection.ViewedChunk?.Coords}");
+                debugText.AppendLine($"Select.Chunk.SelectionUpdates: {PlayerSelection.ViewedChunk?.SelectionUpdateCounter}");
+                debugText.AppendLine($"Select.Klotz.Root: {PlayerSelection.ViewedKlotz?.RootCoords}");
+                debugText.AppendLine($"Select.Klotz.Type: {PlayerSelection.ViewedKlotz?.Type}");
             }
 
             textMeshPro.SetText(debugText.ToString());
