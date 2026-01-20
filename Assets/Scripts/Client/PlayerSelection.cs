@@ -20,15 +20,16 @@ namespace Clotzbergh.Client
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
         private KlotzRegion _cutout = KlotzRegion.Empty;
-        private long _changeCount = 0;
-
+        private long _selectionChangeCount = 0;
+        private long _cutoutChangeCount = 0;
         private bool _actIsHolding;
         private float _actHoldTime;
         private const float RequiredHoldTime = 0.1f; // The duration required to trigger the action
 
         public Material material;
 
-        public long ChangeCount { get => _changeCount; }
+        public long SelectionChangeCount { get => _selectionChangeCount; }
+        public long CutoutChangeCount { get => _cutoutChangeCount; }
         public KlotzRegion Cutout { get => _cutout; }
 
         public Vector3 ViewedPosition { get => _viewedPosition; } // for debug UI
@@ -60,26 +61,29 @@ namespace Clotzbergh.Client
             if (_highlightBox == null)
                 return;
 
-            HandleModeChanges();
+            bool modeChanged = HandleModeChanges();
 
             var view = GetPlayerView();
-            bool viewChanged = _viewedKlotz != view?.viewedKlotz;
+            bool viewChanged;
 
             if (view != null)
             {
+                viewChanged = !view.viewedKlotz.Equals(_viewedKlotz);
                 _viewedChunk = view.viewedChunk;
                 _viewedKlotz = view.viewedKlotz;
                 _viewedPosition = view.viewedPosition;
             }
             else
             {
+                viewChanged = _viewedKlotz != null;
                 _viewedChunk = null;
                 _viewedKlotz = null;
                 _viewedPosition = Vector3.zero;
             }
 
-            if (viewChanged)
+            if (viewChanged || modeChanged)
             {
+                _selectionChangeCount++;
                 UpdateSelection();
             }
 
@@ -91,22 +95,34 @@ namespace Clotzbergh.Client
         /// </summary>
         private void UpdateSelection()
         {
-            if (_viewedKlotz != null)
+            bool cutoutWasEmpty = _cutout.IsEmpty;
+
+            if (_viewedKlotz == null || _selectionMode == SelectionModes.None)
+            {
+                _highlightBox.SetActive(false);
+                _cutout = KlotzRegion.Empty;
+            }
+            else
             {
                 SetSelectionBoxColor(_viewedKlotz.IsFreeToTake ? Color.green : Color.red);
                 _highlightBox.transform.position = _viewedKlotz.WorldPosition;
                 _highlightBox.transform.localScale = _viewedKlotz.WorldSize;
                 _highlightBox.transform.rotation = _viewedKlotz.WorldRotation;
                 _highlightBox.SetActive(true);
-                _cutout = KlotzRegion.Empty; // KlotzRegion.Cylindrical(_viewedKlotz.rootCoords, 5, 10);
-            }
-            else
-            {
-                _highlightBox.SetActive(false);
-                _cutout = KlotzRegion.Empty;
+                _cutout = _selectionMode switch
+                {
+                    SelectionModes.Klotz => KlotzRegion.Empty,
+                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 3, 5),
+                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 5, 7),
+                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 8, 10),
+                    _ => KlotzRegion.Empty,
+                };
             }
 
-            _changeCount++;
+            if (!cutoutWasEmpty || !_cutout.IsEmpty)
+            {
+                _cutoutChangeCount++;
+            }
         }
 
         private PlayerView GetPlayerView()
@@ -147,14 +163,22 @@ namespace Clotzbergh.Client
             return modes[newIndex];
         }
 
-        private void HandleModeChanges()
+        /// <summary>
+        /// Handles changes to the selection mode based on user input.
+        /// </summary>
+        /// <returns>true if the selection mode was changed, false otherwise</returns>
+        private bool HandleModeChanges()
         {
             // IF mouse wheel is used, change selection mode
             if (Input.mouseScrollDelta.y != 0)
             {
                 int direction = Input.mouseScrollDelta.y > 0 ? 1 : -1;
                 _selectionMode = NextSelectionMode(_selectionMode, direction);
+
+                return true;
             }
+
+            return false;
         }
 
         private void HandleMouseActions(PlayerView selection)

@@ -100,10 +100,10 @@ namespace Clotzbergh.Client
             if (PlayerSelection != null)
             {
                 debugText.AppendLine();
-                debugText.AppendLine($"Select.ChangeCount: {PlayerSelection.ChangeCount}");
+                debugText.AppendLine($"Select.ChangeCount: {PlayerSelection.SelectionChangeCount}");
                 debugText.AppendLine($"Select.ViewedPos: {PlayerSelection.ViewedPosition}");
                 debugText.AppendLine($"Select.Chunk.Coord: {PlayerSelection.ViewedChunk?.Coords}");
-                debugText.AppendLine($"Select.Chunk.SelectionUpdates: {PlayerSelection.ViewedChunk?.SelectionUpdateCounter}");
+                debugText.AppendLine($"Select.Chunk.CutoutUpdates: {PlayerSelection.ViewedChunk?.CutoutUpdateCounter}");
                 debugText.AppendLine($"Select.Klotz.Root: {PlayerSelection.ViewedKlotz?.RootCoords}");
                 debugText.AppendLine($"Select.Klotz.Type: {PlayerSelection.ViewedKlotz?.Type}");
             }

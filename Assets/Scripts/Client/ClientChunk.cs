@@ -29,9 +29,9 @@ namespace Clotzbergh.Client
         /// </summary>
         private ulong _worldLocalVersion = 0;
         private int _currentLevelOfDetail = -1;
-        private float _viewerChunkDist = float.NaN;
+        private bool _isVeryClose = false;
         private int _loadPriority = 1000; // less is higher priority
-        private long _lastSeenSelection = -1; // used to detect changes in selection
+        private long _lastSeenCutout = -1; // used to detect changes in selection cutout
 
         public WorldChunk World => _currentWorld;
         public string Id => _id;
@@ -46,7 +46,7 @@ namespace Clotzbergh.Client
         public ClientChunk NeighborZP1 { get; set; }
 
         public ulong Version => _worldLocalVersion; // debug info
-        public ulong SelectionUpdateCounter { get; private set; } = 0; // debug info
+        public ulong CutoutUpdateCounter { get; private set; } = 0; // debug info
 
         public class OwnerRef : MonoBehaviour
         {
@@ -159,16 +159,15 @@ namespace Clotzbergh.Client
 
             var lodData = GetLodData(_currentLevelOfDetail);
             bool isNewestVersion = lodData.worldLocalVersion == _worldLocalVersion;
-            bool isVeryClose = _viewerChunkDist <= 1.5f; // the chunk we are in and the immediate neighbors
 
-            if (isVeryClose)
+            if (_isVeryClose)
             {
                 // we are very close to the chunk, so we can generate the mesh directly on the main thread.
 
-                long selectionChangeCount = _selection == null ? -1 : _selection.ChangeCount;
-                bool needsSelectionUpdate = _lastSeenSelection != selectionChangeCount || !isNewestVersion;
+                long cutoutChangeCount = _selection == null ? -1 : _selection.CutoutChangeCount;
+                bool needsCutoutUpdate = _lastSeenCutout != cutoutChangeCount || !isNewestVersion;
 
-                if (isNewestVersion && !needsSelectionUpdate)
+                if (isNewestVersion && !needsCutoutUpdate)
                     return false;
 
                 if (!isNewestVersion)
@@ -180,13 +179,13 @@ namespace Clotzbergh.Client
                     lodData.requestedWorldLocalVersion = _worldLocalVersion;
                 }
 
-                if (needsSelectionUpdate)
+                if (needsCutoutUpdate)
                 {
                     VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
                     lodData.visualMesh = meshData.ToMesh();
-                    _lastSeenSelection = selectionChangeCount;
+                    _lastSeenCutout = cutoutChangeCount;
 
-                    SelectionUpdateCounter++;
+                    CutoutUpdateCounter++;
                 }
 
                 SetCurrentMeshIfAvailable();
@@ -223,13 +222,13 @@ namespace Clotzbergh.Client
             if (!levelOfDetail.HasValue || levelOfDetail.Value == -1)
             {
                 _currentLevelOfDetail = -1;
-                _viewerChunkDist = float.NaN;
+                _isVeryClose = false;
                 IsActive = false;
                 return;
             }
 
             _currentLevelOfDetail = levelOfDetail.Value;
-            _viewerChunkDist = viewerChunkDist;
+            _isVeryClose = viewerChunkDist <= 1.5f;
             _loadPriority = (int)viewerChunkDist;
 
             SetCurrentMeshIfAvailable();

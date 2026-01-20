@@ -18,6 +18,8 @@ namespace Clotzbergh
         }
 
         public abstract bool Contains(int x, int y, int z);
+
+        public bool IsEmpty { get { return this is EmptyKlotzRegion; } }
     }
 
     public sealed class EmptyKlotzRegion : KlotzRegion
