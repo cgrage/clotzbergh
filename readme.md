@@ -21,7 +21,7 @@
 List of TODOs
 
 Bugs:
-- Fix cutout (should just be a hole)
+- ~~Fix cutout (should just be a hole)~~
 
 Documentation:
 - ☐ Write some initial documentation

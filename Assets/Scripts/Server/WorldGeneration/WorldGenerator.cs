@@ -7,31 +7,38 @@ namespace Clotzbergh.Server.WorldGeneration
 {
     public class WorldGenerator
     {
-        private readonly WorldType _type;
+        protected Type ChunkGeneratorType { get; }
         protected IHeightMap HeightMap { get; }
+        protected ColorFunction ColorFunc { get; }
 
         public WorldGenerator(int seed, WorldType type = WorldType.HillyRegular)
         {
-            _type = type;
-
-            HeightMap = _type switch
+            HeightMap = type switch
             {
                 WorldType.FlatMicroBlocks or WorldType.FlatRegular => new FlatHeightMap(-10f),
                 WorldType.HillyMicroBlocks or WorldType.HillyRegular => new DefaultHeightMap(seed),
+                _ => throw new ArgumentOutOfRangeException(),
+            };
+
+            ChunkGeneratorType = type switch
+            {
+                WorldType.FlatMicroBlocks or WorldType.HillyMicroBlocks => typeof(WG02_MicroBlockWorldGenerator),
+                WorldType.FlatRegular or WorldType.HillyRegular => typeof(WG04_WaveFunctionCollapseGeneratorV2),
+                _ => throw new ArgumentOutOfRangeException(),
+            };
+
+            ColorFunc = type switch
+            {
+                WorldType.FlatMicroBlocks or WorldType.FlatRegular => ColorByChunk,
+                WorldType.HillyMicroBlocks or WorldType.HillyRegular => ColorFromHeight,
                 _ => throw new ArgumentOutOfRangeException(),
             };
         }
 
         public WorldChunk GetChunk(ChunkCoords chunkCoords)
         {
-            IChunkGenerator gen = _type switch
-            {
-                WorldType.FlatMicroBlocks or WorldType.HillyMicroBlocks => new WG02_MicroBlockWorldGenerator(),
-                WorldType.FlatRegular or WorldType.HillyRegular => new WG04_WaveFunctionCollapseGeneratorV2(),
-                _ => throw new ArgumentOutOfRangeException(),
-            };
-
-            return gen.Generate(chunkCoords, HeightMap);
+            IChunkGenerator chunkGenerator = (IChunkGenerator)Activator.CreateInstance(ChunkGeneratorType);
+            return chunkGenerator.Generate(chunkCoords, HeightMap, ColorFunc);
         }
 
         public Mesh GeneratePreviewMesh(int dist)
@@ -79,11 +86,56 @@ namespace Clotzbergh.Server.WorldGeneration
             mesh.RecalculateNormals();
             return mesh;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static KlotzColor ColorFromHeight(int absX, int absY, int absZ)
+        {
+            if (absY < -80) return KlotzColor.Azure;
+            if (absY < -70) return KlotzColor.Yellow;
+            if (absY < -20) return KlotzColor.DarkGreen;
+            if (absY < 30) return KlotzColor.DarkBrown;
+            if (absY < 70) return KlotzColor.Gray;
+            return KlotzColor.White;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static KlotzColor ColorByChunk(int absX, int absY, int absZ)
+        {
+            return UniqueColor(
+                AbsKlotzCoords.FloorDiv(absX, WorldDef.ChunkSubDivsX),
+                AbsKlotzCoords.FloorDiv(absY, WorldDef.ChunkSubDivsY),
+                AbsKlotzCoords.FloorDiv(absZ, WorldDef.ChunkSubDivsZ));
+        }
+
+        private static int Hash3(int x, int y, int z)
+        {
+            unchecked
+            {
+                int h = x;
+                h = h * 374761393 + y * 668265263;
+                h = h * 2147483647 + z * 1274126177;
+                h ^= (h >> 13);
+                h *= 1274126177;
+                return h;
+            }
+        }
+
+        public static KlotzColor UniqueColor(int x, int y, int z)
+        {
+            int h = Hash3(x, y, z);
+            return (KlotzColor)(Math.Abs(h) % (int)KlotzColor.Count);
+        }
     }
+
+    public delegate KlotzColor ColorFunction(int x, int y, int z);
 
     public interface IChunkGenerator
     {
-        WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap);
+        WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap, ColorFunction colorFunc);
     }
 
     public abstract class ChunkGenerator : IChunkGenerator
@@ -96,11 +148,14 @@ namespace Clotzbergh.Server.WorldGeneration
 
         private IHeightMap _heightMap;
 
-        public virtual WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap)
+        public ColorFunction _colorFunc;
+
+        public virtual WorldChunk Generate(ChunkCoords chunkCoords, IHeightMap heightMap, ColorFunction colorFunc)
         {
             lock (RandomCreationLock) { _random = new(chunkCoords.X + chunkCoords.Y * 1000 + chunkCoords.Z * 1000000); }
             _chunkCoords = chunkCoords;
             _heightMap = heightMap;
+            _colorFunc = colorFunc;
 
             return InnerGenerate();
         }
@@ -126,20 +181,6 @@ namespace Clotzbergh.Server.WorldGeneration
         protected float HeightAt(int x, int y)
         {
             return _heightMap.At(x, y);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        protected static KlotzColor ColorFromHeight(int y)
-        {
-            if (y < -85) return KlotzColor.DarkBlue;
-            if (y < -80) return KlotzColor.Azure;
-            if (y < -70) return KlotzColor.Yellow;
-            if (y < -20) return KlotzColor.DarkGreen;
-            if (y < 30) return KlotzColor.DarkBrown;
-            if (y < 70) return KlotzColor.Gray;
-            return KlotzColor.White;
         }
 
         /// <summary>
@@ -305,7 +346,10 @@ namespace Clotzbergh.Server.WorldGeneration
         protected void PlaceKlotz(RelKlotzCoords rootCoords, KlotzType type, KlotzDirection dir)
         {
             KlotzSize size = KlotzKB.Size(type);
-            KlotzColor color = ColorFromHeight(ChunkCoords.Y * WorldDef.ChunkSubDivsY + rootCoords.Y);
+            KlotzColor color = _colorFunc(
+                ChunkCoords.X * WorldDef.ChunkSubDivs.x + rootCoords.X,
+                ChunkCoords.Y * WorldDef.ChunkSubDivs.y + rootCoords.Y,
+                ChunkCoords.Z * WorldDef.ChunkSubDivs.z + rootCoords.Z);
             KlotzVariant variant = NextRandVariant();
 
             for (int subZ = 0; subZ < size.Z; subZ++)
@@ -342,7 +386,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
         protected void FillNonCompletedWith1x1Plates()
         {
-            int baseHeight = ChunkCoords.Y * WorldDef.ChunkSubDivsY;
+            AbsKlotzCoords coords = ChunkCoords.AsBaseAbsKlotzCoords();
 
             for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
@@ -355,7 +399,7 @@ namespace Clotzbergh.Server.WorldGeneration
 
                         _chunk.Set(x, y, z, SubKlotz.Root(
                             KlotzType.Plate1x1,
-                            ColorFromHeight(baseHeight + y),
+                            _colorFunc(coords.X + x, coords.Y + y, coords.Z + z),
                             NextRandVariant(),
                             KlotzDirection.ToPosX));
                     }

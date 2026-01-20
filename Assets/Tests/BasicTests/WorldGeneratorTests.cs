@@ -104,11 +104,12 @@ public class WorldGeneratorTests
         ChunkCoords coords = new(0, 0, 0);
         List<WorldChunk> chunks = new();
         Stopwatch stopwatch = new();
+        static KlotzColor colorFunc(int x, int y, int z) => KlotzColor.White;
 
         stopwatch.Start();
         while (stopwatch.ElapsedMilliseconds < 1000)
         {
-            chunks.Add(gen.Generate(coords, heightMap));
+            chunks.Add(gen.Generate(coords, heightMap, colorFunc));
             coords = new(coords.X + 1, coords.Y, coords.Z);
         }
         stopwatch.Stop();

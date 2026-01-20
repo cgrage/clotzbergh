@@ -112,9 +112,9 @@ namespace Clotzbergh.Client
                 _cutout = _selectionMode switch
                 {
                     SelectionModes.Klotz => KlotzRegion.Empty,
-                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 3, 5),
-                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 5, 7),
-                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords, 8, 10),
+                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 3, 5),
+                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 5, 7),
+                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 8, 10),
                     _ => KlotzRegion.Empty,
                 };
             }
@@ -172,7 +172,7 @@ namespace Clotzbergh.Client
             // IF mouse wheel is used, change selection mode
             if (Input.mouseScrollDelta.y != 0)
             {
-                int direction = Input.mouseScrollDelta.y > 0 ? 1 : -1;
+                int direction = Input.mouseScrollDelta.y > 0 ? -1 : 1;
                 _selectionMode = NextSelectionMode(_selectionMode, direction);
 
                 return true;

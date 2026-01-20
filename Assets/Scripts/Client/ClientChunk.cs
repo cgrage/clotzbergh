@@ -163,12 +163,7 @@ namespace Clotzbergh.Client
             if (_isVeryClose)
             {
                 // we are very close to the chunk, so we can generate the mesh directly on the main thread.
-
-                long cutoutChangeCount = _selection == null ? -1 : _selection.CutoutChangeCount;
-                bool needsCutoutUpdate = _lastSeenCutout != cutoutChangeCount || !isNewestVersion;
-
-                if (isNewestVersion && !needsCutoutUpdate)
-                    return false;
+                bool changed = false;
 
                 if (!isNewestVersion)
                 {
@@ -177,16 +172,32 @@ namespace Clotzbergh.Client
                     lodData.colliderMeshVoxelCoords = meshData.VoxelCoords.ToArray();
                     lodData.worldLocalVersion = _worldLocalVersion;
                     lodData.requestedWorldLocalVersion = _worldLocalVersion;
+                    changed = true;
                 }
 
-                if (needsCutoutUpdate)
+                bool touchesCutout = _selection != null && _selection.Cutout.Touches(_coords);
+                if (touchesCutout)
                 {
-                    VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
-                    lodData.visualMesh = meshData.ToMesh();
-                    _lastSeenCutout = cutoutChangeCount;
-
-                    CutoutUpdateCounter++;
+                    long cutoutChangeCount = _selection == null ? -1 : _selection.CutoutChangeCount;
+                    bool needsCutoutUpdate = _lastSeenCutout != cutoutChangeCount || !isNewestVersion;
+                    if (needsCutoutUpdate)
+                    {
+                        VoxelMeshBuilder meshData = MeshGenerator.GenerateTerrainMesh(this, _currentLevelOfDetail, _selection.Cutout);
+                        lodData.visualMesh = meshData.ToMesh();
+                        CutoutUpdateCounter++;
+                        _lastSeenCutout = cutoutChangeCount;
+                        changed = true;
+                    }
                 }
+                else if (lodData.visualMesh != lodData.colliderMesh)
+                {
+                    // reset to non-cutout mesh
+                    lodData.visualMesh = lodData.colliderMesh;
+                    changed = true;
+                }
+
+                if (!changed)
+                    return false;
 
                 SetCurrentMeshIfAvailable();
                 return true;

@@ -4,7 +4,7 @@ namespace Clotzbergh.Server.WorldGeneration
 {
     public class WG01_TrivialWorldGenerator : IChunkGenerator
     {
-        public WorldChunk Generate(ChunkCoords coords, IHeightMap heightMap)
+        public WorldChunk Generate(ChunkCoords coords, IHeightMap heightMap, ColorFunction colorFunc)
         {
             WorldChunk chunk = new();
 

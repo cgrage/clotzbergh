@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Clotzbergh
@@ -61,6 +62,14 @@ namespace Clotzbergh
         {
             return Vector3Int.Distance(a.value, b.value);
         }
+
+        public AbsKlotzCoords AsBaseAbsKlotzCoords()
+        {
+            return new AbsKlotzCoords(
+                X * WorldDef.ChunkSubDivs.x,
+                Y * WorldDef.ChunkSubDivs.y,
+                Z * WorldDef.ChunkSubDivs.z);
+        }
     }
 
     public readonly struct RelKlotzCoords : IEquatable<RelKlotzCoords>
@@ -86,10 +95,60 @@ namespace Clotzbergh
         public static bool operator ==(RelKlotzCoords a, RelKlotzCoords b) => a.value == b.value;
         public static bool operator !=(RelKlotzCoords a, RelKlotzCoords b) => a.value != b.value;
 
-
-        public static int Distance(RelKlotzCoords a, RelKlotzCoords b)
+        public AbsKlotzCoords ToAbs(ChunkCoords chunkCoords)
         {
-            return (int)Vector3Int.Distance(a.value, b.value);
+            return new AbsKlotzCoords(
+                chunkCoords.X * WorldDef.ChunkSubDivs.x + X,
+                chunkCoords.Y * WorldDef.ChunkSubDivs.y + Y,
+                chunkCoords.Z * WorldDef.ChunkSubDivs.z + Z);
+        }
+    }
+
+    public readonly struct AbsKlotzCoords : IEquatable<AbsKlotzCoords>
+    {
+        private readonly Vector3Int value;
+
+        public AbsKlotzCoords(Vector3Int value) => this.value = value;
+        public AbsKlotzCoords(int x, int y, int z) => this.value = new Vector3Int(x, y, z);
+
+        public readonly int X => value.x;
+        public readonly int Y => value.y;
+        public readonly int Z => value.z;
+
+        public override readonly string ToString() => value.ToString();
+        public override readonly bool Equals(object obj) => obj is AbsKlotzCoords cc && value.Equals(cc.value);
+        public bool Equals(AbsKlotzCoords other) { return value.Equals(other.value); }
+        public override readonly int GetHashCode() => value.GetHashCode();
+
+        public static readonly AbsKlotzCoords Zero = new(0, 0, 0);
+
+        public readonly Vector3Int ToVector() => value;
+
+        public static bool operator ==(AbsKlotzCoords a, AbsKlotzCoords b) => a.value == b.value;
+        public static bool operator !=(AbsKlotzCoords a, AbsKlotzCoords b) => a.value != b.value;
+
+        public RelKlotzCoords ToRel()
+        {
+            return new RelKlotzCoords(
+                X % WorldDef.ChunkSubDivs.x,
+                Y % WorldDef.ChunkSubDivs.y,
+                Z % WorldDef.ChunkSubDivs.z);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int FloorDiv(int x, int d)
+        {
+            int q = x / d;
+            int r = x % d;
+            return (r != 0 && ((r ^ d) < 0)) ? q - 1 : q;
+        }
+
+        public ChunkCoords ToChunkCoords()
+        {
+            return new ChunkCoords(
+                FloorDiv(X, WorldDef.ChunkSubDivsX),
+                FloorDiv(Y, WorldDef.ChunkSubDivsY),
+                FloorDiv(Z, WorldDef.ChunkSubDivsZ));
         }
     }
 
@@ -115,10 +174,28 @@ namespace Clotzbergh
 
         public static bool operator ==(KlotzIndex a, KlotzIndex b) => a.value == b.value;
         public static bool operator !=(KlotzIndex a, KlotzIndex b) => a.value != b.value;
+    }
 
-        public static int Distance(KlotzIndex a, KlotzIndex b)
+    public static class BoundsIntExt
+    {
+        /// <summary>
+        /// Determines whether two BoundsInt intersect.
+        /// </summary>
+        public static bool Intersects(this BoundsInt a, BoundsInt b)
         {
-            return (int)Vector3Int.Distance(a.value, b.value);
+            return (a.xMin < b.xMax) && (a.xMax > b.xMin) &&
+                (a.yMin < b.yMax) && (a.yMax > b.yMin) &&
+                (a.zMin < b.zMax) && (a.zMax > b.zMin);
+        }
+
+        /// <summary>
+        /// Determines whether two BoundsInt intersect, including edges.
+        /// </summary>
+        public static bool Touches(this BoundsInt a, BoundsInt b)
+        {
+            return (a.xMin <= b.xMax) && (a.xMax >= b.xMin) &&
+                (a.yMin <= b.yMax) && (a.yMax >= b.yMin) &&
+                (a.zMin <= b.zMax) && (a.zMax >= b.zMin);
         }
     }
 }
