@@ -76,12 +76,6 @@ namespace Clotzbergh.Client
 
         void OnGUI()
         {
-            GUIStyle style = new() { fontSize = 12 };
-            style.normal.textColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-
-            if (!TryGetComponent<RectTransform>(out var rectTransform))
-                return;
-
             if (!TryGetComponent<TextMeshProUGUI>(out var textMeshPro))
                 return;
 

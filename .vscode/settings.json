@@ -16,6 +16,7 @@
         "Perlin",
         "Prio",
         "Raycast",
+        "TextMeshProUGUI",
         "voxel",
         "voxels",
         "wireframe"
