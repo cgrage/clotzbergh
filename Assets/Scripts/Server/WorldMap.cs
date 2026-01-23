@@ -6,7 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
-using Clotzbergh.Server.WorldGeneration;
 
 namespace Clotzbergh.Server
 {

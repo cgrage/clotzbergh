@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using NUnit.Framework;
-using UnityEngine;
-using Clotzbergh.Server.WorldGeneration;
-using Clotzbergh.Server;
-using Clotzbergh;
 using System.Diagnostics;
+using NUnit.Framework;
+using Clotzbergh;
+using Clotzbergh.Server;
+using Clotzbergh.Server.ChunkGeneration;
 using Debug = UnityEngine.Debug;
 
 public class WorldGeneratorTests
@@ -20,81 +19,81 @@ public class WorldGeneratorTests
     }
 
     [Test]
-    public void WG01_TrivialWorldGeneratorPackedTest()
+    public void CG01_TrivialChunkGeneratorPackedTest()
     {
-        IChunkGenerator gen = new WG01_TrivialWorldGenerator();
+        IChunkGenerator gen = new CG01_TrivialChunkGenerator();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG01_TrivialWorldGeneratorEmptyTest()
+    public void CG01_TrivialChunkGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new WG01_TrivialWorldGenerator();
+        IChunkGenerator gen = new CG01_TrivialChunkGenerator();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }
 
     [Test]
-    public void WG02_MicroBlockWorldGeneratorPackedTest()
+    public void CG02_MicroBlockChunkGeneratorPackedTest()
     {
-        IChunkGenerator gen = new WG02_MicroBlockWorldGenerator();
+        IChunkGenerator gen = new CG02_MicroBlockChunkGenerator();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG02_MicroBlockWorldGeneratorEmptyTest()
+    public void CG02_MicroBlockChunkGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new WG02_MicroBlockWorldGenerator();
+        IChunkGenerator gen = new CG02_MicroBlockChunkGenerator();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }
 
     [Test]
-    public void WG03_WaveFunctionCollapseGeneratorPackedTest()
+    public void CG03_WaveFunctionCollapseGeneratorPackedTest()
     {
-        IChunkGenerator gen = new WG03_WaveFunctionCollapseGenerator();
+        IChunkGenerator gen = new CG03_WaveFunctionCollapseGenerator();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG03_WaveFunctionCollapseGeneratorEmptyTest()
+    public void CG03_WaveFunctionCollapseGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new WG03_WaveFunctionCollapseGenerator();
+        IChunkGenerator gen = new CG03_WaveFunctionCollapseGenerator();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }
 
     [Test]
-    public void WG04_WaveFunctionCollapseGeneratorV2PackedTest()
+    public void CG04_WaveFunctionCollapseGeneratorV2PackedTest()
     {
-        IChunkGenerator gen = new WG04_WaveFunctionCollapseGeneratorV2();
+        IChunkGenerator gen = new CG04_WaveFunctionCollapseGeneratorV2();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG04_WaveFunctionCollapseGeneratorV2EmptyTest()
+    public void CG04_WaveFunctionCollapseGeneratorV2EmptyTest()
     {
-        IChunkGenerator gen = new WG04_WaveFunctionCollapseGeneratorV2();
+        IChunkGenerator gen = new CG04_WaveFunctionCollapseGeneratorV2();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }
 
     [Test]
-    public void WG05_OpportunisticGeneratorPackedTest()
+    public void CG05_OpportunisticGeneratorPackedTest()
     {
-        IChunkGenerator gen = new WG05_OpportunisticGenerator();
+        IChunkGenerator gen = new CG05_OpportunisticGenerator();
         IHeightMap hm = new PackedHeightMap();
         GeneratorTest(gen, hm, false, true);
     }
 
     [Test]
-    public void WG05_OpportunisticGeneratorEmptyTest()
+    public void CG05_OpportunisticGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new WG05_OpportunisticGenerator();
+        IChunkGenerator gen = new CG05_OpportunisticGenerator();
         IHeightMap hm = new EmptyHeightMap();
         GeneratorTest(gen, hm, true, false);
     }

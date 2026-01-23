@@ -1,10 +1,9 @@
-using NUnit.Framework;
-using Clotzbergh.Server.WorldGeneration;
-using Clotzbergh;
 using System.Collections.Generic;
-using UnityEngine;
+using Clotzbergh;
+using Clotzbergh.Server;
+using NUnit.Framework;
 
-public class WorldGeneratorHelperTests
+public class WorldGeneratorTrivialTests
 {
     [Test]
     public void UniqueColor_IsDeterministic()
