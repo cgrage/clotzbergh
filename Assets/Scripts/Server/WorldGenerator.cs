@@ -82,7 +82,7 @@ namespace Clotzbergh.Server
             ChunkGeneratorFactory = new(genParams.Granularity switch
             {
                 WorldGranularityType.MicroBlocks => typeof(CG02_MicroBlockChunkGenerator),
-                WorldGranularityType.Regular => typeof(CG04_WaveFunctionCollapseGeneratorV2),
+                WorldGranularityType.Regular => typeof(CG02_MicroBlockChunkGenerator), // typeof(CG04_WaveFunctionCollapseGeneratorV2),
                 _ => throw new ArgumentOutOfRangeException(),
             });
 
