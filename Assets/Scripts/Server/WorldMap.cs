@@ -9,14 +9,6 @@ using UnityEngine;
 
 namespace Clotzbergh.Server
 {
-    public enum WorldType
-    {
-        FlatMicroBlocks,
-        FlatRegular,
-        HillyMicroBlocks,
-        HillyRegular,
-    }
-
     public class WorldMap
     {
         private readonly string _worldName;
@@ -47,11 +39,11 @@ namespace Clotzbergh.Server
         public int LoaderThreadCount = 4;
         public int SaverThreadsCount = 1;
 
-        public WorldMap(string name, WorldType type, int seed)
+        public WorldMap(string name, WorldGenParams genParam)
         {
             _worldName = name;
-            _worldSeed = seed;
-            _generator = new(seed, type);
+            _worldSeed = genParam.Seed;
+            _generator = new(genParam);
             _worldState = new();
             _clientStates = new();
             _chunkDataPath = Path.Combine(Application.persistentDataPath, name);

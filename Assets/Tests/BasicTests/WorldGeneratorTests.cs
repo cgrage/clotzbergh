@@ -21,85 +21,77 @@ public class WorldGeneratorTests
     [Test]
     public void CG01_TrivialChunkGeneratorPackedTest()
     {
-        IChunkGenerator gen = new CG01_TrivialChunkGenerator();
         IHeightMap hm = new PackedHeightMap();
-        GeneratorTest(gen, hm, false, true);
+        GeneratorTest<CG01_TrivialChunkGenerator>(hm, false, true);
     }
 
     [Test]
     public void CG01_TrivialChunkGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new CG01_TrivialChunkGenerator();
         IHeightMap hm = new EmptyHeightMap();
-        GeneratorTest(gen, hm, true, false);
+        GeneratorTest<CG01_TrivialChunkGenerator>(hm, true, false);
     }
 
     [Test]
     public void CG02_MicroBlockChunkGeneratorPackedTest()
     {
-        IChunkGenerator gen = new CG02_MicroBlockChunkGenerator();
         IHeightMap hm = new PackedHeightMap();
-        GeneratorTest(gen, hm, false, true);
+        GeneratorTest<CG02_MicroBlockChunkGenerator>(hm, false, true);
     }
 
     [Test]
     public void CG02_MicroBlockChunkGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new CG02_MicroBlockChunkGenerator();
         IHeightMap hm = new EmptyHeightMap();
-        GeneratorTest(gen, hm, true, false);
+        GeneratorTest<CG02_MicroBlockChunkGenerator>(hm, true, false);
     }
 
     [Test]
     public void CG03_WaveFunctionCollapseGeneratorPackedTest()
     {
-        IChunkGenerator gen = new CG03_WaveFunctionCollapseGenerator();
         IHeightMap hm = new PackedHeightMap();
-        GeneratorTest(gen, hm, false, true);
+        GeneratorTest<CG03_WaveFunctionCollapseGenerator>(hm, false, true);
     }
 
     [Test]
     public void CG03_WaveFunctionCollapseGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new CG03_WaveFunctionCollapseGenerator();
         IHeightMap hm = new EmptyHeightMap();
-        GeneratorTest(gen, hm, true, false);
+        GeneratorTest<CG03_WaveFunctionCollapseGenerator>(hm, true, false);
     }
 
     [Test]
     public void CG04_WaveFunctionCollapseGeneratorV2PackedTest()
     {
-        IChunkGenerator gen = new CG04_WaveFunctionCollapseGeneratorV2();
         IHeightMap hm = new PackedHeightMap();
-        GeneratorTest(gen, hm, false, true);
+        GeneratorTest<CG04_WaveFunctionCollapseGeneratorV2>(hm, false, true);
     }
 
     [Test]
     public void CG04_WaveFunctionCollapseGeneratorV2EmptyTest()
     {
-        IChunkGenerator gen = new CG04_WaveFunctionCollapseGeneratorV2();
         IHeightMap hm = new EmptyHeightMap();
-        GeneratorTest(gen, hm, true, false);
+        GeneratorTest<CG04_WaveFunctionCollapseGeneratorV2>(hm, true, false);
     }
 
     [Test]
     public void CG05_OpportunisticGeneratorPackedTest()
     {
-        IChunkGenerator gen = new CG05_OpportunisticGenerator();
         IHeightMap hm = new PackedHeightMap();
-        GeneratorTest(gen, hm, false, true);
+        GeneratorTest<CG05_OpportunisticGenerator>(hm, false, true);
     }
 
     [Test]
     public void CG05_OpportunisticGeneratorEmptyTest()
     {
-        IChunkGenerator gen = new CG05_OpportunisticGenerator();
         IHeightMap hm = new EmptyHeightMap();
-        GeneratorTest(gen, hm, true, false);
+        GeneratorTest<CG05_OpportunisticGenerator>(hm, true, false);
     }
 
-    public void GeneratorTest(IChunkGenerator gen, IHeightMap heightMap, bool testEmpty, bool testPacked)
+    public void GeneratorTest<TGen>(IHeightMap heightMap, bool testEmpty, bool testPacked)
     {
+        GeneratorFactory<ChunkGenerator> genFactory = new(typeof(TGen));
+
         ChunkCoords coords = new(0, 0, 0);
         List<WorldChunk> chunks = new();
         Stopwatch stopwatch = new();
@@ -108,7 +100,9 @@ public class WorldGeneratorTests
         stopwatch.Start();
         while (stopwatch.ElapsedMilliseconds < 1000)
         {
-            chunks.Add(gen.Generate(coords, heightMap, colorFunc));
+            FieldResolver resolver = new(coords, heightMap);
+            ChunkGenerator gen = genFactory.CreateGenerator(coords);
+            chunks.Add(gen.Generate(resolver, colorFunc));
             coords = new(coords.X + 1, coords.Y, coords.Z);
         }
         stopwatch.Stop();

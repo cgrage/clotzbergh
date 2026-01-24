@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace Clotzbergh.Server.ChunkGeneration
 {
-    public class CG01_TrivialChunkGenerator : IChunkGenerator
+    public class CG01_TrivialChunkGenerator : ChunkGenerator
     {
-        public WorldChunk Generate(ChunkCoords coords, IHeightMap heightMap, ColorFunction colorFunc)
+        protected override WorldChunk InnerGenerate()
         {
             WorldChunk chunk = new();
 
@@ -12,13 +12,11 @@ namespace Clotzbergh.Server.ChunkGeneration
             {
                 for (int ix = 0; ix < WorldDef.ChunkSubDivsX; ix++)
                 {
-                    int x = coords.X * WorldDef.ChunkSubDivsX + ix;
-                    int z = coords.Z * WorldDef.ChunkSubDivsZ + iz;
-                    int groundStart = Mathf.RoundToInt(heightMap.At(x, z) / WorldDef.SubKlotzSize.y);
+                    int groundStart = FieldResolver.GroundStartAtRelPos(ix, iz);
 
                     for (int iy = 0; iy < WorldDef.ChunkSubDivsY; iy++)
                     {
-                        int y = coords.Y * WorldDef.ChunkSubDivsY + iy;
+                        int y = ChunkCoords.Y * WorldDef.ChunkSubDivsY + iy;
                         if (y > groundStart)
                         {
                             chunk.Set(ix, iy, iz, SubKlotz.Air);

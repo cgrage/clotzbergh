@@ -1,45 +1,110 @@
 using System;
 using Clotzbergh.Server.ChunkGeneration;
+using Clotzbergh.Server.StructureGeneration;
 using UnityEngine;
 
 namespace Clotzbergh.Server
 {
+    public struct WorldGenParams
+    {
+        public int Seed { get; set; }
+        public WorldRoughnessType Roughness { get; set; }
+        public WorldGranularityType Granularity { get; set; }
+        public WorldStructureCreation Structures { get; set; }
+
+        public static WorldGenParams HillyRegular(int seed) => new()
+        {
+            Seed = seed,
+            Roughness = WorldRoughnessType.Hilly,
+            Granularity = WorldGranularityType.Regular,
+            Structures = WorldStructureCreation.WithStructures,
+        };
+
+        public static WorldGenParams HillyMicroBlocks(int seed) => new()
+        {
+            Seed = seed,
+            Roughness = WorldRoughnessType.Hilly,
+            Granularity = WorldGranularityType.MicroBlocks,
+            Structures = WorldStructureCreation.WithStructures,
+        };
+
+        public static WorldGenParams FlatRegular(int seed) => new()
+        {
+            Seed = seed,
+            Roughness = WorldRoughnessType.Flat,
+            Granularity = WorldGranularityType.Regular,
+            Structures = WorldStructureCreation.NoStructures,
+        };
+
+        public static WorldGenParams FlatMicroBlocks(int seed) => new()
+        {
+            Seed = seed,
+            Roughness = WorldRoughnessType.Flat,
+            Granularity = WorldGranularityType.MicroBlocks,
+            Structures = WorldStructureCreation.NoStructures,
+        };
+    }
+
+    public enum WorldRoughnessType { Flat, Hilly, }
+
+    public enum WorldGranularityType { MicroBlocks, Regular, }
+
+    public enum WorldStructureCreation { NoStructures, WithStructures, }
+
     public delegate KlotzColor ColorFunction(int x, int y, int z);
 
     public class WorldGenerator
     {
-        protected Type ChunkGeneratorType { get; }
         protected IHeightMap HeightMap { get; }
         protected ColorFunction ColorFunc { get; }
+        protected GeneratorFactory<ChunkGenerator> ChunkGeneratorFactory { get; }
+        protected GeneratorFactory<StructureGenerator> StructureGeneratorFactory { get; }
 
-        public WorldGenerator(int seed, WorldType type = WorldType.HillyRegular)
+        public WorldGenerator(int seed)
+         : this(WorldGenParams.HillyRegular(seed)) { }
+
+        public WorldGenerator(WorldGenParams genParams)
         {
-            HeightMap = type switch
+            HeightMap = genParams.Roughness switch
             {
-                WorldType.FlatMicroBlocks or WorldType.FlatRegular => new FlatHeightMap(-10f),
-                WorldType.HillyMicroBlocks or WorldType.HillyRegular => new DefaultHeightMap(seed),
+                WorldRoughnessType.Flat => new FlatHeightMap(-10f),
+                WorldRoughnessType.Hilly => new DefaultHeightMap(genParams.Seed),
                 _ => throw new ArgumentOutOfRangeException(),
             };
 
-            ChunkGeneratorType = type switch
+            ColorFunc = genParams.Roughness switch
             {
-                WorldType.FlatMicroBlocks or WorldType.HillyMicroBlocks => typeof(CG02_MicroBlockChunkGenerator),
-                WorldType.FlatRegular or WorldType.HillyRegular => typeof(CG04_WaveFunctionCollapseGeneratorV2),
+                WorldRoughnessType.Flat => ColorByChunk,
+                WorldRoughnessType.Hilly => ColorFromHeight,
                 _ => throw new ArgumentOutOfRangeException(),
             };
 
-            ColorFunc = type switch
+            ChunkGeneratorFactory = new(genParams.Granularity switch
             {
-                WorldType.FlatMicroBlocks or WorldType.FlatRegular => ColorByChunk,
-                WorldType.HillyMicroBlocks or WorldType.HillyRegular => ColorFromHeight,
+                WorldGranularityType.MicroBlocks => typeof(CG02_MicroBlockChunkGenerator),
+                WorldGranularityType.Regular => typeof(CG04_WaveFunctionCollapseGeneratorV2),
                 _ => throw new ArgumentOutOfRangeException(),
-            };
+            });
+
+            StructureGeneratorFactory = new(genParams.Structures switch
+            {
+                WorldStructureCreation.NoStructures => typeof(NoStructureGenerator),
+                WorldStructureCreation.WithStructures => typeof(SimpleCentralHouseGenerator),
+                _ => throw new ArgumentOutOfRangeException(),
+            });
         }
 
         public WorldChunk GetChunk(ChunkCoords chunkCoords)
         {
-            IChunkGenerator chunkGenerator = (IChunkGenerator)Activator.CreateInstance(ChunkGeneratorType);
-            return chunkGenerator.Generate(chunkCoords, HeightMap, ColorFunc);
+            StructureGenerator structureGenerator = StructureGeneratorFactory.CreateGenerator(chunkCoords);
+            ChunkGenerator chunkGenerator = ChunkGeneratorFactory.CreateGenerator(chunkCoords);
+
+            FieldResolver resolver = new(chunkCoords, HeightMap);
+            resolver.AddHeightMapOverride(structureGenerator);
+
+            WorldChunk chunk = chunkGenerator.Generate(resolver, ColorFunc);
+            //structureGenerator.PopulateStructures(chunk);
+            return chunk;
         }
 
         public Mesh GeneratePreviewMesh(int dist)
