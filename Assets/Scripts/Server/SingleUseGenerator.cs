@@ -9,14 +9,14 @@ namespace Clotzbergh.Server.ChunkGeneration
     {
         private static readonly object RandomCreationLock = new();
 
-        private Random _random;
+        private Random Random { get; set; }
 
-        private ChunkCoords _chunkCoords;
+        protected ChunkCoords ChunkCoords { get; private set; }
 
         public void Initialize(ChunkCoords chunkCoords)
         {
-            lock (RandomCreationLock) { _random = new(chunkCoords.X + chunkCoords.Y * 1000 + chunkCoords.Z * 1000000); }
-            _chunkCoords = chunkCoords;
+            lock (RandomCreationLock) { Random = new(chunkCoords.X + chunkCoords.Y * 1000 + chunkCoords.Z * 1000000); }
+            ChunkCoords = chunkCoords;
         }
 
         protected bool IsOutOfBounds(RelKlotzCoords coords)
@@ -33,14 +33,12 @@ namespace Clotzbergh.Server.ChunkGeneration
                 z >= WorldDef.ChunkSubDivsZ;
         }
 
-        protected ChunkCoords ChunkCoords { get => _chunkCoords; }
-
         /// <summary>
         /// 
         /// </summary>
         protected KlotzColor NextRandColor()
         {
-            return (KlotzColor)_random.Next(0, (int)KlotzColor.Count);
+            return (KlotzColor)Random.Next(0, (int)KlotzColor.Count);
         }
 
         /// <summary>
@@ -48,7 +46,7 @@ namespace Clotzbergh.Server.ChunkGeneration
         /// </summary>
         protected KlotzDirection NextRandDirection()
         {
-            return (KlotzDirection)_random.Next(0, (int)KlotzDirection.Count);
+            return (KlotzDirection)Random.Next(0, (int)KlotzDirection.Count);
         }
 
         /// <summary>
@@ -56,7 +54,7 @@ namespace Clotzbergh.Server.ChunkGeneration
         /// </summary>
         protected KlotzVariant NextRandVariant()
         {
-            return (KlotzVariant)(uint)_random.Next(0, KlotzVariant.Count);
+            return (KlotzVariant)(uint)Random.Next(0, KlotzVariant.Count);
         }
 
         /// <summary>
@@ -64,7 +62,7 @@ namespace Clotzbergh.Server.ChunkGeneration
         /// </summary>
         protected bool NextRandomCoinFlip()
         {
-            return _random.Next() % 2 == 0;
+            return Random.Next() % 2 == 0;
         }
 
         /// <summary>
@@ -72,7 +70,7 @@ namespace Clotzbergh.Server.ChunkGeneration
         /// </summary>
         protected TList NextRandomElement<TList>(IReadOnlyList<TList> list)
         {
-            return list[_random.Next(0, list.Count)];
+            return list[Random.Next(0, list.Count)];
         }
 
         /// <summary>
@@ -85,7 +83,7 @@ namespace Clotzbergh.Server.ChunkGeneration
                 throw new ArgumentException("list is empty");
 
             int n = list.Count;
-            double randomValue = _random.NextDouble();
+            double randomValue = Random.NextDouble();
 
             // Calculate the weight for the geometric distribution
             double maxWeight = Math.Pow(biasFactor, n);
@@ -94,6 +92,17 @@ namespace Clotzbergh.Server.ChunkGeneration
             int biasedIndex = (int)(logValue / Math.Log(biasFactor));
 
             return list[Math.Min(biasedIndex, n - 1)];
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        protected (int, int) NextRandRelCoordsXZ(int paddingX = 0, int paddingZ = 0)
+        {
+            return (
+                Random.Next(paddingX, WorldDef.ChunkSubDivsX - paddingX),
+                Random.Next(paddingZ, WorldDef.ChunkSubDivsZ - paddingZ)
+            );
         }
     }
 

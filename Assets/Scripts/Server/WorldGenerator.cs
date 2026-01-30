@@ -100,8 +100,11 @@ namespace Clotzbergh.Server
             ChunkGenerator chunkGenerator = ChunkGeneratorFactory.CreateGenerator(chunkCoords);
 
             FieldResolver resolver = new(chunkCoords, HeightMap);
-            resolver.AddHeightMapOverride(structureGenerator);
 
+            if (structureGenerator.Manipulator != null)
+                resolver.AddManipulator(structureGenerator.Manipulator);
+
+            resolver.RunOnBeforeGeneration();
             WorldChunk chunk = chunkGenerator.Generate(resolver, ColorFunc);
             //structureGenerator.PopulateStructures(chunk);
             return chunk;
