@@ -101,8 +101,8 @@ namespace Clotzbergh.Server
 
             FieldResolver resolver = new(chunkCoords, HeightMap);
 
-            if (structureGenerator.Manipulator != null)
-                resolver.AddManipulator(structureGenerator.Manipulator);
+            if (structureGenerator.GenModifier != null)
+                resolver.AddModifier(structureGenerator.GenModifier);
 
             resolver.RunOnBeforeGeneration();
             WorldChunk chunk = chunkGenerator.Generate(resolver, ColorFunc);

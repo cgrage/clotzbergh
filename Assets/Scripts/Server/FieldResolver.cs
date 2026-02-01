@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Clotzbergh.Server
 {
-    public interface IWorldGenerationManipulator
+    public interface IGenerationModifier
     {
         void OnBeforeGeneration(FieldResolver r);
         float OnHeightMapOverride(FieldResolver r, int absX, int absZ);
@@ -18,7 +18,7 @@ namespace Clotzbergh.Server
 
         public IHeightMap HeightMap { get; }
 
-        private IWorldGenerationManipulator Manipulator { get; set; }
+        private IGenerationModifier GenModifier { get; set; }
 
         public FieldResolver(ChunkCoords coords, IHeightMap heightMap)
         {
@@ -28,23 +28,23 @@ namespace Clotzbergh.Server
 
         public void RunOnBeforeGeneration()
         {
-            if (Manipulator != null)
+            if (GenModifier != null)
             {
-                Manipulator.OnBeforeGeneration(this);
+                GenModifier.OnBeforeGeneration(this);
             }
         }
 
-        public void AddManipulator(IWorldGenerationManipulator manipulator)
+        public void AddModifier(IGenerationModifier modifier)
         {
-            if (Manipulator != null)
+            if (GenModifier != null)
             {
                 throw new InvalidOperationException(
                     "Implementation limitation: There can currently " +
-                    "only be one WorldGenerationManipulator at a time");
+                    "only be one GenerationModifier at a time");
 
             }
 
-            Manipulator = manipulator;
+            GenModifier = modifier;
         }
 
         public int GroundStartAtRelPos(int x, int z)
@@ -57,9 +57,9 @@ namespace Clotzbergh.Server
             int absX = Coords.X * WorldDef.ChunkSubDivsX + x;
             int absZ = Coords.Z * WorldDef.ChunkSubDivsZ + z;
 
-            if (Manipulator != null)
+            if (GenModifier != null)
             {
-                return Manipulator.OnHeightMapOverride(this, absX, absZ);
+                return GenModifier.OnHeightMapOverride(this, absX, absZ);
             }
             else
             {

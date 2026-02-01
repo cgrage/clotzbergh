@@ -6,7 +6,7 @@ namespace Clotzbergh.Server.StructureGeneration
 {
     public abstract class StructureGenerator : SingleUseGenerator
     {
-        public virtual IWorldGenerationManipulator Manipulator => null;
+        public virtual IGenerationModifier GenModifier => null;
 
         // public abstract void PopulateStructures(WorldChunk chunk);
     }
@@ -16,7 +16,7 @@ namespace Clotzbergh.Server.StructureGeneration
         //
     }
 
-    public class SimpleCentralHouseGenerator : StructureGenerator, IWorldGenerationManipulator
+    public class SimpleCentralHouseGenerator : StructureGenerator, IGenerationModifier
     {
         /*
         // Simple example: place a house at the center of the chunk.
@@ -25,7 +25,7 @@ namespace Clotzbergh.Server.StructureGeneration
         */
         private readonly List<RelKlotzCoords> _destinations = new();
 
-        public override IWorldGenerationManipulator Manipulator => this;
+        public override IGenerationModifier GenModifier => this;
 
         public void OnBeforeGeneration(FieldResolver r)
         {
