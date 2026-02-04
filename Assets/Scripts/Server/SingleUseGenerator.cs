@@ -97,11 +97,11 @@ namespace Clotzbergh.Server.ChunkGeneration
         /// <summary>
         /// 
         /// </summary>
-        protected (int, int) NextRandRelCoordsXZ(int paddingX = 0, int paddingZ = 0)
+        protected Vector2Int NextRandRelCoordsXZ(Vector2Int sizeXZ)
         {
-            return (
-                Random.Next(paddingX, WorldDef.ChunkSubDivsX - paddingX),
-                Random.Next(paddingZ, WorldDef.ChunkSubDivsZ - paddingZ)
+            return new Vector2Int(
+                Random.Next(0, WorldDef.ChunkSubDivsX - sizeXZ.x),
+                Random.Next(0, WorldDef.ChunkSubDivsZ - sizeXZ.y)
             );
         }
     }

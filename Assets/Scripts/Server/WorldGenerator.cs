@@ -106,7 +106,7 @@ namespace Clotzbergh.Server
 
             resolver.RunOnBeforeGeneration();
             WorldChunk chunk = chunkGenerator.Generate(resolver, ColorFunc);
-            //structureGenerator.PopulateStructures(chunk);
+            structureGenerator.PopulateStructures(chunk);
             return chunk;
         }
 
