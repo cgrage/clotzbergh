@@ -39,11 +39,11 @@ namespace Clotzbergh.Server
         public int LoaderThreadCount = 4;
         public int SaverThreadsCount = 1;
 
-        public WorldMap(string name, WorldGenParams genParam)
+        public WorldMap(string name, WorldGenParams genParams, bool overrideExistingData = true)
         {
             _worldName = name;
-            _worldSeed = genParam.Seed;
-            _generator = new(genParam);
+            _worldSeed = genParams.Seed;
+            _generator = new(genParams);
             _worldState = new();
             _clientStates = new();
             _chunkDataPath = Path.Combine(Application.persistentDataPath, name);
@@ -56,7 +56,16 @@ namespace Clotzbergh.Server
 
             if (Directory.Exists(_chunkDataPath))
             {
-                Debug.Log($"Loading data from {_chunkDataPath}");
+                if (overrideExistingData)
+                {
+                    Debug.Log($"Override data in {_chunkDataPath}");
+                    Directory.Delete(_chunkDataPath, true);
+                    Directory.CreateDirectory(_chunkDataPath);
+                }
+                else
+                {
+                    Debug.Log($"Loading data from {_chunkDataPath}");
+                }
             }
             else
             {
