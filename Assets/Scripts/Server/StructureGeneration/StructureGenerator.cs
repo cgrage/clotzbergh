@@ -154,6 +154,7 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             int storyBaseY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight;
             KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Yellow;
+            FloorPlanCell[][] floorPlan = FloorPlanGenerator.Generate(dest.HouseSizeXZ.x, dest.HouseSizeXZ.y);
 
             for (int dx = 0; dx < dest.HouseSizeXZ.x; dx++)
             {
@@ -161,12 +162,15 @@ namespace Clotzbergh.Server.StructureGeneration
                 {
                     for (int dy = 0; dy < dest.StoryHeight; dy++)
                     {
-                        chunk.PlaceKlotz(
-                            KlotzType.Plate1x1,
-                            wallColor,
-                            NextRandVariant(),
-                            new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
-                            KlotzDirection.ToPosX);
+                        if (floorPlan[dx][dz] == FloorPlanCell.Wall)
+                        {
+                            chunk.PlaceKlotz(
+                                KlotzType.Plate1x1,
+                                wallColor,
+                                NextRandVariant(),
+                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                KlotzDirection.ToPosX);
+                        }
                     }
                 }
             }
