@@ -227,9 +227,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   initialMoveDelay: 1
   playerCamera: {fileID: 963194227}
-  walkSpeed: 10
-  runSpeed: 25
-  jumpPower: 10
+  walkSpeed: 6
+  runSpeed: 8
+  jumpPower: 4
   gravity: 10
   lookSpeed: 2
   lookXLimit: 90
