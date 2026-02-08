@@ -13,13 +13,31 @@ namespace Clotzbergh.Server.StructureGeneration
         Window
     }
 
+    public class FloorPlan
+    {
+        public FloorPlanCell[][] Plan { get; private set; }
+        public Vector2Int[] DoorLocations { get; private set; }
+        public Vector2Int[] WindowLocations { get; private set; }
+
+        public FloorPlan(int sizeX, int sizeY)
+        {
+            Plan = new FloorPlanCell[sizeX][];
+            for (int x = 0; x < sizeX; x++)
+            {
+                Plan[x] = new FloorPlanCell[sizeY];
+            }
+            DoorLocations = new Vector2Int[0];
+            WindowLocations = new Vector2Int[0];
+        }
+    }
+
     public class FloorPlanGenerator
     {
         private enum WallDirection { Horizontal, Vertical }
 
-        private readonly FloorPlanCell[][] _plan;
+        private readonly FloorPlan _plan;
 
-        public static FloorPlanCell[][] Generate(int sizeX, int sizeY)
+        public static FloorPlan Generate(int sizeX, int sizeY)
         {
             FloorPlanGenerator generator = new(sizeX, sizeY);
             return generator._plan;
@@ -27,11 +45,7 @@ namespace Clotzbergh.Server.StructureGeneration
 
         private FloorPlanGenerator(int sizeX, int sizeY)
         {
-            _plan = new FloorPlanCell[sizeX][];
-            for (int x = 0; x < sizeX; x++)
-            {
-                _plan[x] = new FloorPlanCell[sizeY];
-            }
+            _plan = new FloorPlan(sizeX, sizeY);
 
             int sideWithDoor = 0; // TODO: Randomize this
 
@@ -47,16 +61,26 @@ namespace Clotzbergh.Server.StructureGeneration
             int x = startX;
             int y = startY;
 
-            for (int i = 0; i < length; i++)
+            for (int pos = 0; pos < length; pos++)
             {
-                if (i > 2 && i <= 6 && hasDoor) // TODO: Randomize door position
+                int remaining = length - pos;
+
+                if (pos > 2 && pos <= 6 && remaining > 4) // TODO: Randomize door location
                 {
-                    _plan[x][y] = FloorPlanCell.Door;
+                    if (hasDoor)
+                    {
+                        _plan.Plan[x][y] = FloorPlanCell.Door;
+                    }
+                    else
+                    {
+                        _plan.Plan[x][y] = FloorPlanCell.Window;
+                    }
                 }
                 else
                 {
-                    _plan[x][y] = FloorPlanCell.Wall;
+                    _plan.Plan[x][y] = FloorPlanCell.Wall;
                 }
+
                 if (direction == WallDirection.Horizontal) x++; else y++;
             }
         }
@@ -67,9 +91,9 @@ namespace Clotzbergh.Server.StructureGeneration
             {
                 for (int y = startY; y < startY + sizeY; y++)
                 {
-                    if (x >= 0 && x < _plan.Length && y >= 0 && y < _plan[0].Length)
+                    if (x >= 0 && x < _plan.Plan.Length && y >= 0 && y < _plan.Plan[0].Length)
                     {
-                        _plan[x][y] = FloorPlanCell.Interior;
+                        _plan.Plan[x][y] = FloorPlanCell.Interior;
                     }
                 }
             }

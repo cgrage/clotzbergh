@@ -22,6 +22,9 @@ namespace Clotzbergh.Server.StructureGeneration
             public const int RoofInset = 1;
             public const int HouseInset = 1;
             public const int RoofSlope = 3;
+            public const int DoorHeight = 5 * 3;
+            public const int WindowSillHeight = 2 * 3;
+            public const int WindowFrameHeight = 3 * 3;
 
             public readonly Vector2Int AreaLocationXZ { get; }
             public readonly Vector2Int AreaSizeXZ { get; }
@@ -50,7 +53,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 HouseSizeXZ = new Vector2Int(RoofSizeXZ.x - 2 * HouseInset, RoofSizeXZ.y - 2 * HouseInset);
 
                 BaseHeight = 1;
-                StoryHeight = 3 * 5;
+                StoryHeight = 3 * 6;
                 RoofHeight = (RoofSizeXZ.x / 2) * RoofSlope;
 
                 if (BaseHeight + RoofHeight < maxHeight)
@@ -76,7 +79,7 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             for (int i = 0; i < 1; i++)
             {
-                Vector3Int dimensions = new(18, 42, 18);
+                Vector3Int dimensions = new(18, 60, 18);
 
                 Vector2Int sizeXZ = new(dimensions.x, dimensions.z);
                 Vector2Int posXZ = NextRandRelCoordsXZ(sizeXZ);
@@ -154,7 +157,7 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             int storyBaseY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight;
             KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Yellow;
-            FloorPlanCell[][] floorPlan = FloorPlanGenerator.Generate(dest.HouseSizeXZ.x, dest.HouseSizeXZ.y);
+            FloorPlan floorPlan = FloorPlanGenerator.Generate(dest.HouseSizeXZ.x, dest.HouseSizeXZ.y);
 
             for (int dx = 0; dx < dest.HouseSizeXZ.x; dx++)
             {
@@ -162,7 +165,25 @@ namespace Clotzbergh.Server.StructureGeneration
                 {
                     for (int dy = 0; dy < dest.StoryHeight; dy++)
                     {
-                        if (floorPlan[dx][dz] == FloorPlanCell.Wall)
+                        if (floorPlan.Plan[dx][dz] == FloorPlanCell.Wall)
+                        {
+                            chunk.PlaceKlotz(
+                                KlotzType.Plate1x1,
+                                wallColor,
+                                NextRandVariant(),
+                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                KlotzDirection.ToPosX);
+                        }
+                        else if (floorPlan.Plan[dx][dz] == FloorPlanCell.Door && dy >= HouseDesc.DoorHeight)
+                        {
+                            chunk.PlaceKlotz(
+                                KlotzType.Plate1x1,
+                                wallColor,
+                                NextRandVariant(),
+                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                KlotzDirection.ToPosX);
+                        }
+                        else if (floorPlan.Plan[dx][dz] == FloorPlanCell.Window && (dy < HouseDesc.WindowSillHeight || dy >= HouseDesc.WindowSillHeight + HouseDesc.WindowFrameHeight))
                         {
                             chunk.PlaceKlotz(
                                 KlotzType.Plate1x1,
