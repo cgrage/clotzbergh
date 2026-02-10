@@ -17,61 +17,7 @@ namespace Clotzbergh.Server.StructureGeneration
 
     public class SimpleCentralHouseGenerator : StructureGenerator, IGenerationModifier
     {
-        private readonly struct HouseDesc
-        {
-            public const int RoofInset = 1;
-            public const int HouseInset = 1;
-            public const int RoofSlope = 3;
-            public const int DoorHeight = 5 * 3;
-            public const int WindowSillHeight = 2 * 3;
-            public const int WindowFrameHeight = 3 * 3;
-
-            public readonly Vector2Int AreaLocationXZ { get; }
-            public readonly Vector2Int AreaSizeXZ { get; }
-            public readonly int LocationY { get; }
-            public readonly Vector2Int HouseLocationXZ { get; }
-            public readonly Vector2Int HouseSizeXZ { get; }
-            public readonly Vector2Int RoofLocationXZ { get; }
-            public readonly Vector2Int RoofSizeXZ { get; }
-            public readonly int RoofHeight { get; }
-            public readonly int BaseHeight { get; }
-            public readonly int StoryHeight { get; }
-            public readonly int StoryCount { get; }
-            public readonly int TotalHeight { get; }
-            public readonly BoundsInt TotalBounds { get; }
-
-            public HouseDesc(Vector2Int locationXZ, Vector2Int maxSizeXZ, int locationY, int maxHeight)
-            {
-                AreaLocationXZ = locationXZ;
-                AreaSizeXZ = maxSizeXZ;
-                LocationY = locationY;
-
-                RoofLocationXZ = new Vector2Int(AreaLocationXZ.x + RoofInset, AreaLocationXZ.y + RoofInset);
-                RoofSizeXZ = new Vector2Int(AreaSizeXZ.x - 2 * RoofInset, AreaSizeXZ.y - 2 * RoofInset);
-
-                HouseLocationXZ = new Vector2Int(RoofLocationXZ.x + HouseInset, RoofLocationXZ.y + HouseInset);
-                HouseSizeXZ = new Vector2Int(RoofSizeXZ.x - 2 * HouseInset, RoofSizeXZ.y - 2 * HouseInset);
-
-                BaseHeight = 1;
-                StoryHeight = 3 * 6;
-                RoofHeight = (RoofSizeXZ.x / 2) * RoofSlope;
-
-                if (BaseHeight + RoofHeight < maxHeight)
-                {
-                    StoryCount = (maxHeight - BaseHeight - RoofHeight) / StoryHeight;
-                }
-                else
-                {
-                    RoofHeight = 0;
-                    StoryCount = 0;
-                }
-
-                TotalHeight = BaseHeight + StoryCount * StoryHeight + RoofHeight;
-                TotalBounds = new BoundsInt(new Vector3Int(AreaLocationXZ.x, LocationY, AreaLocationXZ.y), new Vector3Int(AreaSizeXZ.x, TotalHeight, AreaSizeXZ.y));
-            }
-        }
-
-        private readonly List<HouseDesc> _destinations = new();
+        private readonly List<PlotFloorPlan> _destinations = new();
 
         public override IGenerationModifier GenModifier => this;
 
@@ -79,7 +25,7 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             for (int i = 0; i < 1; i++)
             {
-                Vector3Int dimensions = new(18, 60, 18);
+                Vector3Int dimensions = new(24, 60, 24);
 
                 Vector2Int sizeXZ = new(dimensions.x, dimensions.z);
                 Vector2Int posXZ = NextRandRelCoordsXZ(sizeXZ);
@@ -90,7 +36,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 if (yRel < 0 || yRel >= WorldDef.ChunkSubDivsY - dimensions.y)
                     continue;
 
-                HouseDesc coords = new(posXZ, sizeXZ, yRel, dimensions.y);
+                PlotFloorPlan coords = new(new RectInt(posXZ, sizeXZ), yRel, dimensions.y);
                 if (!_destinations.Exists(dest => dest.TotalBounds.Intersects(coords.TotalBounds)))
                 {
                     _destinations.Add(coords);
@@ -106,12 +52,11 @@ namespace Clotzbergh.Server.StructureGeneration
 
             foreach (var dest in _destinations)
             {
-                if (relX >= dest.AreaLocationXZ.x && relX < dest.AreaLocationXZ.x + dest.AreaSizeXZ.x &&
-                    relZ >= dest.AreaLocationXZ.y && relZ < dest.AreaLocationXZ.y + dest.AreaSizeXZ.y)
+                if (dest.PlotLocation.Contains(new Vector2Int(relX, relZ)))
                 {
                     return r.HeightMap.At(
-                        r.Coords.X * WorldDef.ChunkSubDivsX + dest.AreaLocationXZ.x + dest.AreaSizeXZ.x / 2,
-                        r.Coords.Z * WorldDef.ChunkSubDivsZ + dest.AreaLocationXZ.y + dest.AreaSizeXZ.y / 2);
+                        r.Coords.X * WorldDef.ChunkSubDivsX + dest.PlotLocation.x + dest.PlotLocation.width / 2,
+                        r.Coords.Z * WorldDef.ChunkSubDivsZ + dest.PlotLocation.y + dest.PlotLocation.height / 2);
                 }
             }
 
@@ -122,23 +67,24 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             foreach (var dest in _destinations)
             {
-                CreateBasePlate(chunk, dest);
+                RenderBasePlate(chunk, dest);
                 for (int storyIndex = 0; storyIndex < dest.StoryCount; storyIndex++)
                 {
-                    CreateStory(chunk, dest, storyIndex);
+                    RenderStory(chunk, dest, storyIndex);
                 }
-                CreateRoof(chunk, dest);
+                RenderRoof(chunk, dest);
+                RenderGarden(chunk, dest);
             }
         }
 
-        private void CreateBasePlate(WorldChunk chunk, HouseDesc dest)
+        private void RenderBasePlate(WorldChunk chunk, PlotFloorPlan dest)
         {
             int baseY = dest.LocationY;
             KlotzColor baseColor = KlotzColor.Brown;
 
-            for (int dx = 0; dx < dest.AreaSizeXZ.x; dx++)
+            for (int dx = 0; dx < dest.PlotLocation.width; dx++)
             {
-                for (int dz = 0; dz < dest.AreaSizeXZ.y; dz++)
+                for (int dz = 0; dz < dest.PlotLocation.height; dz++)
                 {
                     for (int dy = 0; dy < dest.BaseHeight; dy++)
                     {
@@ -146,50 +92,59 @@ namespace Clotzbergh.Server.StructureGeneration
                             KlotzType.Plate1x1,
                             baseColor,
                             NextRandVariant(),
-                            new RelKlotzCoords(dest.AreaLocationXZ.x + dx, dy + baseY, dest.AreaLocationXZ.y + dz),
+                            new RelKlotzCoords(dest.PlotLocation.x + dx, dy + baseY, dest.PlotLocation.y + dz),
                             KlotzDirection.ToPosX);
                     }
                 }
             }
         }
 
-        private void CreateStory(WorldChunk chunk, HouseDesc dest, int storyIndex)
+        private void RenderStory(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
         {
             int storyBaseY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight;
             KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Yellow;
-            FloorPlan floorPlan = FloorPlanGenerator.Generate(dest.HouseSizeXZ.x, dest.HouseSizeXZ.y);
+            StoryFloorPlan floorPlan = StoryFloorPlanGenerator.Generate(dest.HouseLocation.width, dest.HouseLocation.height);
 
-            for (int dx = 0; dx < dest.HouseSizeXZ.x; dx++)
+            for (int dx = 0; dx < dest.HouseLocation.width; dx++)
             {
-                for (int dz = 0; dz < dest.HouseSizeXZ.y; dz++)
+                for (int dz = 0; dz < dest.HouseLocation.height; dz++)
                 {
                     for (int dy = 0; dy < dest.StoryHeight; dy++)
                     {
-                        if (floorPlan.Plan[dx][dz] == FloorPlanCell.Wall)
+                        if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Wall)
                         {
                             chunk.PlaceKlotz(
                                 KlotzType.Plate1x1,
                                 wallColor,
                                 NextRandVariant(),
-                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                new RelKlotzCoords(
+                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
+                                    dy + storyBaseY,
+                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
                                 KlotzDirection.ToPosX);
                         }
-                        else if (floorPlan.Plan[dx][dz] == FloorPlanCell.Door && dy >= HouseDesc.DoorHeight)
+                        else if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Door && dy >= PlotFloorPlan.DoorHeight)
                         {
                             chunk.PlaceKlotz(
                                 KlotzType.Plate1x1,
                                 wallColor,
                                 NextRandVariant(),
-                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                new RelKlotzCoords(
+                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
+                                    dy + storyBaseY,
+                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
                                 KlotzDirection.ToPosX);
                         }
-                        else if (floorPlan.Plan[dx][dz] == FloorPlanCell.Window && (dy < HouseDesc.WindowSillHeight || dy >= HouseDesc.WindowSillHeight + HouseDesc.WindowFrameHeight))
+                        else if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Window && (dy < PlotFloorPlan.WindowSillHeight || dy >= PlotFloorPlan.WindowSillHeight + PlotFloorPlan.WindowFrameHeight))
                         {
                             chunk.PlaceKlotz(
                                 KlotzType.Plate1x1,
                                 wallColor,
                                 NextRandVariant(),
-                                new RelKlotzCoords(dest.HouseLocationXZ.x + dx, dy + storyBaseY, dest.HouseLocationXZ.y + dz),
+                                new RelKlotzCoords(
+                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
+                                    dy + storyBaseY,
+                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
                                 KlotzDirection.ToPosX);
                         }
                     }
@@ -197,31 +152,59 @@ namespace Clotzbergh.Server.StructureGeneration
             }
         }
 
-        private void CreateRoof(WorldChunk chunk, HouseDesc dest)
+        private void RenderRoof(WorldChunk chunk, PlotFloorPlan dest)
         {
             int roofBaseY = dest.LocationY + dest.BaseHeight + dest.StoryCount * dest.StoryHeight;
             KlotzColor roofColor = KlotzColor.Red;
 
-            for (int dx = 0; dx < dest.RoofSizeXZ.x / 2; dx++)
+            for (int dx = 0; dx < dest.RoofLocation.width / 2; dx++)
             {
-                for (int dz = 0; dz < dest.RoofSizeXZ.y; dz++)
+                for (int dz = 0; dz < dest.RoofLocation.height; dz++)
                 {
-                    for (int dy = 0; dy < (dx + 1) * HouseDesc.RoofSlope; dy++)
+                    for (int dy = 0; dy < (dx + 1) * PlotFloorPlan.RoofSlope; dy++)
                     {
                         chunk.PlaceKlotz(
                             KlotzType.Plate1x1,
                             roofColor,
                             NextRandVariant(),
-                            new RelKlotzCoords(dest.RoofLocationXZ.x + dx, dy + roofBaseY, dest.RoofLocationXZ.y + dz),
+                            new RelKlotzCoords(
+                                dest.PlotLocation.x + dest.RoofLocation.x + dx,
+                                dy + roofBaseY,
+                                dest.PlotLocation.y + dest.RoofLocation.y + dz),
                             KlotzDirection.ToPosX);
 
                         chunk.PlaceKlotz(
                             KlotzType.Plate1x1,
                             roofColor,
                             NextRandVariant(),
-                            new RelKlotzCoords(dest.RoofLocationXZ.x + dest.RoofSizeXZ.x - 1 - dx, dy + roofBaseY, dest.RoofLocationXZ.y + dz),
+                            new RelKlotzCoords(
+                                dest.PlotLocation.x + dest.RoofLocation.x + dest.RoofLocation.width - 1 - dx,
+                                dy + roofBaseY,
+                                dest.PlotLocation.y + dest.RoofLocation.y + dz),
                             KlotzDirection.ToPosX);
                     }
+                }
+            }
+        }
+
+        private void RenderGarden(WorldChunk chunk, PlotFloorPlan dest)
+        {
+            int baseY = dest.LocationY + dest.BaseHeight;
+            KlotzColor color = KlotzColor.Green;
+
+            for (int dx = 0; dx < dest.PlotLocation.width; dx++)
+            {
+                for (int dz = 0; dz < dest.PlotLocation.height; dz++)
+                {
+                    if (dest.PlotPlan[dx][dz] != PlotFloorPlanCell.Garden)
+                        continue;
+
+                    chunk.PlaceKlotz(
+                        KlotzType.Plate1x1,
+                        color,
+                        NextRandVariant(),
+                        new RelKlotzCoords(dest.PlotLocation.x + dx, baseY, dest.PlotLocation.y + dz),
+                        KlotzDirection.ToPosX);
                 }
             }
         }

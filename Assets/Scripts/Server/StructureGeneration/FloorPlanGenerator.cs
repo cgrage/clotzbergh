@@ -1,51 +1,49 @@
-using System.Collections.Generic;
-using Clotzbergh.Server.ChunkGeneration;
 using UnityEngine;
 
 namespace Clotzbergh.Server.StructureGeneration
 {
-    public enum FloorPlanCell
+    public enum StoryFloorPlanCell
     {
-        Empty,
+        Unknown,
         Wall,
         Interior,
         Door,
         Window
     }
 
-    public class FloorPlan
+    public class StoryFloorPlan
     {
-        public FloorPlanCell[][] Plan { get; private set; }
+        public StoryFloorPlanCell[][] Plan { get; private set; }
         public Vector2Int[] DoorLocations { get; private set; }
         public Vector2Int[] WindowLocations { get; private set; }
 
-        public FloorPlan(int sizeX, int sizeY)
+        public StoryFloorPlan(int sizeX, int sizeY)
         {
-            Plan = new FloorPlanCell[sizeX][];
+            Plan = new StoryFloorPlanCell[sizeX][];
             for (int x = 0; x < sizeX; x++)
             {
-                Plan[x] = new FloorPlanCell[sizeY];
+                Plan[x] = new StoryFloorPlanCell[sizeY];
             }
             DoorLocations = new Vector2Int[0];
             WindowLocations = new Vector2Int[0];
         }
     }
 
-    public class FloorPlanGenerator
+    public class StoryFloorPlanGenerator
     {
         private enum WallDirection { Horizontal, Vertical }
 
-        private readonly FloorPlan _plan;
+        private readonly StoryFloorPlan _plan;
 
-        public static FloorPlan Generate(int sizeX, int sizeY)
+        public static StoryFloorPlan Generate(int sizeX, int sizeY)
         {
-            FloorPlanGenerator generator = new(sizeX, sizeY);
+            StoryFloorPlanGenerator generator = new(sizeX, sizeY);
             return generator._plan;
         }
 
-        private FloorPlanGenerator(int sizeX, int sizeY)
+        private StoryFloorPlanGenerator(int sizeX, int sizeY)
         {
-            _plan = new FloorPlan(sizeX, sizeY);
+            _plan = new StoryFloorPlan(sizeX, sizeY);
 
             int sideWithDoor = 0; // TODO: Randomize this
 
@@ -69,16 +67,16 @@ namespace Clotzbergh.Server.StructureGeneration
                 {
                     if (hasDoor)
                     {
-                        _plan.Plan[x][y] = FloorPlanCell.Door;
+                        _plan.Plan[x][y] = StoryFloorPlanCell.Door;
                     }
                     else
                     {
-                        _plan.Plan[x][y] = FloorPlanCell.Window;
+                        _plan.Plan[x][y] = StoryFloorPlanCell.Window;
                     }
                 }
                 else
                 {
-                    _plan.Plan[x][y] = FloorPlanCell.Wall;
+                    _plan.Plan[x][y] = StoryFloorPlanCell.Wall;
                 }
 
                 if (direction == WallDirection.Horizontal) x++; else y++;
@@ -93,7 +91,92 @@ namespace Clotzbergh.Server.StructureGeneration
                 {
                     if (x >= 0 && x < _plan.Plan.Length && y >= 0 && y < _plan.Plan[0].Length)
                     {
-                        _plan.Plan[x][y] = FloorPlanCell.Interior;
+                        _plan.Plan[x][y] = StoryFloorPlanCell.Interior;
+                    }
+                }
+            }
+        }
+    }
+
+    public enum PlotFloorPlanCell
+    {
+        Unknown,
+        House,
+        Garden,
+        Walkway,
+    }
+
+    public readonly struct PlotFloorPlan
+    {
+        public const int RoofSlope = 3;
+        public const int DoorHeight = 5 * 3;
+        public const int WindowSillHeight = 2 * 3;
+        public const int WindowFrameHeight = 3 * 3;
+
+        public readonly RectInt PlotLocation { get; }
+        public readonly int LocationY { get; }
+        public readonly RectInt HouseLocation { get; }
+        public readonly RectInt RoofLocation { get; }
+        public readonly int RoofHeight { get; }
+        public readonly int BaseHeight { get; }
+        public readonly int StoryHeight { get; }
+        public readonly int StoryCount { get; }
+        public readonly int TotalHeight { get; }
+        public readonly BoundsInt TotalBounds { get; }
+
+        public PlotFloorPlanCell[][] PlotPlan { get; }
+
+        public PlotFloorPlan(RectInt plotLocation, int locationY, int maxHeight)
+        {
+            PlotLocation = plotLocation;
+            LocationY = locationY;
+
+            int RoofInset = 4;
+            RoofLocation = new RectInt(
+                1,
+                1,
+                PlotLocation.width - 2 * RoofInset,
+                PlotLocation.height - 2 * RoofInset); // TODO: Randomize this (0..RoofInset)
+
+            int HouseInset = 1;
+            HouseLocation = new RectInt(
+                RoofLocation.x + HouseInset,
+                RoofLocation.y + HouseInset,
+                RoofLocation.width - 2 * HouseInset,
+                RoofLocation.height - 2 * HouseInset);
+
+            BaseHeight = 1;
+            StoryHeight = 3 * 6;
+            RoofHeight = (RoofLocation.width / 2) * RoofSlope;
+
+            if (BaseHeight + RoofHeight < maxHeight)
+            {
+                StoryCount = (maxHeight - BaseHeight - RoofHeight) / StoryHeight;
+            }
+            else
+            {
+                RoofHeight = 0;
+                StoryCount = 0;
+            }
+
+            TotalHeight = BaseHeight + StoryCount * StoryHeight + RoofHeight;
+            TotalBounds = new BoundsInt(
+                new Vector3Int(PlotLocation.x, LocationY, PlotLocation.y),
+                new Vector3Int(PlotLocation.width, TotalHeight, PlotLocation.height));
+
+            PlotPlan = new PlotFloorPlanCell[PlotLocation.width][];
+            for (int x = 0; x < PlotLocation.width; x++)
+            {
+                PlotPlan[x] = new PlotFloorPlanCell[PlotLocation.height];
+                for (int z = 0; z < PlotLocation.height; z++)
+                {
+                    if (HouseLocation.Contains(new Vector2Int(x, z)))
+                    {
+                        PlotPlan[x][z] = PlotFloorPlanCell.House;
+                    }
+                    else
+                    {
+                        PlotPlan[x][z] = PlotFloorPlanCell.Garden;
                     }
                 }
             }
