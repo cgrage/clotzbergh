@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using WebSocketSharp;
 using Clotzbergh.Client.MeshGeneration;
 
@@ -118,12 +119,12 @@ namespace Clotzbergh.Client
 
             _wasConnected = _isConnected;
 
-            if (Input.GetKeyDown(KeyCode.F11))
+            if (Keyboard.current.f11Key.wasPressedThisFrame)
             {
                 MeshGenerator.DoStudsAndHoles = !MeshGenerator.DoStudsAndHoles;
             }
 
-            if (Input.GetKeyDown(KeyCode.F12))
+            if (Keyboard.current.f12Key.wasPressedThisFrame)
             {
                 DebugUI.SetActive(!DebugUI.activeSelf);
             }

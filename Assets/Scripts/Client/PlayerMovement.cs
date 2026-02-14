@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Clotzbergh.Client
 {
@@ -36,16 +37,35 @@ namespace Clotzbergh.Client
             if (Time.time < initialMoveDelay)
                 return;
 
+            Keyboard keyboard = Keyboard.current;
+            Mouse mouse = Mouse.current;
+
             Vector3 forward = transform.TransformDirection(Vector3.forward);
             Vector3 right = transform.TransformDirection(Vector3.right);
 
-            bool isRunning = Input.GetKey(KeyCode.LeftShift);
-            float curSpeedX = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Vertical") : 0;
-            float curSpeedY = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Horizontal") : 0;
+            bool isRunning = keyboard?.leftShiftKey.isPressed ?? false;
+
+            float horizontal = 0f;
+            float vertical = 0f;
+
+            if (keyboard != null)
+            {
+                if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)
+                    horizontal -= 1f;
+                if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)
+                    horizontal += 1f;
+                if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed)
+                    vertical -= 1f;
+                if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed)
+                    vertical += 1f;
+            }
+
+            float curSpeedX = canMove ? (isRunning ? runSpeed : walkSpeed) * vertical : 0;
+            float curSpeedY = canMove ? (isRunning ? runSpeed : walkSpeed) * horizontal : 0;
             float movementDirectionY = moveDirection.y;
             moveDirection = (forward * curSpeedX) + (right * curSpeedY);
 
-            if (Input.GetButton("Jump") && canMove && characterController.isGrounded)
+            if ((keyboard?.spaceKey.isPressed ?? false) && canMove && characterController.isGrounded)
             {
                 moveDirection.y = jumpPower;
             }
@@ -59,7 +79,7 @@ namespace Clotzbergh.Client
                 moveDirection.y -= gravity * Time.deltaTime;
             }
 
-            if (Input.GetKey(KeyCode.R) && canMove)
+            if ((keyboard?.rKey.isPressed ?? false) && canMove)
             {
                 characterController.height = crouchHeight;
                 walkSpeed = crouchSpeed;
@@ -77,10 +97,14 @@ namespace Clotzbergh.Client
 
             if (canMove)
             {
-                rotationX += -Input.GetAxis("Mouse Y") * lookSpeed;
+                Vector2 mouseDelta = mouse?.delta.ReadValue() ?? Vector2.zero;
+                float mouseX = mouseDelta.x * 0.1f;
+                float mouseY = mouseDelta.y * 0.1f;
+
+                rotationX += -mouseY * lookSpeed;
                 rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
                 playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
-                transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
+                transform.rotation *= Quaternion.Euler(0, mouseX * lookSpeed, 0);
             }
         }
     }

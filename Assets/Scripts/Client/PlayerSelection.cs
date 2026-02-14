@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Clotzbergh.Client
 {
@@ -127,9 +128,7 @@ namespace Clotzbergh.Client
 
         private PlayerView GetPlayerView()
         {
-            Vector3 screenCenter = new(Screen.width / 2, Screen.height / 2, 0);
-            Ray ray = Camera.main.ScreenPointToRay(screenCenter);
-            // Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.value);
 
             if (!Physics.Raycast(ray, out RaycastHit hit, 8))
                 return null;
@@ -170,9 +169,9 @@ namespace Clotzbergh.Client
         private bool HandleModeChanges()
         {
             // IF mouse wheel is used, change selection mode
-            if (Input.mouseScrollDelta.y != 0)
+            if (Mouse.current.scroll.value.y != 0)
             {
-                int direction = Input.mouseScrollDelta.y > 0 ? -1 : 1;
+                int direction = Mouse.current.scroll.value.y > 0 ? -1 : 1;
                 _selectionMode = NextSelectionMode(_selectionMode, direction);
 
                 return true;
@@ -183,13 +182,13 @@ namespace Clotzbergh.Client
 
         private void HandleMouseActions(PlayerView selection)
         {
-            if (Input.GetMouseButtonDown(0)) // 0 is the left mouse button
+            if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 _actIsHolding = true;
                 _actHoldTime = 0f;
             }
 
-            if (Input.GetMouseButtonUp(0)) // Release the mouse button
+            if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
                 _actIsHolding = false;
                 _actHoldTime = 0f;
