@@ -11,11 +11,35 @@ namespace Clotzbergh.Server.StructureGeneration
         Window
     }
 
+    public readonly struct DoorInfo
+    {
+        public Vector2Int Location { get; }
+        public KlotzDirection Direction { get; }
+
+        public DoorInfo(Vector2Int location, KlotzDirection direction)
+        {
+            Location = location;
+            Direction = direction;
+        }
+    }
+
+    public readonly struct WindowInfo
+    {
+        public Vector2Int Location { get; }
+        public KlotzDirection Direction { get; }
+
+        public WindowInfo(Vector2Int location, KlotzDirection direction)
+        {
+            Location = location;
+            Direction = direction;
+        }
+    }
+
     public class StoryFloorPlan
     {
         public StoryFloorPlanCell[][] Plan { get; private set; }
-        public Vector2Int[] DoorLocations { get; private set; }
-        public Vector2Int[] WindowLocations { get; private set; }
+        public DoorInfo[] Doors { get; set; }
+        public WindowInfo[] Windows { get; set; }
 
         public StoryFloorPlan(int sizeX, int sizeY)
         {
@@ -24,15 +48,11 @@ namespace Clotzbergh.Server.StructureGeneration
             {
                 Plan[x] = new StoryFloorPlanCell[sizeY];
             }
-            DoorLocations = new Vector2Int[0];
-            WindowLocations = new Vector2Int[0];
         }
     }
 
     public class StoryFloorPlanGenerator
     {
-        private enum WallDirection { Horizontal, Vertical }
-
         private readonly StoryFloorPlan _plan;
 
         public static StoryFloorPlan Generate(int sizeX, int sizeY)
@@ -45,16 +65,25 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             _plan = new StoryFloorPlan(sizeX, sizeY);
 
-            int sideWithDoor = 0; // TODO: Randomize this
-
-            PlaceWall(0, 0, sizeX, WallDirection.Horizontal, sideWithDoor == 0);
-            PlaceWall(0, sizeY - 1, sizeX, WallDirection.Horizontal, sideWithDoor == 1);
-            PlaceWall(0, 0, sizeY, WallDirection.Vertical, sideWithDoor == 2);
-            PlaceWall(sizeX - 1, 0, sizeY, WallDirection.Vertical, sideWithDoor == 3);
+            PlaceWall(0, 0, sizeX, KlotzDirection.ToPosX, true);
+            PlaceWall(sizeX - 1, 0, sizeY, KlotzDirection.ToPosZ, false);
+            PlaceWall(sizeX - 1, sizeY - 1, sizeX, KlotzDirection.ToNegX, false);
+            PlaceWall(0, sizeY - 1, sizeY, KlotzDirection.ToNegZ, false);
             FillRoom(1, 1, sizeX - 2, sizeY - 2);
+
+            _plan.Doors = new DoorInfo[]
+            {
+                new(new Vector2Int(3, 0), KlotzDirection.ToPosX),
+            };
+
+            _plan.Windows = new WindowInfo[]
+            {
+                //new WindowInfo(new Vector2Int(sizeX / 3, sideWithDoor == 0 ? 0 : sizeY - 1), KlotzDirection.ToPosZ : KlotzDirection.ToNegZ),
+                //new WindowInfo(new Vector2Int(2 * sizeX / 3, sideWithDoor == 0 ? 0 : sizeY - 1), KlotzDirection.ToPosZ : KlotzDirection.ToNegZ),
+            };
         }
 
-        private void PlaceWall(int startX, int startY, int length, WallDirection direction, bool hasDoor = false)
+        private void PlaceWall(int startX, int startY, int length, KlotzDirection direction, bool hasDoor = false)
         {
             int x = startX;
             int y = startY;
@@ -79,7 +108,10 @@ namespace Clotzbergh.Server.StructureGeneration
                     _plan.Plan[x][y] = StoryFloorPlanCell.Wall;
                 }
 
-                if (direction == WallDirection.Horizontal) x++; else y++;
+                if (direction == KlotzDirection.ToPosX) x++;
+                else if (direction == KlotzDirection.ToNegX) x--;
+                else if (direction == KlotzDirection.ToPosZ) y++;
+                else if (direction == KlotzDirection.ToNegZ) y--;
             }
         }
 
