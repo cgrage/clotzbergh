@@ -40,7 +40,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 if (!_destinations.Exists(dest => dest.TotalBounds.Intersects(coords.TotalBounds)))
                 {
                     _destinations.Add(coords);
-                    Debug.Log($"Placing house at chunk {ChunkCoords} relPos {posXZ.x},{yRel},{posXZ.y}");
+                    // Debug.Log($"Placing house at chunk {ChunkCoords} relPos {posXZ.x},{yRel},{posXZ.y}");
                 }
             }
         }
@@ -150,6 +150,33 @@ namespace Clotzbergh.Server.StructureGeneration
                     }
                 }
             }
+
+            foreach (var door in floorPlan.Doors)
+            {
+                chunk.PlaceKlotz(
+                    KlotzType.Door1x4,
+                    KlotzColor.Brown,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + dest.HouseLocation.x + door.Location.x,
+                        storyBaseY,
+                        dest.PlotLocation.y + dest.HouseLocation.y + door.Location.y),
+                    door.Direction);
+            }
+
+            foreach (var window in floorPlan.Windows)
+            {
+                chunk.PlaceKlotz(
+                    KlotzType.Window1x4,
+                    KlotzColor.Brown,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + dest.HouseLocation.x + window.Location.x,
+                        storyBaseY + PlotFloorPlan.WindowSillHeight,
+                        dest.PlotLocation.y + dest.HouseLocation.y + window.Location.y),
+                    window.Direction);
+            }
+
         }
 
         private void RenderRoof(WorldChunk chunk, PlotFloorPlan dest)

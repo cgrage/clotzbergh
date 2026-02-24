@@ -78,8 +78,9 @@ namespace Clotzbergh.Server.StructureGeneration
 
             _plan.Windows = new WindowInfo[]
             {
-                //new WindowInfo(new Vector2Int(sizeX / 3, sideWithDoor == 0 ? 0 : sizeY - 1), KlotzDirection.ToPosZ : KlotzDirection.ToNegZ),
-                //new WindowInfo(new Vector2Int(2 * sizeX / 3, sideWithDoor == 0 ? 0 : sizeY - 1), KlotzDirection.ToPosZ : KlotzDirection.ToNegZ),
+                new (new Vector2Int(sizeX - 1, 3), KlotzDirection.ToPosZ),
+                new (new Vector2Int(sizeX - 1 - 3, sizeY - 1), KlotzDirection.ToNegX),
+                new (new Vector2Int(0, sizeY - 1 - 3), KlotzDirection.ToNegZ),
             };
         }
 
