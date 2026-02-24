@@ -231,6 +231,11 @@ namespace Clotzbergh
 
         public static SubKlotz NonRoot(KlotzType type, KlotzDirection dir, int subIdxX, int subIdxY, int subIdxZ)
         {
+#if DO_CHECKS
+            if (subIdxX < 0 || subIdxX > 15 || subIdxY < 0 || subIdxY > 15 || subIdxZ < 0 || subIdxZ > 15)
+                throw new ArgumentOutOfRangeException($"SubKlotz indices out of range: ({subIdxX}, {subIdxY}, {subIdxZ})");
+#endif
+
             bool isOpaque = KlotzKB.IsSubKlotzOpaque(type, subIdxX, subIdxY, subIdxZ);
             return new SubKlotz(
                 ((uint)subIdxZ & 0xf) << 12 |
@@ -293,7 +298,7 @@ namespace Clotzbergh
             get
             {
                 if (IsRoot) return 0;
-                return (int)((_rawBits >> 4) & 0x7);
+                return (int)((_rawBits >> 4) & 0xf);
             }
         }
 
@@ -302,7 +307,7 @@ namespace Clotzbergh
             get
             {
                 if (IsRoot) return 0;
-                return (int)((_rawBits >> 8) & 0x7);
+                return (int)((_rawBits >> 8) & 0xf);
             }
         }
 
@@ -311,7 +316,7 @@ namespace Clotzbergh
             get
             {
                 if (IsRoot) return 0;
-                return (int)((_rawBits >> 12) & 0x7);
+                return (int)((_rawBits >> 12) & 0xf);
             }
         }
 
