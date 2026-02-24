@@ -144,7 +144,7 @@ namespace Clotzbergh
                 KlotzType.Brick2x8 => new(8, 3, 2),
                 KlotzType.Brick4x6 => new(6, 3, 4),
                 KlotzType.Door1x4 => new(4, 15, 1),
-                KlotzType.Window1x4 => new(4, 5, 1),
+                KlotzType.Window1x4 => new(4, 9, 1),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
