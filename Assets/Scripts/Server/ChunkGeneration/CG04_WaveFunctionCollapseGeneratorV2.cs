@@ -122,7 +122,10 @@ namespace Clotzbergh.Server.ChunkGeneration
             KlotzSize size = KlotzKB.Size(type);
             KlotzDirection dir = subKlotz.Direction;
 
-            KlotzSize worstCaseSize = new(KlotzKB.MaxKlotzSizeXZ - 1, KlotzKB.MaxKlotzSizeY - 1, KlotzKB.MaxKlotzSizeXZ - 1);
+            KlotzSize worstCaseSize = new(
+                GroundDefinitions.MaxNiceGroundKlotzSizeXZ - 1,
+                GroundDefinitions.MaxNiceGroundKlotzSizeY - 1,
+                GroundDefinitions.MaxNiceGroundKlotzSizeXZ - 1);
             Vector3Int aStart = coords.ToVector() - worstCaseSize.ToVector();
             Vector3Int aEnd = coords.ToVector() + size.ToVector();
 

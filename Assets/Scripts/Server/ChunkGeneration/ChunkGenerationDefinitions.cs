@@ -4,6 +4,12 @@ namespace Clotzbergh.Server.ChunkGeneration
 {
     public static class GroundDefinitions
     {
+        public const int MaxGroundKlotzSizeXZ = 8;
+        public const int MaxGroundKlotzSizeY = 3;
+
+        public const int MaxNiceGroundKlotzSizeXZ = 4;
+        public const int MaxNiceGroundKlotzSizeY = 3;
+
         public static readonly KlotzType[] AllGroundTypes = {
             KlotzType.Plate1x1, KlotzType.Plate1x2, KlotzType.Plate1x3, KlotzType.Plate1x4,
             KlotzType.Plate1x6, KlotzType.Plate1x8, KlotzType.Plate2x2, KlotzType.Plate2x3,

@@ -7,21 +7,27 @@ namespace Clotzbergh
     public enum KlotzType
     {
         Air = 0,
+        // "Plate" means 1 unit high, with studs on top and holes on the bottom
         Plate1x1, Plate1x2, Plate1x3, Plate1x4, Plate1x6, Plate1x8,
         Plate2x2, Plate2x3, Plate2x4, Plate2x6, Plate2x8,
         Plate4x4, Plate4x6, Plate4x8,
         Plate6x6, Plate6x8,
         Plate8x8,
         // CornerPlate1x2x2, CornerPlate2x4x4,
-        /*
-        Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
-        Tile2x2, Tile2x3, Tile2x4,
+        // "Tile" means 1 unit high, without studs (flat) on top and with holes on the bottom
+        // Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
+        // Tile2x2, Tile2x3, Tile2x4,
         // CornerTile1x2x2,
-        */
+        // "Brick" means 3 units high, with studs on top and holes on the bottom
         Brick1x1, Brick1x2, Brick1x3, Brick1x4, Brick1x6, Brick1x8,
         Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
         Brick4x6,
         // CornerBrick1x2x2,
+        // "Door" means 15 units high, with studs on top and holes on the bottom
+        Door1x4,
+        // "Window" means 5 units high, with studs on top and holes on the bottom
+        Window1x4,
+        // Special
         Count
     }
 
@@ -137,14 +143,13 @@ namespace Clotzbergh
                 KlotzType.Brick2x6 => new(6, 3, 2),
                 KlotzType.Brick2x8 => new(8, 3, 2),
                 KlotzType.Brick4x6 => new(6, 3, 4),
+                KlotzType.Door1x4 => new(4, 15, 1),
+                KlotzType.Window1x4 => new(4, 5, 1),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
             };
         }
-
-        public const int MaxKlotzSizeXZ = 8;
-        public const int MaxKlotzSizeY = 3;
 
         public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
         {
