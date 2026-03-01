@@ -36,8 +36,8 @@ namespace Clotzbergh.Server
         // Start is called before the first frame update
         void Start()
         {
-            _worldMap = new("0", WorldGenParams.HillyRegular(0));
-            //_worldMap = new("1", WorldGenParams.HillyMicroBlocks(0));
+            //_worldMap = new("0", WorldGenParams.HillyRegular(0));
+            _worldMap = new("1", WorldGenParams.HillyMicroBlocks(0));
             //_worldMap = new("2", WorldGenParams.FlatRegular(0));
             //_worldMap = new("3", WorldGenParams.FlatMicroBlocks(0));
             _clientData = new();
