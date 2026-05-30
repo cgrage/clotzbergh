@@ -240,7 +240,7 @@ namespace Clotzbergh.Client
                     });
                     break;
 
-                case IntercomProtocol.Command.CodeValue.ChuckData:
+                case IntercomProtocol.Command.CodeValue.ChunkData:
                     var chunkDataCmd = (IntercomProtocol.ChunkDataCommand)cmd;
                     ToMainThread(() =>
                     {

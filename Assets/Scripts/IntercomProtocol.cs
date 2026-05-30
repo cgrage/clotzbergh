@@ -12,7 +12,7 @@ namespace Clotzbergh
             {
                 ClientStatus = 1,
                 ServerStatus,
-                ChuckData,
+                ChunkData,
                 TakeKlotz,
             }
 
@@ -49,7 +49,7 @@ namespace Clotzbergh
                 {
                     CodeValue.ClientStatus => new ClientStatusCommand(reader),
                     CodeValue.ServerStatus => new ServerStatusCommand(reader),
-                    CodeValue.ChuckData => new ChunkDataCommand(reader),
+                    CodeValue.ChunkData => new ChunkDataCommand(reader),
                     CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
                     _ => throw new IOException("Invalid command"),
                 };
@@ -107,7 +107,7 @@ namespace Clotzbergh
 
         public class ChunkDataCommand : Command
         {
-            const CodeValue CommandCode = CodeValue.ChuckData;
+            const CodeValue CommandCode = CodeValue.ChunkData;
 
             public ChunkCoords Coords;
             public ulong Version;
