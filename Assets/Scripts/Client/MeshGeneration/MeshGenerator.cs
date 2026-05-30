@@ -32,15 +32,15 @@ namespace Clotzbergh.Client.MeshGeneration
             if (worldChunk == null)
                 return null;
 
-            int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
-            WorldReader reader = new(chunk, lodSkip, cutout);
-            VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs / lodSkip);
+            // int lodSkip = 1 << lod; // 1, 2, 4, 8, or 16
+            WorldReader reader = new(chunk, cutout);
+            VoxelMeshBuilder builder = new(WorldDef.ChunkSize, WorldDef.ChunkSubDivs);
 
-            for (int z = 0, zi = 0; z < WorldDef.ChunkSubDivsZ; z += lodSkip, zi++)
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
             {
-                for (int y = 0, yi = 0; y < WorldDef.ChunkSubDivsY; y += lodSkip, yi++)
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
                 {
-                    for (int x = 0, xi = 0; x < WorldDef.ChunkSubDivsX; x += lodSkip, xi++)
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
                         reader.MoveTo(x, y, z);
                         if (!reader.IsExposed)
@@ -51,7 +51,7 @@ namespace Clotzbergh.Client.MeshGeneration
                             continue; // can't access the root sub-klotz
 
                         KlotzType type = kRoot.Value.Type;
-                        builder.MoveTo(xi, yi, zi);
+                        builder.MoveTo(x, y, z);
                         builder.SetColor(kRoot.Value.Color);
                         builder.SetVariant(kRoot.Value.Variant);
 
