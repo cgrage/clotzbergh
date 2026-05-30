@@ -156,6 +156,8 @@ namespace Clotzbergh
             return t switch
             {
                 KlotzType.Air => false,
+                KlotzType.Door1x4 => false,
+                KlotzType.Window1x4 => false,
                 _ => true
             };
         }
