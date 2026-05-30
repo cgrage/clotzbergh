@@ -199,7 +199,7 @@ namespace Clotzbergh.Client
                 _actHoldTime += Time.deltaTime;
                 if (_actHoldTime >= RequiredHoldTime)
                 {
-                    selection?.viewedChunk.TakeKlotz(selection.viewedKlotz.RootCoords);
+                    selection?.viewedChunk?.TakeKlotz(selection.viewedKlotz.RootCoords);
                     _actHoldTime = 0f;
                 }
             }

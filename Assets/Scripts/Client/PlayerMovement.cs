@@ -22,12 +22,16 @@ namespace Clotzbergh.Client
         private Vector3 moveDirection = Vector3.zero;
         private float rotationX = 0;
         private CharacterController characterController;
+        private float _normalWalkSpeed;
+        private float _normalRunSpeed;
 
         private bool canMove = true;
 
         void Start()
         {
             characterController = GetComponent<CharacterController>();
+            _normalWalkSpeed = walkSpeed;
+            _normalRunSpeed = runSpeed;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -89,8 +93,8 @@ namespace Clotzbergh.Client
             else
             {
                 characterController.height = defaultHeight;
-                walkSpeed = 6f;
-                runSpeed = 12f;
+                walkSpeed = _normalWalkSpeed;
+                runSpeed = _normalRunSpeed;
             }
 
             characterController.Move(moveDirection * Time.deltaTime);
