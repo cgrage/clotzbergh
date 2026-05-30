@@ -13,8 +13,9 @@ namespace Clotzbergh.Client
 
         private readonly Dictionary<ChunkCoords, ClientChunk> _dict = new();
 
-        // _activeChunks is sorted by their priority
-        private readonly List<ClientChunk> _activeChunks = new();
+        private readonly HashSet<ClientChunk> _activeChunks = new();
+        // sorted copy of _activeChunks, rebuilt in OnViewerMoved, consumed by OnUpdate
+        private List<ClientChunk> _activeChunksSorted = new();
 
         public int ChunkCount { get => _dict.Count; }
         public int ActiveChunkCount { get => _activeChunks.Count; }
@@ -26,7 +27,7 @@ namespace Clotzbergh.Client
         {
             int reqCount = 0;
 
-            foreach (var chunk in _activeChunks)
+            foreach (var chunk in _activeChunksSorted)
             {
                 if (reqCount < 20 && chunk.UpdateMeshOrRequestMeshUpdateIfNeeded())
                     reqCount++;
@@ -63,14 +64,9 @@ namespace Clotzbergh.Client
                             chunk.OnViewerMoved(dist);
 
                             if (chunk.IsActive)
-                            {
-                                if (!_activeChunks.Contains(chunk))
-                                    _activeChunks.Add(chunk);
-                            }
+                                _activeChunks.Add(chunk);
                             else
-                            {
                                 _activeChunks.Remove(chunk);
-                            }
 
                             // killList.Remove(chunk);
                         }
@@ -78,7 +74,8 @@ namespace Clotzbergh.Client
                 }
             }
 
-            _activeChunks.Sort((a, b) => a.LoadPriority.CompareTo(b.LoadPriority));
+            _activeChunksSorted = new List<ClientChunk>(_activeChunks);
+            _activeChunksSorted.Sort((a, b) => a.LoadPriority.CompareTo(b.LoadPriority));
 
             // foreach (var chunk in killList)
             // {
