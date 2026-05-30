@@ -177,7 +177,7 @@ namespace Clotzbergh.Client.MeshGeneration
             if (_cutoutRegion.Contains(_worldChunkCoords, _x, _y, _z + 1)) // is cut out?
                 return true;
 
-            if (_z < WorldDef.ChunkSubDivsX - 1) // if within current chunk: regular case
+            if (_z < WorldDef.ChunkSubDivsZ - 1) // if within current chunk: regular case
                 return !_worldChunk.Get(_x, _y, _z + 1).IsOpaque;
 
             if (_neighborWorldZP1 == null)

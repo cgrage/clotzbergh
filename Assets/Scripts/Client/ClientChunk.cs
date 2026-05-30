@@ -78,7 +78,6 @@ namespace Clotzbergh.Client
             _meshRenderer = _gameObject.AddComponent<MeshRenderer>();
             _meshFilter = _gameObject.AddComponent<MeshFilter>();
             _meshCollider = _gameObject.AddComponent<MeshCollider>();
-            _meshCollider = _gameObject.AddComponent<MeshCollider>();
 
             _gameObject.transform.position = WorldChunk.ChunkCoordsToPosition(coords);
             _gameObject.transform.parent = parent;

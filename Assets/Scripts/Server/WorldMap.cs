@@ -226,9 +226,11 @@ namespace Clotzbergh.Server
                 return;
             }
 
-            // TODO: Sure we want to do this without lock?!
-            worldState.Chunk.RemoveKlotz(innerChunkCoords);
-            worldState.Version++;
+            lock (_worldState)
+            {
+                worldState.Chunk.RemoveKlotz(innerChunkCoords);
+                worldState.Version++;
+            }
 
             lock (_toSaveList)
             {
@@ -266,13 +268,13 @@ namespace Clotzbergh.Server
             foreach (var thread in _loaderThreads)
             {
                 if (!thread.Join(TimeSpan.FromSeconds(1)))
-                    thread.Abort();
+                    Debug.LogWarning($"Thread {thread.Name} did not stop in time.");
             }
 
             foreach (var thread in _saverThreads)
             {
                 if (!thread.Join(TimeSpan.FromSeconds(3)))
-                    thread.Abort();
+                    Debug.LogWarning($"Thread {thread.Name} did not stop in time.");
             }
 
             Debug.LogFormat("World management threads stopped");
@@ -308,7 +310,7 @@ namespace Clotzbergh.Server
             }
             catch (Exception ex)
             {
-                if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
+                if (_runCancelTS.Token.IsCancellationRequested)
                 {
                     Debug.LogFormat($"LoaderThread stopped with exception ({ex.GetType().Name}).");
                 }
@@ -326,7 +328,7 @@ namespace Clotzbergh.Server
             {
                 while (!_runCancelTS.Token.IsCancellationRequested)
                 {
-                    Thread.Sleep(1000);
+                    _runCancelTS.Token.WaitHandle.WaitOne(1000);
 
                     ChunkCoords[] toSave;
                     lock (_toSaveList)
@@ -365,7 +367,7 @@ namespace Clotzbergh.Server
             }
             catch (Exception ex)
             {
-                if (_runCancelTS.Token.IsCancellationRequested || ex is ThreadAbortException)
+                if (_runCancelTS.Token.IsCancellationRequested)
                 {
                     Debug.LogFormat($"SaverThread stopped with exception ({ex.GetType().Name}).");
                 }
