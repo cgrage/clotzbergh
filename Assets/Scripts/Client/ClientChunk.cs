@@ -50,6 +50,7 @@ namespace Clotzbergh.Client
 
         public class OwnerRef : MonoBehaviour
         {
+            [System.NonSerialized]
             public ClientChunk owner;
         }
 
