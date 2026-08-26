@@ -122,17 +122,34 @@ namespace Clotzbergh.Client.MeshGeneration
             Vertices.Add(corner3);
             Vertices.Add(corner4);
 
+            Vector3 normal = NormalForSide(side);
+            Normals.Add(normal); Normals.Add(normal); Normals.Add(normal); Normals.Add(normal);
+
             KlotzVertexFlags flags = 0;
             if (sideFlags.HasFlag(KlotzSideFlags.HasStuds)) flags |= KlotzVertexFlags.SideHasStuds;
             if (sideFlags.HasFlag(KlotzSideFlags.HasHoles)) flags |= KlotzVertexFlags.SideHasHoles;
 
-            Vector2 vertexData = BuildVertexUvData(side, flags, _color, _variant);
+            Vector2 vertexData = BuildVertexUvData(flags, _color, _variant);
             UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData);
 
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 2); Triangles.Add(v0 + 3);
 
             VoxelCoords.Add(_currentCoords); VoxelCoords.Add(_currentCoords);
+        }
+
+        private static Vector3 NormalForSide(KlotzSide side)
+        {
+            return side switch
+            {
+                KlotzSide.Left => new(-1, 0, 0),
+                KlotzSide.Right => new(1, 0, 0),
+                KlotzSide.Bottom => new(0, -1, 0),
+                KlotzSide.Top => new(0, 1, 0),
+                KlotzSide.Back => new(0, 0, -1),
+                KlotzSide.Front => new(0, 0, 1),
+                _ => Vector3.zero
+            };
         }
     }
 }

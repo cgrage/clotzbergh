@@ -22,7 +22,8 @@ Shader "PlasteShader"
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0; // Using uv.x for color+side and uv.y for the variant
+                float3 normal : NORMAL;
+                float2 uv : TEXCOORD0; // Using uv.x for the color and uv.y for flags+variant
             };
 
             struct v2g
@@ -43,18 +44,6 @@ Shader "PlasteShader"
             float4 _MainLightColor;
             float4 _SpecColor;
             float _Glossiness;
-
-            float3 GetNormal(uint side)
-            {
-                if (side == 0) return float3(-1, 0, 0); // Left
-                if (side == 1) return float3(1, 0, 0);  // Right
-                if (side == 2) return float3(0, -1, 0); // Bottom
-                if (side == 3) return float3(0, 1, 0);  // Top
-                if (side == 4) return float3(0, 0, -1); // Back
-                if (side == 5) return float3(0, 0, 1);  // Front
-
-                return float3(0, 0, 0); // Default
-            }
 
             float4 HexToFloat4(uint hexValue)
             {
@@ -142,8 +131,7 @@ Shader "PlasteShader"
 
             v2g vert(appdata v)
             {
-                uint side = ((uint)v.uv.x) & 0x7;
-                uint colorEnum = ((uint)v.uv.x >> 3) & 0x1F;
+                uint colorEnum = ((uint)v.uv.x) & 0x1F;
                 uint variant = ((uint)v.uv.y) & 0x7F; // numbers are from 0 to 127
                 uint vertexFlags = ((uint)v.uv.y >> 7) & 0xF;
 
@@ -152,7 +140,7 @@ Shader "PlasteShader"
 
                 v2g o;
                 o.pos = v.vertex;
-                o.normal = GetNormal(side);
+                o.normal = v.normal;
                 o.color = baseColor * (1.0 - variation * 0.2); // Vary color by up to 20%
                 o.vertexFlags = vertexFlags;
                 return o;
