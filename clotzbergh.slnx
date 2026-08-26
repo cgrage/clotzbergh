@@ -1,5 +1,0 @@
-﻿<Solution>
-  <Project Path="Clotzbergh.csproj" />
-  <Project Path="BasicTests.csproj" />
-  <Project Path="PerformanceTests.csproj" />
-</Solution>
