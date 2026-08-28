@@ -68,3 +68,8 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Klotz models are regenerated from ArtSource/*.blend via ArtSource/regenerate_all.py
+# (Blender's FBX export isn't byte-stable - it embeds a timestamp on every export).
+# The matching .meta files ARE tracked, so GUIDs/import settings stay stable.
+/Assets/Models/*.fbx

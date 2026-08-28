@@ -20,6 +20,8 @@ namespace Clotzbergh.Client.MeshGeneration
 
         private static readonly Dictionary<KlotzType, NonPrimitiveKlotzMesh> _nonPrimitiveMeshes = new();
 
+        private static bool _warnedMissingMeshTypes = false;
+
         public static bool DoStudsAndHoles { get; set; } = true;
 
         public static long MeshGenerationCount { get => Interlocked.Read(ref _meshGenerationCount); }
@@ -85,6 +87,11 @@ namespace Clotzbergh.Client.MeshGeneration
                                 builder.SetColor(kRoot.Value.Color);
                                 builder.SetVariant(kRoot.Value.Variant);
                                 builder.AddNonPrimitiveKlotz(template, kRoot.Value.Direction);
+                            }
+                            else if (!_warnedMissingMeshTypes)
+                            {
+                                Debug.LogWarning($"No mesh registered for non-primitive KlotzType {type}");
+                                _warnedMissingMeshTypes = true;
                             }
                             continue;
                         }
