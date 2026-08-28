@@ -616,6 +616,8 @@ MonoBehaviour:
   NonPrimitiveKlotzMeshes:
   - Type: 30
     Mesh: {fileID: 6526451016588061648, guid: 4580b0b4a2cae5b4f99453fbafd865bc, type: 3}
+  - Type: 31
+    Mesh: {fileID: 3981791656109640401, guid: 25d71482d87d6d74fbec5d31ed9b3bac, type: 3}
 --- !u!4 &785459302
 Transform:
   m_ObjectHideFlags: 0

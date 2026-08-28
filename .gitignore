@@ -73,3 +73,7 @@ crashlytics-build.properties
 # (Blender's FBX export isn't byte-stable - it embeds a timestamp on every export).
 # The matching .meta files ARE tracked, so GUIDs/import settings stay stable.
 /Assets/Models/*.fbx
+
+# Blender's own numbered backups ("Save Versions" preference), created next to
+# ArtSource/*.blend on every save.
+/ArtSource/*.blend[0-9]
