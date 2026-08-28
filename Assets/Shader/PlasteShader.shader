@@ -23,7 +23,7 @@ Shader "PlasteShader"
             {
                 float4 vertex : POSITION;
                 float3 normal : NORMAL;
-                float2 uv : TEXCOORD0; // Using uv.x for the color and uv.y for flags+variant
+                float2 uv : TEXCOORD0; // Using uv.x for the color and uv.y for surface+variant
             };
 
             struct v2g
@@ -31,8 +31,7 @@ Shader "PlasteShader"
                 float4 pos : SV_POSITION;
                 float3 normal : TEXCOORD0;
                 float4 color : COLOR;
-                int vertexFlags : TEXCOORD1;
-                float isRough : TEXCOORD2;
+                int surface : TEXCOORD1;
             };
 
             struct g2f
@@ -40,7 +39,7 @@ Shader "PlasteShader"
                 float4 pos : SV_POSITION;
                 float3 normal : TEXCOORD0;
                 float4 color : COLOR;
-                float isRough : TEXCOORD1;
+                int surface : TEXCOORD1;
             };
 
             float4 _MainLightColor;
@@ -74,13 +73,13 @@ Shader "PlasteShader"
                 return float4(0, 0, 0, 1); // Default
             }
 
-            void AddVertex(inout TriangleStream<g2f> triStream, float3 pos, float3 normal, float4 color, float isRough)
+            void AddVertex(inout TriangleStream<g2f> triStream, float3 pos, float3 normal, float4 color, int surface)
             {
                 g2f o;
                 o.pos = UnityObjectToClipPos(float4(pos, 1.0));
                 o.normal = normal;
                 o.color = color;
-                o.isRough = isRough;
+                o.surface = surface;
                 triStream.Append(o);
             }
 
@@ -110,21 +109,21 @@ Shader "PlasteShader"
                     g2f o;
 
                     // Top triangle (top-center, previous top edge, new top edge)
-                    AddVertex(triStream, topCenter, a.normal, a.color, a.isRough);
-                    AddVertex(triStream, prevTopEdge, a.normal, a.color, a.isRough);
-                    AddVertex(triStream, newTopEdge, a.normal, a.color, a.isRough);
+                    AddVertex(triStream, topCenter, a.normal, a.color, a.surface);
+                    AddVertex(triStream, prevTopEdge, a.normal, a.color, a.surface);
+                    AddVertex(triStream, newTopEdge, a.normal, a.color, a.surface);
                     triStream.RestartStrip();
 
                     // Side triangle 1 (previous top edge, new bottom edge, new top edge)
-                    AddVertex(triStream, prevTopEdge,  normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
-                    AddVertex(triStream, newBottomEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
-                    AddVertex(triStream, newTopEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, prevTopEdge,  normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.surface);
+                    AddVertex(triStream, newBottomEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.surface);
+                    AddVertex(triStream, newTopEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.surface);
                     triStream.RestartStrip();
 
                     // Side triangle 2 (previous top edge, previous bottom edge, new bottom edge)
-                    AddVertex(triStream, prevTopEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
-                    AddVertex(triStream, prevBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
-                    AddVertex(triStream, newBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, prevTopEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.surface);
+                    AddVertex(triStream, prevBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.surface);
+                    AddVertex(triStream, newBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.surface);
                     triStream.RestartStrip();
 
                     prevTopEdge = newTopEdge;
@@ -136,7 +135,7 @@ Shader "PlasteShader"
             {
                 uint colorEnum = ((uint)v.uv.x) & 0x1F;
                 uint variant = ((uint)v.uv.y) & 0x7F; // numbers are from 0 to 127
-                uint vertexFlags = ((uint)v.uv.y >> 7) & 0xF;
+                uint surface = ((uint)v.uv.y >> 7) & 0xF; // KlotzSurfaceFeature: 0=Default, 1=HasStuds, 2=HasHoles, 3=IsRough
 
                 float4 baseColor = GetColor(colorEnum);
                 float variation = variant / 127.0;
@@ -145,16 +144,15 @@ Shader "PlasteShader"
                 o.pos = v.vertex;
                 o.normal = v.normal;
                 o.color = baseColor * (1.0 - variation * 0.2); // Vary color by up to 20%
-                o.vertexFlags = vertexFlags;
-                o.isRough = (vertexFlags & 0x4) ? 1.0 : 0.0;
+                o.surface = surface;
                 return o;
             }
 
             [maxvertexcount(3 + 8 * 9)]
             void geom(triangle v2g input[3], inout TriangleStream<g2f> triStream)
             {
-                int addStuds = (input[0].vertexFlags & 0x1) >> 0;
-                int addHoles = (input[0].vertexFlags & 0x2) >> 1;
+                int addStuds = (input[0].surface == 1) ? 1 : 0;
+                int addHoles = (input[0].surface == 2) ? 1 : 0;
 
                 // if (!addHoles)
                 {
@@ -165,7 +163,7 @@ Shader "PlasteShader"
                             input[i].pos,
                             input[i].normal,
                             input[i].color,
-                            input[i].isRough);
+                            input[i].surface);
                     }
                 }
 
@@ -207,9 +205,10 @@ Shader "PlasteShader"
 
                 // Diffuse lighting
                 float diffuse = max(dot(normal, lightDir), 0.0);
-                
+
                 // Specular highlights (rough surfaces get no highlight, giving them a matte look)
-                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 256.0) * (1.0 - i.isRough);
+                float isRough = (i.surface == 3) ? 1.0 : 0.0; // KlotzSurfaceFeature.IsRough
+                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 256.0) * (1.0 - isRough);
 
                 // Combine results
                 float3 ambient = 0.05 * i.color.rgb;

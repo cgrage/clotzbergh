@@ -26,10 +26,10 @@ namespace Clotzbergh.Client.MeshGeneration
             UvData = new(uvData);
         }
 
-        public static Vector2 BuildVertexUvData(KlotzVertexFlags flags, KlotzColor color, KlotzVariant variant)
+        public static Vector2 BuildVertexUvData(KlotzSurfaceFeature surface, KlotzColor color, KlotzVariant variant)
         {
             float x = (uint)color;
-            float y = (((uint)flags) << 7) | (uint)variant;
+            float y = (((uint)surface) << 7) | (uint)variant;
             return new Vector2(x, y);
         }
 

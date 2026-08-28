@@ -26,7 +26,14 @@ namespace Clotzbergh.Client
     public struct NonPrimitiveKlotzMeshEntry
     {
         public KlotzType Type;
-        public Mesh Mesh;
+
+        /// <summary>
+        /// The imported FBX model's root object - drag the .fbx asset itself here, not just its
+        /// Mesh sub-asset. Its MeshRenderer.sharedMaterials[i] is what lets
+        /// <see cref="MeshGeneration.NonPrimitiveKlotzMesh"/> resolve each submesh's
+        /// <see cref="KlotzSurfaceFeature"/> by material name.
+        /// </summary>
+        public GameObject Prefab;
     }
 
     public class GameClient : MonoBehaviour, IClientSideOps
@@ -77,8 +84,19 @@ namespace Clotzbergh.Client
             {
                 foreach (var entry in NonPrimitiveKlotzMeshes)
                 {
-                    if (entry.Mesh != null)
-                        MeshGenerator.RegisterNonPrimitiveMesh(entry.Type, entry.Mesh);
+                    if (entry.Prefab == null)
+                        continue;
+
+                    MeshFilter filter = entry.Prefab.GetComponentInChildren<MeshFilter>();
+                    MeshRenderer renderer = entry.Prefab.GetComponentInChildren<MeshRenderer>();
+                    if (filter == null || renderer == null)
+                    {
+                        Debug.LogError($"NonPrimitiveKlotzMeshes entry for {entry.Type}: " +
+                            $"'{entry.Prefab.name}' has no MeshFilter/MeshRenderer.");
+                        continue;
+                    }
+
+                    MeshGenerator.RegisterNonPrimitiveMesh(entry.Type, filter.sharedMesh, renderer.sharedMaterials);
                 }
             }
 

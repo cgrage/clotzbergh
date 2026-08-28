@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Clotzbergh.Client.MeshGeneration
@@ -14,12 +15,36 @@ namespace Clotzbergh.Client.MeshGeneration
         public readonly Vector3[] Vertices;
         public readonly Vector3[] Normals;
         public readonly int[] Triangles;
+        public readonly KlotzSurfaceFeature[] VertexFeatures;
 
-        public NonPrimitiveKlotzMesh(Mesh mesh)
+        /// <summary>
+        /// <paramref name="materials"/> must be the source renderer's <c>sharedMaterials</c>, in
+        /// submesh order: each submesh's <see cref="KlotzSurfaceFeature"/> is resolved by parsing
+        /// materials[i].name (e.g. "HasStuds"), since a <c>Mesh</c> alone carries no material
+        /// reference and Unity's FBX import doesn't preserve submesh order reliably enough to
+        /// infer the type from the index alone.
+        /// </summary>
+        public NonPrimitiveKlotzMesh(Mesh mesh, Material[] materials)
         {
             Vertices = mesh.vertices;
             Normals = mesh.normals;
             Triangles = mesh.triangles;
+
+            VertexFeatures = new KlotzSurfaceFeature[Vertices.Length];
+            for (int subMesh = 0; subMesh < mesh.subMeshCount && subMesh < materials.Length; subMesh++)
+            {
+                string materialName = materials[subMesh] != null ? materials[subMesh].name : null;
+                if (!Enum.TryParse(materialName, ignoreCase: true, out KlotzSurfaceFeature feature))
+                    feature = KlotzSurfaceFeature.Default;
+
+                if (feature == KlotzSurfaceFeature.Default)
+                    continue;
+
+                foreach (int vertexIndex in mesh.GetTriangles(subMesh))
+                {
+                    VertexFeatures[vertexIndex] = feature;
+                }
+            }
         }
     }
 }

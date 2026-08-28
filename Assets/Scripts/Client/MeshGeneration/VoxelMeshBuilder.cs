@@ -53,67 +53,67 @@ namespace Clotzbergh.Client.MeshGeneration
         /// <summary>
         /// A.K.A. the left face
         /// </summary>
-        public void AddLeftFace(PlasteMaterialFlags flags = 0)
+        public void AddLeftFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x1, _y1, _z2), new(_x1, _y2, _z2), new(_x1, _y2, _z1), new(_x1, _y1, _z1),
-                KlotzSide.Left, flags);
+                KlotzSide.Left, surface);
         }
 
         /// <summary>
         /// A.K.A. the right face
         /// </summary>
-        public void AddRightFace(PlasteMaterialFlags flags = 0)
+        public void AddRightFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x2, _y1, _z1), new(_x2, _y2, _z1), new(_x2, _y2, _z2), new(_x2, _y1, _z2),
-                KlotzSide.Right, flags);
+                KlotzSide.Right, surface);
         }
 
         /// <summary>
         /// A.K.A. the bottom face
         /// </summary>
-        public void AddBottomFace(PlasteMaterialFlags flags = 0)
+        public void AddBottomFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x2, _y1, _z1), new(_x2, _y1, _z2), new(_x1, _y1, _z2), new(_x1, _y1, _z1),
-                KlotzSide.Bottom, flags);
+                KlotzSide.Bottom, surface);
         }
 
         /// <summary>
         /// A.K.A. the top face
         /// </summary>
-        public void AddTopFace(PlasteMaterialFlags flags = 0)
+        public void AddTopFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x1, _y2, _z1), new(_x1, _y2, _z2), new(_x2, _y2, _z2), new(_x2, _y2, _z1),
-                KlotzSide.Top, flags);
+                KlotzSide.Top, surface);
         }
 
         /// <summary>
         /// A.K.A. the back face
         /// </summary>
-        public void AddBackFace(PlasteMaterialFlags flags = 0)
+        public void AddBackFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x1, _y2, _z1), new(_x2, _y2, _z1), new(_x2, _y1, _z1), new(_x1, _y1, _z1),
-                KlotzSide.Back, flags);
+                KlotzSide.Back, surface);
         }
 
         /// <summary>
         /// A.K.A. the front face
         /// </summary>
-        public void AddFrontFace(PlasteMaterialFlags flags = 0)
+        public void AddFrontFace(KlotzSurfaceFeature surface = KlotzSurfaceFeature.Default)
         {
             AddFace(
                 new(_x1, _y1, _z2), new(_x2, _y1, _z2), new(_x2, _y2, _z2), new(_x1, _y2, _z2),
-                KlotzSide.Front, flags);
+                KlotzSide.Front, surface);
         }
 
         /// <summary>
         /// Adds a face to the current mesh (-builder)
         /// </summary>
-        private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side, PlasteMaterialFlags sideFlags)
+        private void AddFace(Vector3 corner1, Vector3 corner2, Vector3 corner3, Vector3 corner4, KlotzSide side, KlotzSurfaceFeature surface)
         {
             int v0 = Vertices.Count;
 
@@ -125,12 +125,7 @@ namespace Clotzbergh.Client.MeshGeneration
             Vector3 normal = NormalForSide(side);
             Normals.Add(normal); Normals.Add(normal); Normals.Add(normal); Normals.Add(normal);
 
-            KlotzVertexFlags flags = 0;
-            if (sideFlags.HasFlag(PlasteMaterialFlags.HasStuds)) flags |= KlotzVertexFlags.SurfaceHasStuds;
-            if (sideFlags.HasFlag(PlasteMaterialFlags.HasHoles)) flags |= KlotzVertexFlags.SurfaceHasHoles;
-            if (sideFlags.HasFlag(PlasteMaterialFlags.IsRough)) flags |= KlotzVertexFlags.SurfaceIsRough;
-
-            Vector2 vertexData = BuildVertexUvData(flags, _color, _variant);
+            Vector2 vertexData = BuildVertexUvData(surface, _color, _variant);
             UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData); UvData.Add(vertexData);
 
             Triangles.Add(v0 + 0); Triangles.Add(v0 + 1); Triangles.Add(v0 + 2);
@@ -162,7 +157,7 @@ namespace Clotzbergh.Client.MeshGeneration
             {
                 Vertices.Add(origin + RotatePositionForDirection(template.Vertices[i], dir));
                 Normals.Add(RotateDirectionForDirection(template.Normals[i], dir));
-                UvData.Add(BuildVertexUvData(0, _color, _variant));
+                UvData.Add(BuildVertexUvData(template.VertexFeatures[i], _color, _variant));
             }
 
             for (int i = 0; i < template.Triangles.Length; i++)

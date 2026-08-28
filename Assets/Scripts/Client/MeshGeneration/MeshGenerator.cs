@@ -28,12 +28,14 @@ namespace Clotzbergh.Client.MeshGeneration
 
         /// <summary>
         /// Registers the mesh to use for a non-primitive <c>KlotzType</c> (e.g. DoorFrame1x4).
-        /// Must be called from the main thread, before any mesh generation for that type is
-        /// requested, since it reads the Unity <c>Mesh</c> API which is not thread-safe.
+        /// <paramref name="materials"/> should be the source renderer's <c>sharedMaterials</c>,
+        /// in submesh order - see <see cref="NonPrimitiveKlotzMesh"/> for why. Must be called
+        /// from the main thread, before any mesh generation for that type is requested, since it
+        /// reads the Unity <c>Mesh</c> API which is not thread-safe.
         /// </summary>
-        public static void RegisterNonPrimitiveMesh(KlotzType type, Mesh mesh)
+        public static void RegisterNonPrimitiveMesh(KlotzType type, Mesh mesh, Material[] materials)
         {
-            _nonPrimitiveMeshes[type] = new NonPrimitiveKlotzMesh(mesh);
+            _nonPrimitiveMeshes[type] = new NonPrimitiveKlotzMesh(mesh, materials);
         }
 
         /// <summary>
@@ -103,21 +105,21 @@ namespace Clotzbergh.Client.MeshGeneration
                         builder.SetColor(kRoot.Value.Color);
                         builder.SetVariant(kRoot.Value.Variant);
 
-                        PlasteMaterialFlags topFlags = 0;
-                        PlasteMaterialFlags bottomFlags = 0;
+                        KlotzSurfaceFeature topSurface = KlotzSurfaceFeature.Default;
+                        KlotzSurfaceFeature bottomSurface = KlotzSurfaceFeature.Default;
 
                         if (lod == 0 && DoStudsAndHoles)
                         {
                             if (KlotzKB.PrimitiveHasTopStuds(type))
-                                topFlags |= PlasteMaterialFlags.HasStuds;
+                                topSurface = KlotzSurfaceFeature.HasStuds;
                             if (KlotzKB.PrimitiveHasBottomHoles(type))
-                                bottomFlags |= PlasteMaterialFlags.HasHoles;
+                                bottomSurface = KlotzSurfaceFeature.HasHoles;
                         }
 
                         if (reader.IsExposedXM1) builder.AddLeftFace();
                         if (reader.IsExposedXP1) builder.AddRightFace();
-                        if (reader.IsExposedYM1) builder.AddBottomFace(bottomFlags);
-                        if (reader.IsExposedYP1) builder.AddTopFace(topFlags);
+                        if (reader.IsExposedYM1) builder.AddBottomFace(bottomSurface);
+                        if (reader.IsExposedYP1) builder.AddTopFace(topSurface);
                         if (reader.IsExposedZM1) builder.AddBackFace();
                         if (reader.IsExposedZP1) builder.AddFrontFace();
                     }

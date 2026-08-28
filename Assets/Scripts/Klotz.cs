@@ -70,20 +70,18 @@ namespace Clotzbergh
         Count
     }
 
-    [Flags]
-    public enum PlasteMaterialFlags
+    /// <summary>
+    /// Per-face material treatment for the Plaste shader. For non-primitive klotzes, this is
+    /// authored in Blender as a real material assigned per face, named exactly like one of these
+    /// values (e.g. "HasStuds") - see <see cref="NonPrimitiveKlotzMesh"/> for how that's resolved
+    /// reliably despite Unity's FBX import not preserving material slot order.
+    /// </summary>
+    public enum KlotzSurfaceFeature
     {
-        HasStuds = 1 << 0,
-        HasHoles = 1 << 1,
-        IsRough = 1 << 2,
-    }
-
-    [Flags]
-    public enum KlotzVertexFlags
-    {
-        SurfaceHasStuds = 1 << 0,
-        SurfaceHasHoles = 1 << 1,
-        SurfaceIsRough = 1 << 2,
+        Default = 0,
+        HasStuds = 1,
+        HasHoles = 2,
+        IsRough = 3,
     }
 
     public readonly struct KlotzVariant
