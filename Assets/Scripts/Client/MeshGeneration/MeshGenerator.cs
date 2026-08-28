@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using UnityEngine;
 
 namespace Clotzbergh.Client.MeshGeneration
 {
     /// <summary>
-    /// Generates the meshes. When called on <c>GenerateTerrainMesh</c> it generates 
+    /// Generates the meshes. When called on <c>GenerateTerrainMesh</c> it generates
     /// the mesh for a <c>ClientChunk</c> and its inner <c>WorldChunk</c>.
-    /// Uses the neighbors of the <c>ClientChunk</c> to find adjacent world 
+    /// Uses the neighbors of the <c>ClientChunk</c> to find adjacent world
     /// information to draw the mesh correctly.
     /// For overlapping Klotzes the general rule is that the chunk with the root
     /// <c>SubKlotz</c> owns the Klotz (that is the <c>SubKlotz</c> with the sub-
@@ -16,9 +18,21 @@ namespace Clotzbergh.Client.MeshGeneration
     {
         private static long _meshGenerationCount = 0;
 
+        private static readonly Dictionary<KlotzType, NonPrimitiveKlotzMesh> _nonPrimitiveMeshes = new();
+
         public static bool DoStudsAndHoles { get; set; } = true;
 
         public static long MeshGenerationCount { get => Interlocked.Read(ref _meshGenerationCount); }
+
+        /// <summary>
+        /// Registers the mesh to use for a non-primitive <c>KlotzType</c> (e.g. Door1x4).
+        /// Must be called from the main thread, before any mesh generation for that type is
+        /// requested, since it reads the Unity <c>Mesh</c> API which is not thread-safe.
+        /// </summary>
+        public static void RegisterNonPrimitiveMesh(KlotzType type, Mesh mesh)
+        {
+            _nonPrimitiveMeshes[type] = new NonPrimitiveKlotzMesh(mesh);
+        }
 
         /// <summary>
         /// 
@@ -43,14 +57,41 @@ namespace Clotzbergh.Client.MeshGeneration
                     for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                     {
                         reader.MoveTo(x, y, z);
-                        if (!reader.IsExposed)
+
+                        bool isRoot = reader.IsRoot;
+                        bool exposed = reader.IsExposed;
+
+                        // A non-root cell that isn't exposed can never contribute anything (this
+                        // also covers all non-root cells of a non-primitive klotz, since those
+                        // are never opaque/exposed) - skip it without resolving its root, which
+                        // is the expensive part of RootSubKlotz.
+                        if (!isRoot && !exposed)
                             continue;
 
-                        SubKlotz? kRoot = reader.RootSubKlotz;
+                        SubKlotz? kRoot = reader.RootSubKlotz; // free when isRoot, only resolves here when exposed
                         if (!kRoot.HasValue)
                             continue; // can't access the root sub-klotz
 
                         KlotzType type = kRoot.Value.Type;
+                        bool isPrimitive = KlotzKB.IsPrimitive(type);
+
+                        if (!isPrimitive)
+                        {
+                            // isRoot is guaranteed true here: non-root cells of non-primitive
+                            // klotzes are never exposed, so they were already filtered above.
+                            if (_nonPrimitiveMeshes.TryGetValue(type, out NonPrimitiveKlotzMesh template))
+                            {
+                                builder.MoveTo(x, y, z);
+                                builder.SetColor(kRoot.Value.Color);
+                                builder.SetVariant(kRoot.Value.Variant);
+                                builder.AddNonPrimitiveKlotz(template, kRoot.Value.Direction);
+                            }
+                            continue;
+                        }
+
+                        if (!exposed) // root cell that wasn't pre-filtered above, but isn't exposed either
+                            continue;
+
                         builder.MoveTo(x, y, z);
                         builder.SetColor(kRoot.Value.Color);
                         builder.SetVariant(kRoot.Value.Variant);

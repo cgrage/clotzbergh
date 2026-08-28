@@ -189,6 +189,8 @@ namespace Clotzbergh.Client.MeshGeneration
             return false;
         }
 
+        public bool IsRoot { get { return _subKlotz.IsRoot; } }
+
         public RelKlotzCoords RootPos { get { return _subKlotz.RootPos(new(_x, _y, _z)); } }
 
         public SubKlotz? RootSubKlotz

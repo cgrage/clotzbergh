@@ -151,5 +151,41 @@ namespace Clotzbergh.Client.MeshGeneration
                 _ => Vector3.zero
             };
         }
+
+        public void AddNonPrimitiveKlotz(NonPrimitiveKlotzMesh template, KlotzDirection dir)
+        {
+            int v0 = Vertices.Count;
+            Vector3 origin = new(_x1, _y1, _z1);
+
+            for (int i = 0; i < template.Vertices.Length; i++)
+            {
+                Vertices.Add(origin + RotateForDirection(template.Vertices[i], dir));
+                Normals.Add(RotateForDirection(template.Normals[i], dir));
+                UvData.Add(BuildVertexUvData(0, _color, _variant));
+            }
+
+            for (int i = 0; i < template.Triangles.Length; i++)
+            {
+                Triangles.Add(v0 + template.Triangles[i]);
+            }
+
+            int triangleCount = template.Triangles.Length / 3;
+            for (int i = 0; i < triangleCount; i++)
+            {
+                VoxelCoords.Add(_currentCoords);
+            }
+        }
+
+        private static Vector3 RotateForDirection(Vector3 p, KlotzDirection dir)
+        {
+            return dir switch
+            {
+                KlotzDirection.ToPosX => new(p.x, p.y, p.z),
+                KlotzDirection.ToNegX => new(-p.x, p.y, -p.z),
+                KlotzDirection.ToPosZ => new(-p.z, p.y, p.x),
+                KlotzDirection.ToNegZ => new(p.z, p.y, -p.x),
+                _ => p
+            };
+        }
     }
 }

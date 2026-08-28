@@ -22,6 +22,13 @@ namespace Clotzbergh.Client
         public long ReceivedChunks { get; set; }
     }
 
+    [Serializable]
+    public struct NonPrimitiveKlotzMeshEntry
+    {
+        public KlotzType Type;
+        public Mesh Mesh;
+    }
+
     public class GameClient : MonoBehaviour, IClientSideOps
     {
         public string Hostname = "localhost";
@@ -31,6 +38,7 @@ namespace Clotzbergh.Client
         public Material Material;
         public PlayerSelection Selection;
         public GameObject DebugUI;
+        public NonPrimitiveKlotzMeshEntry[] NonPrimitiveKlotzMeshes;
 
         private Thread _connectionThread;
 
@@ -64,6 +72,15 @@ namespace Clotzbergh.Client
             _chunkStore.AsyncTerrainOps = this;
             _chunkStore.KlotzMat = Material;
             _chunkStore.Selection = Selection;
+
+            if (NonPrimitiveKlotzMeshes != null)
+            {
+                foreach (var entry in NonPrimitiveKlotzMeshes)
+                {
+                    if (entry.Mesh != null)
+                        MeshGenerator.RegisterNonPrimitiveMesh(entry.Type, entry.Mesh);
+                }
+            }
 
             _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
             _connectionThread.Start();

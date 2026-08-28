@@ -162,6 +162,20 @@ namespace Clotzbergh
             };
         }
 
+        /// <summary>
+        /// Primitive Klotz types are simple, regularly shaped blocks (Plates, Bricks, ...).
+        /// Non-primitive types (e.g. Door1x4, Window1x4) have special shapes or behavior.
+        /// </summary>
+        public static bool IsPrimitive(KlotzType t)
+        {
+            return t switch
+            {
+                KlotzType.Door1x4 => false,
+                KlotzType.Window1x4 => false,
+                _ => true
+            };
+        }
+
         public static bool TypeHasTopStuds(KlotzType t)
         {
             return true;
