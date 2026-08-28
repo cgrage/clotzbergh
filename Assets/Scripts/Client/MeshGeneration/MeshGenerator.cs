@@ -27,7 +27,7 @@ namespace Clotzbergh.Client.MeshGeneration
         public static long MeshGenerationCount { get => Interlocked.Read(ref _meshGenerationCount); }
 
         /// <summary>
-        /// Registers the mesh to use for a non-primitive <c>KlotzType</c> (e.g. Door1x4).
+        /// Registers the mesh to use for a non-primitive <c>KlotzType</c> (e.g. DoorFrame1x4).
         /// Must be called from the main thread, before any mesh generation for that type is
         /// requested, since it reads the Unity <c>Mesh</c> API which is not thread-safe.
         /// </summary>

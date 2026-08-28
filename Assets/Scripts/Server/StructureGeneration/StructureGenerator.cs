@@ -154,7 +154,7 @@ namespace Clotzbergh.Server.StructureGeneration
             foreach (var door in floorPlan.Doors)
             {
                 chunk.PlaceKlotz(
-                    KlotzType.Door1x4,
+                    KlotzType.DoorFrame1x4,
                     KlotzColor.Brown,
                     NextRandVariant(),
                     new RelKlotzCoords(
@@ -167,7 +167,7 @@ namespace Clotzbergh.Server.StructureGeneration
             foreach (var window in floorPlan.Windows)
             {
                 chunk.PlaceKlotz(
-                    KlotzType.Window1x4,
+                    KlotzType.WindowFrame1x4,
                     KlotzColor.Brown,
                     NextRandVariant(),
                     new RelKlotzCoords(

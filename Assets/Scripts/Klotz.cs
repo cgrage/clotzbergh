@@ -23,10 +23,10 @@ namespace Clotzbergh
         Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
         Brick4x6,
         // CornerBrick1x2x2,
-        // "Door" means 15 units high, with studs on top and holes on the bottom
-        Door1x4,
-        // "Window" means 5 units high, with studs on top and holes on the bottom
-        Window1x4,
+        // "DoorFrame" means 15 units high, with studs on top and holes on the bottom
+        DoorFrame1x4,
+        // "WindowFrame" means 9 units high, with studs on top and holes on the bottom
+        WindowFrame1x4,
         // Special
         Count
     }
@@ -143,8 +143,8 @@ namespace Clotzbergh
                 KlotzType.Brick2x6 => new(6, 3, 2),
                 KlotzType.Brick2x8 => new(8, 3, 2),
                 KlotzType.Brick4x6 => new(6, 3, 4),
-                KlotzType.Door1x4 => new(4, 15, 1),
-                KlotzType.Window1x4 => new(4, 9, 1),
+                KlotzType.DoorFrame1x4 => new(4, 15, 1),
+                KlotzType.WindowFrame1x4 => new(4, 9, 1),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
@@ -156,22 +156,22 @@ namespace Clotzbergh
             return t switch
             {
                 KlotzType.Air => false,
-                KlotzType.Door1x4 => false,
-                KlotzType.Window1x4 => false,
+                KlotzType.DoorFrame1x4 => false,
+                KlotzType.WindowFrame1x4 => false,
                 _ => true
             };
         }
 
         /// <summary>
         /// Primitive Klotz types are simple, regularly shaped blocks (Plates, Bricks, ...).
-        /// Non-primitive types (e.g. Door1x4, Window1x4) have special shapes or behavior.
+        /// Non-primitive types (e.g. DoorFrame1x4, WindowFrame1x4) have special shapes or behavior.
         /// </summary>
         public static bool IsPrimitive(KlotzType t)
         {
             return t switch
             {
-                KlotzType.Door1x4 => false,
-                KlotzType.Window1x4 => false,
+                KlotzType.DoorFrame1x4 => false,
+                KlotzType.WindowFrame1x4 => false,
                 _ => true
             };
         }

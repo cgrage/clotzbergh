@@ -2,8 +2,9 @@
 Regenerates the FBX asset for every klotz model .blend file in this directory.
 
 Convention: each .blend file contains exactly one top-level mesh object, and
-its name matches the .blend file's own base name (e.g. Door1x4.blend contains
-an object called "Door1x4"). Each is exported to Assets/Models/<name>.fbx.
+its name matches the .blend file's own base name (e.g. DoorFrame1x4.blend
+contains an object called "DoorFrame1x4"). Each is exported to
+Assets/Models/<name>.fbx.
 
 Usage (from anywhere):
     blender --background --factory-startup --python ArtSource/regenerate_all.py

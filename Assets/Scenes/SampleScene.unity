@@ -615,9 +615,9 @@ MonoBehaviour:
   DebugUI: {fileID: 1702499964}
   NonPrimitiveKlotzMeshes:
   - Type: 30
-    Mesh: {fileID: 6526451016588061648, guid: 4580b0b4a2cae5b4f99453fbafd865bc, type: 3}
+    Mesh: {fileID: -8384366871336350922, guid: c086b6b59f6a4644aa6e1bde595da75a, type: 3}
   - Type: 31
-    Mesh: {fileID: 3981791656109640401, guid: 25d71482d87d6d74fbec5d31ed9b3bac, type: 3}
+    Mesh: {fileID: 199307381360046759, guid: 710d8c5e0e5134e49b24e3b9bff84655, type: 3}
 --- !u!4 &785459302
 Transform:
   m_ObjectHideFlags: 0
