@@ -103,15 +103,15 @@ namespace Clotzbergh.Client.MeshGeneration
                         builder.SetColor(kRoot.Value.Color);
                         builder.SetVariant(kRoot.Value.Variant);
 
-                        KlotzSideFlags topFlags = 0;
-                        KlotzSideFlags bottomFlags = 0;
+                        PlasteMaterialFlags topFlags = 0;
+                        PlasteMaterialFlags bottomFlags = 0;
 
                         if (lod == 0 && DoStudsAndHoles)
                         {
-                            if (KlotzKB.TypeHasTopStuds(type))
-                                topFlags |= KlotzSideFlags.HasStuds;
-                            if (KlotzKB.TypeHasBottomHoles(type))
-                                bottomFlags |= KlotzSideFlags.HasHoles;
+                            if (KlotzKB.PrimitiveHasTopStuds(type))
+                                topFlags |= PlasteMaterialFlags.HasStuds;
+                            if (KlotzKB.PrimitiveHasBottomHoles(type))
+                                bottomFlags |= PlasteMaterialFlags.HasHoles;
                         }
 
                         if (reader.IsExposedXM1) builder.AddLeftFace();

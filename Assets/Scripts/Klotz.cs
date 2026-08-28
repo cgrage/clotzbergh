@@ -71,19 +71,19 @@ namespace Clotzbergh
     }
 
     [Flags]
-    public enum KlotzSideFlags
+    public enum PlasteMaterialFlags
     {
         HasStuds = 1 << 0,
         HasHoles = 1 << 1,
+        IsRough = 1 << 2,
     }
 
     [Flags]
     public enum KlotzVertexFlags
     {
-        SideHasStuds = 1 << 0,
-        SideHasHoles = 1 << 1,
-        ReservedFlag2 = 1 << 2,
-        ReservedFlag3 = 1 << 3,
+        SurfaceHasStuds = 1 << 0,
+        SurfaceHasHoles = 1 << 1,
+        SurfaceIsRough = 1 << 2,
     }
 
     public readonly struct KlotzVariant
@@ -176,12 +176,12 @@ namespace Clotzbergh
             };
         }
 
-        public static bool TypeHasTopStuds(KlotzType t)
+        public static bool PrimitiveHasTopStuds(KlotzType t)
         {
             return true;
         }
 
-        public static bool TypeHasBottomHoles(KlotzType t)
+        public static bool PrimitiveHasBottomHoles(KlotzType t)
         {
             return true;
         }

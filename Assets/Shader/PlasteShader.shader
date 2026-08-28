@@ -32,6 +32,7 @@ Shader "PlasteShader"
                 float3 normal : TEXCOORD0;
                 float4 color : COLOR;
                 int vertexFlags : TEXCOORD1;
+                float isRough : TEXCOORD2;
             };
 
             struct g2f
@@ -39,6 +40,7 @@ Shader "PlasteShader"
                 float4 pos : SV_POSITION;
                 float3 normal : TEXCOORD0;
                 float4 color : COLOR;
+                float isRough : TEXCOORD1;
             };
 
             float4 _MainLightColor;
@@ -72,12 +74,13 @@ Shader "PlasteShader"
                 return float4(0, 0, 0, 1); // Default
             }
 
-            void AddVertex(inout TriangleStream<g2f> triStream, float3 pos, float3 normal, float4 color)
+            void AddVertex(inout TriangleStream<g2f> triStream, float3 pos, float3 normal, float4 color, float isRough)
             {
                 g2f o;
                 o.pos = UnityObjectToClipPos(float4(pos, 1.0));
                 o.normal = normal;
                 o.color = color;
+                o.isRough = isRough;
                 triStream.Append(o);
             }
 
@@ -107,21 +110,21 @@ Shader "PlasteShader"
                     g2f o;
 
                     // Top triangle (top-center, previous top edge, new top edge)
-                    AddVertex(triStream, topCenter, a.normal, a.color);
-                    AddVertex(triStream, prevTopEdge, a.normal, a.color);
-                    AddVertex(triStream, newTopEdge, a.normal, a.color);
+                    AddVertex(triStream, topCenter, a.normal, a.color, a.isRough);
+                    AddVertex(triStream, prevTopEdge, a.normal, a.color, a.isRough);
+                    AddVertex(triStream, newTopEdge, a.normal, a.color, a.isRough);
                     triStream.RestartStrip();
 
                     // Side triangle 1 (previous top edge, new bottom edge, new top edge)
-                    AddVertex(triStream, prevTopEdge,  normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color);
-                    AddVertex(triStream, newBottomEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color);
-                    AddVertex(triStream, newTopEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color);
+                    AddVertex(triStream, prevTopEdge,  normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, newBottomEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, newTopEdge, normalize(cross(newBottomEdge - prevTopEdge, newTopEdge - prevTopEdge)), a.color, a.isRough);
                     triStream.RestartStrip();
 
                     // Side triangle 2 (previous top edge, previous bottom edge, new bottom edge)
-                    AddVertex(triStream, prevTopEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color);
-                    AddVertex(triStream, prevBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color);
-                    AddVertex(triStream, newBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color);
+                    AddVertex(triStream, prevTopEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, prevBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
+                    AddVertex(triStream, newBottomEdge, normalize(cross(prevBottomEdge - prevTopEdge, newBottomEdge - prevTopEdge)), a.color, a.isRough);
                     triStream.RestartStrip();
 
                     prevTopEdge = newTopEdge;
@@ -143,6 +146,7 @@ Shader "PlasteShader"
                 o.normal = v.normal;
                 o.color = baseColor * (1.0 - variation * 0.2); // Vary color by up to 20%
                 o.vertexFlags = vertexFlags;
+                o.isRough = (vertexFlags & 0x4) ? 1.0 : 0.0;
                 return o;
             }
 
@@ -157,10 +161,11 @@ Shader "PlasteShader"
                     // Pass through original triangle
                     for (int i = 0; i < 3; ++i)
                     {
-                        AddVertex(triStream, 
-                            input[i].pos, 
-                            input[i].normal, 
-                            input[i].color);
+                        AddVertex(triStream,
+                            input[i].pos,
+                            input[i].normal,
+                            input[i].color,
+                            input[i].isRough);
                     }
                 }
 
@@ -203,8 +208,8 @@ Shader "PlasteShader"
                 // Diffuse lighting
                 float diffuse = max(dot(normal, lightDir), 0.0);
                 
-                // Specular highlights
-                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 256.0);
+                // Specular highlights (rough surfaces get no highlight, giving them a matte look)
+                float spec = pow(max(dot(normal, halfDir), 0.0), _Glossiness * 256.0) * (1.0 - i.isRough);
 
                 // Combine results
                 float3 ambient = 0.05 * i.color.rgb;
