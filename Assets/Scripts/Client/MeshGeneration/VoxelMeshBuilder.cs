@@ -159,8 +159,8 @@ namespace Clotzbergh.Client.MeshGeneration
 
             for (int i = 0; i < template.Vertices.Length; i++)
             {
-                Vertices.Add(origin + RotateForDirection(template.Vertices[i], dir));
-                Normals.Add(RotateForDirection(template.Normals[i], dir));
+                Vertices.Add(origin + RotatePositionForDirection(template.Vertices[i], dir));
+                Normals.Add(RotateDirectionForDirection(template.Normals[i], dir));
                 UvData.Add(BuildVertexUvData(0, _color, _variant));
             }
 
@@ -176,7 +176,33 @@ namespace Clotzbergh.Client.MeshGeneration
             }
         }
 
-        private static Vector3 RotateForDirection(Vector3 p, KlotzDirection dir)
+        /// <summary>
+        /// Rotates a local mesh-space position for the given direction.
+        /// Unlike <see cref="RotateDirectionForDirection"/>, this also corrects for the fact
+        /// that a grid cell index denotes its min corner and extends forward: a purely mirrored
+        /// axis (-p) would be off by exactly one cell size, since <see cref="SubKlotz.TranslateSubIndexToCoords"/>
+        /// walks backwards one whole cell at a time from the root rather than reflecting the
+        /// continuous span around it. Using (segmentSize - p) for a reversed axis instead of -p
+        /// corrects for that.
+        /// </summary>
+        private Vector3 RotatePositionForDirection(Vector3 p, KlotzDirection dir)
+        {
+            return dir switch
+            {
+                KlotzDirection.ToPosX => new(p.x, p.y, p.z),
+                KlotzDirection.ToNegX => new(_segmentSize.x - p.x, p.y, _segmentSize.z - p.z),
+                KlotzDirection.ToPosZ => new(_segmentSize.z - p.z, p.y, p.x),
+                KlotzDirection.ToNegZ => new(p.z, p.y, _segmentSize.x - p.x),
+                _ => p
+            };
+        }
+
+        /// <summary>
+        /// Rotates a local direction vector (e.g. a normal) for the given direction. Since this
+        /// is a direction and not a position, no cell-size correction is needed here (see
+        /// <see cref="RotatePositionForDirection"/>) - it's a pure rotation.
+        /// </summary>
+        private static Vector3 RotateDirectionForDirection(Vector3 p, KlotzDirection dir)
         {
             return dir switch
             {
