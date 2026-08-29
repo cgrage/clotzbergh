@@ -35,11 +35,31 @@ namespace Clotzbergh.Server.StructureGeneration
         }
     }
 
+    /// <summary>
+    /// One straight run of perimeter wall, as laid out by <see cref="StoryFloorPlanGenerator"/> -
+    /// exposed so wall rendering can brick-tile each run (and its corners) instead of re-deriving
+    /// the runs by re-scanning <see cref="StoryFloorPlan.Plan"/>.
+    /// </summary>
+    public readonly struct WallRun
+    {
+        public Vector2Int Start { get; }
+        public KlotzDirection Direction { get; }
+        public int Length { get; }
+
+        public WallRun(Vector2Int start, KlotzDirection direction, int length)
+        {
+            Start = start;
+            Direction = direction;
+            Length = length;
+        }
+    }
+
     public class StoryFloorPlan
     {
         public StoryFloorPlanCell[][] Plan { get; private set; }
         public DoorInfo[] Doors { get; set; }
         public WindowInfo[] Windows { get; set; }
+        public WallRun[] WallRuns { get; set; }
 
         public StoryFloorPlan(int sizeX, int sizeY)
         {
@@ -70,6 +90,14 @@ namespace Clotzbergh.Server.StructureGeneration
             PlaceWall(sizeX - 1, sizeY - 1, sizeX, KlotzDirection.ToNegX, false);
             PlaceWall(0, sizeY - 1, sizeY, KlotzDirection.ToNegZ, false);
             FillRoom(1, 1, sizeX - 2, sizeY - 2);
+
+            _plan.WallRuns = new WallRun[]
+            {
+                new(new Vector2Int(0, 0), KlotzDirection.ToPosX, sizeX),
+                new(new Vector2Int(sizeX - 1, 0), KlotzDirection.ToPosZ, sizeY),
+                new(new Vector2Int(sizeX - 1, sizeY - 1), KlotzDirection.ToNegX, sizeX),
+                new(new Vector2Int(0, sizeY - 1), KlotzDirection.ToNegZ, sizeY),
+            };
 
             _plan.Doors = new DoorInfo[]
             {

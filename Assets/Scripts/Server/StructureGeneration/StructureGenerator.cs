@@ -105,51 +105,7 @@ namespace Clotzbergh.Server.StructureGeneration
             KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Yellow;
             StoryFloorPlan floorPlan = StoryFloorPlanGenerator.Generate(dest.HouseLocation.width, dest.HouseLocation.height);
 
-            for (int dx = 0; dx < dest.HouseLocation.width; dx++)
-            {
-                for (int dz = 0; dz < dest.HouseLocation.height; dz++)
-                {
-                    for (int dy = 0; dy < dest.StoryHeight; dy++)
-                    {
-                        if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Wall)
-                        {
-                            chunk.PlaceKlotz(
-                                KlotzType.Plate1x1,
-                                wallColor,
-                                NextRandVariant(),
-                                new RelKlotzCoords(
-                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
-                                    dy + storyBaseY,
-                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
-                                KlotzDirection.ToPosX);
-                        }
-                        else if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Door && dy >= PlotFloorPlan.DoorHeight)
-                        {
-                            chunk.PlaceKlotz(
-                                KlotzType.Plate1x1,
-                                wallColor,
-                                NextRandVariant(),
-                                new RelKlotzCoords(
-                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
-                                    dy + storyBaseY,
-                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
-                                KlotzDirection.ToPosX);
-                        }
-                        else if (floorPlan.Plan[dx][dz] == StoryFloorPlanCell.Window && (dy < PlotFloorPlan.WindowSillHeight || dy >= PlotFloorPlan.WindowSillHeight + PlotFloorPlan.WindowFrameHeight))
-                        {
-                            chunk.PlaceKlotz(
-                                KlotzType.Plate1x1,
-                                wallColor,
-                                NextRandVariant(),
-                                new RelKlotzCoords(
-                                    dest.PlotLocation.x + dest.HouseLocation.x + dx,
-                                    dy + storyBaseY,
-                                    dest.PlotLocation.y + dest.HouseLocation.y + dz),
-                                KlotzDirection.ToPosX);
-                        }
-                    }
-                }
-            }
+            RenderWalls(chunk, dest, floorPlan, storyBaseY, wallColor);
 
             foreach (var door in floorPlan.Doors)
             {
@@ -177,6 +133,121 @@ namespace Clotzbergh.Server.StructureGeneration
                     window.Direction);
             }
 
+        }
+
+        // Available brick lengths used to tile a wall run, longest first.
+        private static readonly (int Length, KlotzType Type)[] BrickLengths = new[]
+        {
+            (4, KlotzType.Brick1x4),
+            (3, KlotzType.Brick1x3),
+            (2, KlotzType.Brick1x2),
+            (1, KlotzType.Brick1x1),
+        };
+
+        private static (int Length, KlotzType Type) PickBrickLength(int maxLength)
+        {
+            foreach (var candidate in BrickLengths)
+            {
+                if (candidate.Length <= maxLength)
+                    return candidate;
+            }
+
+            return BrickLengths[BrickLengths.Length - 1];
+        }
+
+        /// <summary>
+        /// Brick-tiles the 4 perimeter wall runs, one course (one brick's height) at a time.
+        /// Real masonry corners alternate which wall's bricks wrap the corner between courses,
+        /// so it never sits on the exact same joint twice - here that's approximated by
+        /// alternating which axis (X-running or Z-running walls) "owns" the corner cells each
+        /// course; the other axis's runs are inset by 1 cell at each end that course.
+        /// </summary>
+        private void RenderWalls(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, int storyBaseY, KlotzColor wallColor)
+        {
+            int courseHeight = KlotzKB.Size(KlotzType.Brick1x1).Y;
+            int courseCount = dest.StoryHeight / courseHeight;
+
+            for (int course = 0; course < courseCount; course++)
+            {
+                int localY = course * courseHeight; // story-relative, for the door/window thresholds
+                int worldY = storyBaseY + localY;
+                bool xRunsOwnCorners = course % 2 == 0;
+
+                foreach (WallRun run in floorPlan.WallRuns)
+                {
+                    bool isXRun = run.Direction == KlotzDirection.ToPosX || run.Direction == KlotzDirection.ToNegX;
+                    bool ownsCorners = isXRun == xRunsOwnCorners;
+                    int inset = ownsCorners ? 0 : 1;
+
+                    RenderWallCourse(chunk, dest, floorPlan, run, localY, worldY, inset, run.Length - inset, wallColor);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tiles one course of one wall run between [rangeStart, rangeEnd), splitting into
+        /// separate brick runs around any door/window opening that's open at this course's height.
+        /// </summary>
+        private void RenderWallCourse(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, WallRun run, int localY, int worldY, int rangeStart, int rangeEnd, KlotzColor wallColor)
+        {
+            int segmentStart = -1;
+
+            for (int pos = rangeStart; pos <= rangeEnd; pos++)
+            {
+                bool solid = pos < rangeEnd && IsWallCellSolid(floorPlan, StepAlongRun(run, pos), localY);
+
+                if (solid && segmentStart < 0)
+                {
+                    segmentStart = pos;
+                }
+                else if (!solid && segmentStart >= 0)
+                {
+                    RenderBrickRun(chunk, dest, run, worldY, segmentStart, pos - segmentStart, wallColor);
+                    segmentStart = -1;
+                }
+            }
+        }
+
+        private static bool IsWallCellSolid(StoryFloorPlan floorPlan, Vector2Int cell, int localY)
+        {
+            StoryFloorPlanCell type = floorPlan.Plan[cell.x][cell.y];
+            return type == StoryFloorPlanCell.Wall
+                || (type == StoryFloorPlanCell.Door && localY >= PlotFloorPlan.DoorHeight)
+                || (type == StoryFloorPlanCell.Window && (localY < PlotFloorPlan.WindowSillHeight || localY >= PlotFloorPlan.WindowSillHeight + PlotFloorPlan.WindowFrameHeight));
+        }
+
+        private void RenderBrickRun(WorldChunk chunk, PlotFloorPlan dest, WallRun run, int y, int start, int length, KlotzColor wallColor)
+        {
+            int pos = start;
+            while (pos < start + length)
+            {
+                (int brickLength, KlotzType type) = PickBrickLength(start + length - pos);
+                Vector2Int cell = StepAlongRun(run, pos);
+
+                chunk.PlaceKlotz(
+                    type,
+                    wallColor,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + dest.HouseLocation.x + cell.x,
+                        y,
+                        dest.PlotLocation.y + dest.HouseLocation.y + cell.y),
+                    run.Direction);
+
+                pos += brickLength;
+            }
+        }
+
+        private static Vector2Int StepAlongRun(WallRun run, int pos)
+        {
+            return run.Direction switch
+            {
+                KlotzDirection.ToPosX => new(run.Start.x + pos, run.Start.y),
+                KlotzDirection.ToNegX => new(run.Start.x - pos, run.Start.y),
+                KlotzDirection.ToPosZ => new(run.Start.x, run.Start.y + pos),
+                KlotzDirection.ToNegZ => new(run.Start.x, run.Start.y - pos),
+                _ => run.Start,
+            };
         }
 
         // Available Slope45Single lengths used to tile an arbitrary roof depth, longest first.
