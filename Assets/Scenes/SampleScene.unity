@@ -614,10 +614,22 @@ MonoBehaviour:
   Selection: {fileID: 539553191}
   DebugUI: {fileID: 1702499964}
   NonPrimitiveKlotzMeshes:
-  - Type: 30
+  - Type: 1001
     Prefab: {fileID: 919132149155446097, guid: c086b6b59f6a4644aa6e1bde595da75a, type: 3}
-  - Type: 31
+  - Type: 1002
     Prefab: {fileID: 919132149155446097, guid: 710d8c5e0e5134e49b24e3b9bff84655, type: 3}
+  - Type: 1003
+    Prefab: {fileID: 919132149155446097, guid: 7988366acef32294c84d01320a6daad2, type: 3}
+  - Type: 1004
+    Prefab: {fileID: 919132149155446097, guid: ff04ab41274cafc4a9cbc5326e0f7b3f, type: 3}
+  - Type: 1005
+    Prefab: {fileID: 919132149155446097, guid: ec10497b062ad21438ff1d1cc473179c, type: 3}
+  - Type: 1006
+    Prefab: {fileID: 919132149155446097, guid: dc8bb003d67c02141a4a8cf09ccc324a, type: 3}
+  - Type: 1007
+    Prefab: {fileID: 919132149155446097, guid: 6e7575afc21786b4faa03856ff76d5d2, type: 3}
+  - Type: 1008
+    Prefab: {fileID: 919132149155446097, guid: b5f62a6712dd8ee49bcd1025221d17fa, type: 3}
 --- !u!4 &785459302
 Transform:
   m_ObjectHideFlags: 0

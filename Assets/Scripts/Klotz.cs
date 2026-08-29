@@ -6,29 +6,48 @@ namespace Clotzbergh
 {
     public enum KlotzType
     {
+        // ---------------------------------------------------------------------
+        // Air: empty space, no geometry, no collision, no rendering
         Air = 0,
-        // "Plate" means 1 unit high, with studs on top and holes on the bottom
+
+        // ---------------------------------------------------------------------
+        // Primitive types:
+
+        // Plates: 1 unit high, studs on top, holes on the bottom
         Plate1x1, Plate1x2, Plate1x3, Plate1x4, Plate1x6, Plate1x8,
         Plate2x2, Plate2x3, Plate2x4, Plate2x6, Plate2x8,
         Plate4x4, Plate4x6, Plate4x8,
         Plate6x6, Plate6x8,
         Plate8x8,
         // CornerPlate1x2x2, CornerPlate2x4x4,
-        // "Tile" means 1 unit high, without studs (flat) on top and with holes on the bottom
+
+        // Tiles: 1 unit high, no studs on top (flat), with holes on the bottom
         // Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
         // Tile2x2, Tile2x3, Tile2x4,
         // CornerTile1x2x2,
-        // "Brick" means 3 units high, with studs on top and holes on the bottom
+
+        // Bricks: 3 units high, studs on top, holes on the bottom
         Brick1x1, Brick1x2, Brick1x3, Brick1x4, Brick1x6, Brick1x8,
         Brick2x2, Brick2x3, Brick2x4, Brick2x6, Brick2x8,
         Brick4x6,
         // CornerBrick1x2x2,
-        // "DoorFrame" means 15 units high, with studs on top and holes on the bottom
+
+        SpecialNonPrimitive = 1000, // special
+
+        // ---------------------------------------------------------------------
+        // Non-primitive types:
+
+        // DoorFrame: 15 units high, studs on top, holes on the bottom
         DoorFrame1x4,
-        // "WindowFrame" means 9 units high, with studs on top and holes on the bottom
+        // WindowFrame: 9 units high, studs on top, holes on the bottom
         WindowFrame1x4,
-        // Special
-        Count
+        // Single Slopes (45 degrees): 3 units high, studs on top, holes on the bottom
+        Slope45Single2x1, Slope45Single2x2, Slope45Single2x3, Slope45Single2x4, Slope45Single2x6, Slope45Single2x8,
+        // Double Slopes (45 degrees): 3 units high, no studs on top, holes on the bottom
+        Slope45Double2x2, Slope45Double2x3, Slope45Double2x4,
+
+        // ---------------------------------------------------------------------
+        SpecialCount // special
     }
 
     public enum KlotzDirection
@@ -143,6 +162,12 @@ namespace Clotzbergh
                 KlotzType.Brick4x6 => new(6, 3, 4),
                 KlotzType.DoorFrame1x4 => new(4, 15, 1),
                 KlotzType.WindowFrame1x4 => new(4, 9, 1),
+                KlotzType.Slope45Single2x1 => new(1, 3, 2),
+                KlotzType.Slope45Single2x2 => new(2, 3, 2),
+                KlotzType.Slope45Single2x3 => new(3, 3, 2),
+                KlotzType.Slope45Single2x4 => new(4, 3, 2),
+                KlotzType.Slope45Single2x6 => new(6, 3, 2),
+                KlotzType.Slope45Single2x8 => new(8, 3, 2),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
@@ -151,13 +176,13 @@ namespace Clotzbergh
 
         public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
         {
-            return t switch
-            {
-                KlotzType.Air => false,
-                KlotzType.DoorFrame1x4 => false,
-                KlotzType.WindowFrame1x4 => false,
-                _ => true
-            };
+            if (t == KlotzType.Air)
+                return false;
+
+            if (IsPrimitive(t))
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -166,12 +191,7 @@ namespace Clotzbergh
         /// </summary>
         public static bool IsPrimitive(KlotzType t)
         {
-            return t switch
-            {
-                KlotzType.DoorFrame1x4 => false,
-                KlotzType.WindowFrame1x4 => false,
-                _ => true
-            };
+            return t < KlotzType.SpecialNonPrimitive;
         }
 
         public static bool PrimitiveHasTopStuds(KlotzType t)

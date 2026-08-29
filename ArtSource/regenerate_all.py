@@ -37,6 +37,12 @@ for blend_path in blend_paths:
               f"found: {[o.name for o in bpy.data.objects]}")
         continue
 
+    # If the file was last saved while an object was in Edit Mode, it reopens
+    # in Edit Mode too, and object-level operators like select_all fail their
+    # poll() check ("context is incorrect") until we're back in Object Mode.
+    if bpy.context.object is not None and bpy.context.object.mode != 'OBJECT':
+        bpy.ops.object.mode_set(mode='OBJECT')
+
     bpy.ops.object.select_all(action='DESELECT')
     bpy.data.objects[name].select_set(True)
     bpy.context.view_layer.objects.active = bpy.data.objects[name]
