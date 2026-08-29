@@ -179,39 +179,80 @@ namespace Clotzbergh.Server.StructureGeneration
 
         }
 
+        // Available Slope45Single lengths used to tile an arbitrary roof depth, longest first.
+        // 2x6/2x8 are deliberately excluded here - long unbroken slope runs look too coarse on a
+        // roof, even though the klotz types themselves are fine for other uses.
+        private static readonly (int Length, KlotzType Type)[] SlopeLengths = new[]
+        {
+            (4, KlotzType.Slope45Single2x4),
+            (3, KlotzType.Slope45Single2x3),
+            (2, KlotzType.Slope45Single2x2),
+            (1, KlotzType.Slope45Single2x1),
+        };
+
         private void RenderRoof(WorldChunk chunk, PlotFloorPlan dest)
         {
             int roofBaseY = dest.LocationY + dest.BaseHeight + dest.StoryCount * dest.StoryHeight;
             KlotzColor roofColor = KlotzColor.Red;
+            int rowHeight = PlotFloorPlan.RoofRowHeight;
 
-            for (int dx = 0; dx < dest.RoofLocation.width / 2; dx++)
+            // The topmost row would sit on the ridge itself, where a Slope45Double belongs
+            // (studless, slopes down on both sides) instead of a single-sided Slope45Single.
+            // That klotz doesn't exist yet, so leave the ridge open for now.
+            int renderedRowCount = dest.RoofRowCount - 1;
+
+            int zOffset = 0;
+            while (zOffset < dest.RoofLocation.height)
             {
-                for (int dz = 0; dz < dest.RoofLocation.height; dz++)
-                {
-                    for (int dy = 0; dy < (dx + 1) * PlotFloorPlan.RoofSlope; dy++)
-                    {
-                        chunk.PlaceKlotz(
-                            KlotzType.Plate1x1,
-                            roofColor,
-                            NextRandVariant(),
-                            new RelKlotzCoords(
-                                dest.PlotLocation.x + dest.RoofLocation.x + dx,
-                                dy + roofBaseY,
-                                dest.PlotLocation.y + dest.RoofLocation.y + dz),
-                            KlotzDirection.ToPosX);
+                int remaining = dest.RoofLocation.height - zOffset;
+                (int length, KlotzType type) = PickSlopeLength(remaining);
+                int z = dest.PlotLocation.y + dest.RoofLocation.y + zOffset;
 
-                        chunk.PlaceKlotz(
-                            KlotzType.Plate1x1,
-                            roofColor,
-                            NextRandVariant(),
-                            new RelKlotzCoords(
-                                dest.PlotLocation.x + dest.RoofLocation.x + dest.RoofLocation.width - 1 - dx,
-                                dy + roofBaseY,
-                                dest.PlotLocation.y + dest.RoofLocation.y + dz),
-                            KlotzDirection.ToPosX);
-                    }
+                for (int row = 0; row < renderedRowCount; row++)
+                {
+                    int y = roofBaseY + row * rowHeight;
+
+                    // Each row's plinth (the low outer edge) sits on top of the previous row's
+                    // flat/studded lane - like a real slope brick clutching the studs below it -
+                    // so consecutive rows advance by only 1 cell in X, not the piece's own 2-cell
+                    // footprint. That overlap is what recreates the original 1:3 (X:Y) pitch.
+
+                    // Left half: eave at the edge of RoofLocation, ridge towards the center.
+                    chunk.PlaceKlotz(
+                        type,
+                        roofColor,
+                        NextRandVariant(),
+                        new RelKlotzCoords(
+                            dest.PlotLocation.x + dest.RoofLocation.x + row + 1,
+                            y,
+                            z),
+                        KlotzDirection.ToPosZ);
+
+                    // Right half: mirrored, eave at the opposite edge of RoofLocation.
+                    chunk.PlaceKlotz(
+                        type,
+                        roofColor,
+                        NextRandVariant(),
+                        new RelKlotzCoords(
+                            dest.PlotLocation.x + dest.RoofLocation.x + dest.RoofLocation.width - 2 - row,
+                            y,
+                            z + length - 1),
+                        KlotzDirection.ToNegZ);
                 }
+
+                zOffset += length;
             }
+        }
+
+        private static (int Length, KlotzType Type) PickSlopeLength(int maxLength)
+        {
+            foreach (var candidate in SlopeLengths)
+            {
+                if (candidate.Length <= maxLength)
+                    return candidate;
+            }
+
+            return SlopeLengths[SlopeLengths.Length - 1];
         }
 
         private void RenderGarden(WorldChunk chunk, PlotFloorPlan dest)

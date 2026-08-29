@@ -141,15 +141,21 @@ namespace Clotzbergh.Server.StructureGeneration
 
     public readonly struct PlotFloorPlan
     {
-        public const int RoofSlope = 3;
         public const int DoorHeight = 5 * 3;
         public const int WindowSillHeight = 2 * 3;
         public const int WindowFrameHeight = 3 * 3;
+
+        // The roof is built from rows of Slope45Single klotzes stacked like real slope bricks:
+        // each row's low outer edge rests on the flat/studded lane of the row below, so rows
+        // advance by 1 cell in X but gain a full row's height in Y. RoofRowHeight comes from
+        // KlotzKB.Size(Slope45Single2x1) since every length shares the same cross section.
+        public static readonly int RoofRowHeight = KlotzKB.Size(KlotzType.Slope45Single2x1).Y;
 
         public readonly RectInt PlotLocation { get; }
         public readonly int LocationY { get; }
         public readonly RectInt HouseLocation { get; }
         public readonly RectInt RoofLocation { get; }
+        public readonly int RoofRowCount { get; }
         public readonly int RoofHeight { get; }
         public readonly int BaseHeight { get; }
         public readonly int StoryHeight { get; }
@@ -180,7 +186,9 @@ namespace Clotzbergh.Server.StructureGeneration
 
             BaseHeight = 1;
             StoryHeight = 3 * 6;
-            RoofHeight = (RoofLocation.width / 2) * RoofSlope;
+
+            RoofRowCount = RoofLocation.width / 2;
+            RoofHeight = RoofRowCount * RoofRowHeight;
 
             if (BaseHeight + RoofHeight < maxHeight)
             {
@@ -188,6 +196,7 @@ namespace Clotzbergh.Server.StructureGeneration
             }
             else
             {
+                RoofRowCount = 0;
                 RoofHeight = 0;
                 StoryCount = 0;
             }
