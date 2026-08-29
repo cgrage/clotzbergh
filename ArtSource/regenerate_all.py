@@ -4,7 +4,9 @@ Regenerates the FBX asset for every klotz model .blend file in this directory.
 Convention: each .blend file contains exactly one top-level mesh object, and
 its name matches the .blend file's own base name (e.g. DoorFrame1x4.blend
 contains an object called "DoorFrame1x4"). Each is exported to
-Assets/Models/<name>.fbx.
+Assets/Models/Resources/NonPrimitiveKlotz/<name>.fbx, so GameClient can find
+it at runtime via Resources.LoadAll() without any manual wiring - it just
+resolves the KlotzType from the object's own name.
 
 Usage (from anywhere):
     blender --background --factory-startup --python ArtSource/regenerate_all.py
@@ -19,7 +21,8 @@ import os
 
 art_source_dir = os.path.dirname(os.path.abspath(__file__))
 repo_root = os.path.dirname(art_source_dir)
-models_dir = os.path.join(repo_root, "Assets", "Models")
+models_dir = os.path.join(repo_root, "Assets", "Models", "Resources", "NonPrimitiveKlotz")
+os.makedirs(models_dir, exist_ok=True)
 
 blend_paths = sorted(glob.glob(os.path.join(art_source_dir, "*.blend")))
 

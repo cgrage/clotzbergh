@@ -72,7 +72,7 @@ crashlytics-build.properties
 # Klotz models are regenerated from ArtSource/*.blend via ArtSource/regenerate_all.py
 # (Blender's FBX export isn't byte-stable - it embeds a timestamp on every export).
 # The matching .meta files ARE tracked, so GUIDs/import settings stay stable.
-/Assets/Models/*.fbx
+/Assets/Models/Resources/NonPrimitiveKlotz/*.fbx
 
 # Blender's own numbered backups ("Save Versions" preference), created next to
 # ArtSource/*.blend on every save.

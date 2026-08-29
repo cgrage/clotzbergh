@@ -32,7 +32,7 @@ namespace Clotzbergh
         Brick4x6,
         // CornerBrick1x2x2,
 
-        SpecialNonPrimitive = 1000, // special
+        SpecialNonPrimitive, // special
 
         // ---------------------------------------------------------------------
         // Non-primitive types:

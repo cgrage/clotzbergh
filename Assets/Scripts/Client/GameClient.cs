@@ -22,20 +22,6 @@ namespace Clotzbergh.Client
         public long ReceivedChunks { get; set; }
     }
 
-    [Serializable]
-    public struct NonPrimitiveKlotzMeshEntry
-    {
-        public KlotzType Type;
-
-        /// <summary>
-        /// The imported FBX model's root object - drag the .fbx asset itself here, not just its
-        /// Mesh sub-asset. Its MeshRenderer.sharedMaterials[i] is what lets
-        /// <see cref="MeshGeneration.NonPrimitiveKlotzMesh"/> resolve each submesh's
-        /// <see cref="KlotzSurfaceFeature"/> by material name.
-        /// </summary>
-        public GameObject Prefab;
-    }
-
     public class GameClient : MonoBehaviour, IClientSideOps
     {
         public string Hostname = "localhost";
@@ -45,7 +31,15 @@ namespace Clotzbergh.Client
         public Material Material;
         public PlayerSelection Selection;
         public GameObject DebugUI;
-        public NonPrimitiveKlotzMeshEntry[] NonPrimitiveKlotzMeshes;
+
+        /// <summary>
+        /// Every non-primitive klotz's FBX model lives under this Resources folder (see
+        /// ArtSource/regenerate_all.py), named exactly like its KlotzType (e.g. "DoorFrame1x4").
+        /// Loading them this way means adding a new one is just dropping a new .blend file next
+        /// to the others - no manual wiring in the scene, and KlotzType's numeric values are free
+        /// to shift around without breaking anything.
+        /// </summary>
+        private const string NonPrimitiveKlotzResourcesPath = "NonPrimitiveKlotz";
 
         private Thread _connectionThread;
 
@@ -80,24 +74,23 @@ namespace Clotzbergh.Client
             _chunkStore.KlotzMat = Material;
             _chunkStore.Selection = Selection;
 
-            if (NonPrimitiveKlotzMeshes != null)
+            foreach (GameObject prefab in Resources.LoadAll<GameObject>(NonPrimitiveKlotzResourcesPath))
             {
-                foreach (var entry in NonPrimitiveKlotzMeshes)
+                if (!Enum.TryParse(prefab.name, ignoreCase: false, out KlotzType type))
                 {
-                    if (entry.Prefab == null)
-                        continue;
-
-                    MeshFilter filter = entry.Prefab.GetComponentInChildren<MeshFilter>();
-                    MeshRenderer renderer = entry.Prefab.GetComponentInChildren<MeshRenderer>();
-                    if (filter == null || renderer == null)
-                    {
-                        Debug.LogError($"NonPrimitiveKlotzMeshes entry for {entry.Type}: " +
-                            $"'{entry.Prefab.name}' has no MeshFilter/MeshRenderer.");
-                        continue;
-                    }
-
-                    MeshGenerator.RegisterNonPrimitiveMesh(entry.Type, filter.sharedMesh, renderer.sharedMaterials);
+                    Debug.LogError($"Non-primitive klotz model '{prefab.name}' does not match any KlotzType by name.");
+                    continue;
                 }
+
+                MeshFilter filter = prefab.GetComponentInChildren<MeshFilter>();
+                MeshRenderer renderer = prefab.GetComponentInChildren<MeshRenderer>();
+                if (filter == null || renderer == null)
+                {
+                    Debug.LogError($"Non-primitive klotz model '{prefab.name}' has no MeshFilter/MeshRenderer.");
+                    continue;
+                }
+
+                MeshGenerator.RegisterNonPrimitiveMesh(type, filter.sharedMesh, renderer.sharedMaterials);
             }
 
             _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };

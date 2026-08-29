@@ -2,7 +2,7 @@
 
 Dieser Ordner enthält die Blender-Quelldateien für nicht-primitive Klotz-Typen
 (z. B. `DoorFrame1x4`, `WindowFrame1x4`) sowie das Skript, das sie nach
-`Assets/Models/*.fbx` exportiert.
+`Assets/Models/Resources/NonPrimitiveKlotz/*.fbx` exportiert.
 
 ## Ein neues Modell anlegen
 
@@ -46,20 +46,19 @@ Materialien in Blender angelegt wurden.
 ```
 
 Oder `ArtSource\regenerate_all.bat` doppelklicken. Exportiert automatisch
-**alle** `*.blend`-Dateien in diesem Ordner nach `Assets/Models/`.
+**alle** `*.blend`-Dateien in diesem Ordner nach
+`Assets/Models/Resources/NonPrimitiveKlotz/`.
 
 ## In Unity einbinden
 
 1. Editor-Fenster fokussieren, damit die neue `.fbx` importiert wird.
 2. In den Import-Settings der `.fbx` **Read/Write Enabled** aktivieren
    (Model-Tab; steht in der `.meta`, ist standardmäßig aus).
-3. Am `GameClient`-GameObject unter `Non Primitive Klotz Meshes` einen
-   Eintrag anlegen: `Type` = der `KlotzType`, `Prefab` = **die `.fbx`-Datei
-   selbst** (nicht das aufgeklappte Mesh-Untersymbol — der Code liest sich
-   `MeshFilter`/`MeshRenderer` davon selbst).
 
-Solange der Objektname in Blender unverändert bleibt, bleibt auch diese
-Zuordnung über spätere Re-Exports hinweg stabil.
+Das war's — kein manueller Eintrag irgendwo nötig. `GameClient` lädt beim
+Start automatisch alle Modelle aus diesem Resources-Ordner und ordnet sie
+über ihren Objektnamen dem passenden `KlotzType` zu (`Enum.TryParse`). Der
+Objektname in Blender muss also exakt wie der `KlotzType` heißen.
 
 ## Bekannte Einschränkungen
 
