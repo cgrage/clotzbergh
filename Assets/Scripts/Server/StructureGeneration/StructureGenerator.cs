@@ -272,21 +272,28 @@ namespace Clotzbergh.Server.StructureGeneration
             // That klotz doesn't exist yet, so leave the ridge open for now.
             int renderedRowCount = dest.RoofRowCount - 1;
 
-            int zOffset = 0;
-            while (zOffset < dest.RoofLocation.height)
+            for (int row = 0; row < renderedRowCount; row++)
             {
-                int remaining = dest.RoofLocation.height - zOffset;
-                (int length, KlotzType type) = PickSlopeLength(remaining);
-                int z = dest.PlotLocation.y + dest.RoofLocation.y + zOffset;
+                int y = roofBaseY + row * rowHeight;
 
-                for (int row = 0; row < renderedRowCount; row++)
+                // Each row's plinth (the low outer edge) sits on top of the previous row's
+                // flat/studded lane - like a real slope brick clutching the studs below it -
+                // so consecutive rows advance by only 1 cell in X, not the piece's own 2-cell
+                // footprint. That overlap is what recreates the original 1:3 (X:Y) pitch.
+
+                // Every other row starts with a short 2x2 instead of jumping straight to the
+                // longest piece that fits, so the seams along the ridge don't all line up
+                // between rows the way they would if every row tiled identically.
+                bool staggered = row % 2 == 1;
+
+                int zOffset = 0;
+                while (zOffset < dest.RoofLocation.height)
                 {
-                    int y = roofBaseY + row * rowHeight;
-
-                    // Each row's plinth (the low outer edge) sits on top of the previous row's
-                    // flat/studded lane - like a real slope brick clutching the studs below it -
-                    // so consecutive rows advance by only 1 cell in X, not the piece's own 2-cell
-                    // footprint. That overlap is what recreates the original 1:3 (X:Y) pitch.
+                    int remaining = dest.RoofLocation.height - zOffset;
+                    (int length, KlotzType type) = (staggered && zOffset == 0)
+                        ? PickSlopeLength(Mathf.Min(2, remaining))
+                        : PickSlopeLength(remaining);
+                    int z = dest.PlotLocation.y + dest.RoofLocation.y + zOffset;
 
                     // Left half: eave at the edge of RoofLocation, ridge towards the center.
                     chunk.PlaceKlotz(
@@ -309,9 +316,9 @@ namespace Clotzbergh.Server.StructureGeneration
                             y,
                             z + length - 1),
                         KlotzDirection.ToNegZ);
-                }
 
-                zOffset += length;
+                    zOffset += length;
+                }
             }
         }
 
