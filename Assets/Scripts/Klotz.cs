@@ -22,8 +22,8 @@ namespace Clotzbergh
         // CornerPlate1x2x2, CornerPlate2x4x4,
 
         // Tiles: 1 unit high, no studs on top (flat), with holes on the bottom
-        // Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
-        // Tile2x2, Tile2x3, Tile2x4,
+        Tile1x1, Tile1x2, Tile1x3, Tile1x4, Tile1x6, Tile1x8,
+        Tile2x2, Tile2x3, Tile2x4,
         // CornerTile1x2x2,
 
         // Bricks: 3 units high, studs on top, holes on the bottom
@@ -156,6 +156,15 @@ namespace Clotzbergh
                 KlotzType.Plate6x6 => new(6, 1, 6),
                 KlotzType.Plate6x8 => new(8, 1, 6),
                 KlotzType.Plate8x8 => new(8, 1, 8),
+                KlotzType.Tile1x1 => new(1, 1, 1),
+                KlotzType.Tile1x2 => new(2, 1, 1),
+                KlotzType.Tile1x3 => new(3, 1, 1),
+                KlotzType.Tile1x4 => new(4, 1, 1),
+                KlotzType.Tile1x6 => new(6, 1, 1),
+                KlotzType.Tile1x8 => new(8, 1, 1),
+                KlotzType.Tile2x2 => new(2, 1, 2),
+                KlotzType.Tile2x3 => new(3, 1, 2),
+                KlotzType.Tile2x4 => new(4, 1, 2),
                 KlotzType.Brick1x1 => new(1, 3, 1),
                 KlotzType.Brick1x2 => new(2, 3, 1),
                 KlotzType.Brick1x3 => new(3, 3, 1),
@@ -205,7 +214,13 @@ namespace Clotzbergh
 
         public static bool PrimitiveHasTopStuds(KlotzType t)
         {
-            return true;
+            return t switch
+            {
+                KlotzType.Tile1x1 or KlotzType.Tile1x2 or KlotzType.Tile1x3 or KlotzType.Tile1x4 or
+                KlotzType.Tile1x6 or KlotzType.Tile1x8 or
+                KlotzType.Tile2x2 or KlotzType.Tile2x3 or KlotzType.Tile2x4 => false,
+                _ => true,
+            };
         }
 
         public static bool PrimitiveHasBottomHoles(KlotzType t)

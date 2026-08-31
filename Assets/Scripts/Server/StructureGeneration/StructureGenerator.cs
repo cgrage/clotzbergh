@@ -78,6 +78,8 @@ namespace Clotzbergh.Server.StructureGeneration
                     RenderStory(chunk, dest, storyIndex, stairsPositions[storyIndex]);
                     RenderCeiling(chunk, dest, storyIndex, stairsPositions[storyIndex]);
                 }
+                Vector2Int? topStairsPosition = stairsPositions.Length > 0 ? stairsPositions[stairsPositions.Length - 1] : null;
+                RenderAtticFloor(chunk, dest, topStairsPosition);
                 RenderRoof(chunk, dest);
                 RenderGableWalls(chunk, dest);
                 RenderGarden(chunk, dest);
@@ -139,6 +141,7 @@ namespace Clotzbergh.Server.StructureGeneration
             StoryFloorPlan floorPlan = StoryFloorPlanGenerator.Generate(dest.HouseLocation.width, dest.HouseLocation.height);
 
             RenderWalls(chunk, dest, floorPlan, storyBaseY, wallColor);
+            RenderFloor(chunk, dest, floorPlan, storyBaseY);
 
             foreach (var door in floorPlan.Doors)
             {
@@ -219,14 +222,7 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             int ceilingY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight + PlotFloorPlan.WallHeight;
             KlotzColor color = KlotzColor.DarkGray;
-
-            RectInt? cutout = null;
-            if (stairsPosition.HasValue)
-            {
-                Vector2Int stairsPos = stairsPosition.Value;
-                KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
-                cutout = new RectInt(stairsPos.x, stairsPos.y - 2, stairsSize.X, stairsSize.Z + 1);
-            }
+            RectInt? cutout = GetStairsCutout(stairsPosition);
 
             for (int dx = 0; dx < dest.HouseLocation.width; dx++)
             {
@@ -247,6 +243,146 @@ namespace Clotzbergh.Server.StructureGeneration
                                 dest.PlotLocation.y + dest.HouseLocation.y + dz),
                             KlotzDirection.ToPosX);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The opening a story's stairs need in the ceiling/floor above them - see
+        /// <see cref="RenderCeiling"/> and <see cref="RenderAtticFloor"/>.
+        /// </summary>
+        private static RectInt? GetStairsCutout(Vector2Int? stairsPosition)
+        {
+            if (!stairsPosition.HasValue)
+                return null;
+
+            Vector2Int stairsPos = stairsPosition.Value;
+            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+            return new RectInt(stairsPos.x, stairsPos.y - 2, stairsSize.X, stairsSize.Z + 1);
+        }
+
+        /// <summary>
+        /// The attic floor, under the roof and above the top story's ceiling, with an opening over
+        /// the top story's stairs coming up into it. Plain brown Tile1x1 for now instead of the
+        /// herringbone the other stories get (see <see cref="RenderFloor"/>) - can revisit later.
+        /// </summary>
+        private void RenderAtticFloor(WorldChunk chunk, PlotFloorPlan dest, Vector2Int? stairsPosition)
+        {
+            if (dest.StoryCount == 0)
+                return;
+
+            int atticFloorY = dest.LocationY + dest.BaseHeight + dest.StoryCount * dest.StoryHeight;
+            RectInt? cutout = GetStairsCutout(stairsPosition);
+
+            for (int x = 0; x < dest.HouseLocation.width; x++)
+            {
+                for (int z = 0; z < dest.HouseLocation.height; z++)
+                {
+                    if (cutout.HasValue && cutout.Value.Contains(new Vector2Int(dest.HouseLocation.x + x, dest.HouseLocation.y + z)))
+                        continue;
+
+                    chunk.PlaceKlotz(
+                        KlotzType.Plate1x1,
+                        KlotzColor.Brown,
+                        NextRandVariant(),
+                        new RelKlotzCoords(
+                            dest.PlotLocation.x + dest.HouseLocation.x + x,
+                            atticFloorY,
+                            dest.PlotLocation.y + dest.HouseLocation.y + z),
+                        KlotzDirection.ToPosX);
+                }
+            }
+        }
+
+        // Lattice for a gap-free straight herringbone of 2x4 tiles (2:1 ratio): translating a
+        // horizontal tile by i*HerringboneA + j*HerringboneB for all integers i,j, plus a matching
+        // vertical tile offset by HerringboneVOffset from each one, tiles the plane exactly with
+        // no gaps or overlaps - found by brute-force search over small integer lattices, since the
+        // closed-form for a 2:1 herringbone isn't a simple square/checkerboard grid.
+        private static readonly Vector2Int HerringboneA = new(-4, 4);
+        private static readonly Vector2Int HerringboneB = new(-2, -2);
+        private static readonly Vector2Int HerringboneVOffset = new(-2, 0);
+
+        /// <summary>
+        /// Covers the open floor (not walls/doors/windows) of a story in white Tile2x4s laid in a
+        /// herringbone pattern. The herringbone lattice doesn't generally line up with a room's
+        /// walls, so any interior cells the pattern misses near the edges get a plain white
+        /// Tile1x1 instead - the same way real herringbone floors have cut tiles at the border.
+        /// </summary>
+        private void RenderFloor(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, int storyBaseY)
+        {
+            int width = dest.HouseLocation.width;
+            int height = dest.HouseLocation.height;
+            bool[,] covered = new bool[width, height];
+
+            bool IsInteriorRect(int x0, int z0, int w, int h)
+            {
+                if (x0 < 0 || z0 < 0 || x0 + w > width || z0 + h > height)
+                    return false;
+
+                for (int dz = 0; dz < h; dz++)
+                    for (int dx = 0; dx < w; dx++)
+                        if (floorPlan.Plan[x0 + dx][z0 + dz] != StoryFloorPlanCell.Interior)
+                            return false;
+
+                return true;
+            }
+
+            void TryPlaceTile(int x0, int z0, bool horizontal)
+            {
+                int w = horizontal ? 4 : 2;
+                int h = horizontal ? 2 : 4;
+                if (!IsInteriorRect(x0, z0, w, h))
+                    return;
+
+                // A rotated (ToPosZ) klotz's root is its max-X corner, not its min-X corner - see
+                // RotatePositionForDirection's doc comment in VoxelMeshBuilder.cs.
+                int rootX = horizontal ? x0 : x0 + (w - 1);
+                KlotzDirection dir = horizontal ? KlotzDirection.ToPosX : KlotzDirection.ToPosZ;
+
+                chunk.PlaceKlotz(
+                    KlotzType.Tile2x4,
+                    KlotzColor.White,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + dest.HouseLocation.x + rootX,
+                        storyBaseY,
+                        dest.PlotLocation.y + dest.HouseLocation.y + z0),
+                    dir);
+
+                for (int dz = 0; dz < h; dz++)
+                    for (int dx = 0; dx < w; dx++)
+                        covered[x0 + dx, z0 + dz] = true;
+            }
+
+            int extent = (width + height) / 2 + 4;
+            for (int i = -extent; i <= extent; i++)
+            {
+                for (int j = -extent; j <= extent; j++)
+                {
+                    int hx = i * HerringboneA.x + j * HerringboneB.x;
+                    int hz = i * HerringboneA.y + j * HerringboneB.y;
+                    TryPlaceTile(hx, hz, true);
+                    TryPlaceTile(hx + HerringboneVOffset.x, hz + HerringboneVOffset.y, false);
+                }
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                for (int z = 0; z < height; z++)
+                {
+                    if (covered[x, z] || floorPlan.Plan[x][z] != StoryFloorPlanCell.Interior)
+                        continue;
+
+                    chunk.PlaceKlotz(
+                        KlotzType.Tile1x1,
+                        KlotzColor.White,
+                        NextRandVariant(),
+                        new RelKlotzCoords(
+                            dest.PlotLocation.x + dest.HouseLocation.x + x,
+                            storyBaseY,
+                            dest.PlotLocation.y + dest.HouseLocation.y + z),
+                        KlotzDirection.ToPosX);
                 }
             }
         }
