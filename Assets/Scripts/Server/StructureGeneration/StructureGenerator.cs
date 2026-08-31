@@ -73,6 +73,7 @@ namespace Clotzbergh.Server.StructureGeneration
                     RenderStory(chunk, dest, storyIndex);
                 }
                 RenderRoof(chunk, dest);
+                RenderGableWalls(chunk, dest);
                 RenderGarden(chunk, dest);
             }
         }
@@ -102,7 +103,7 @@ namespace Clotzbergh.Server.StructureGeneration
         private void RenderStory(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
         {
             int storyBaseY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight;
-            KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Yellow;
+            KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Gray;
             StoryFloorPlan floorPlan = StoryFloorPlanGenerator.Generate(dest.HouseLocation.width, dest.HouseLocation.height);
 
             RenderWalls(chunk, dest, floorPlan, storyBaseY, wallColor);
@@ -133,6 +134,23 @@ namespace Clotzbergh.Server.StructureGeneration
                     window.Direction);
             }
 
+            // TEMPORARY: drop a Stairs4x7 in the middle of the ground floor to check it
+            // out in-game - remove once it's been eyeballed.
+            if (storyIndex == 0)
+            {
+                KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+                int stairsX = dest.HouseLocation.x + (dest.HouseLocation.width - stairsSize.X) / 2;
+                int stairsZ = dest.HouseLocation.y + (dest.HouseLocation.height - stairsSize.Z) / 2;
+                chunk.PlaceKlotz(
+                    KlotzType.Stairs4x7,
+                    KlotzColor.Gray,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + stairsX,
+                        storyBaseY,
+                        dest.PlotLocation.y + stairsZ),
+                    KlotzDirection.ToPosX);
+            }
         }
 
         // Available brick lengths used to tile a wall run, longest first.
@@ -319,6 +337,67 @@ namespace Clotzbergh.Server.StructureGeneration
 
                     zOffset += length;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Closes the two gable ends (the open triangular faces at each end of the roof ridge)
+        /// with brick courses. Each roof row's own end caps already seal its own 2-cell
+        /// footprint (see the Slope45Single model), but at that row's height, everything from
+        /// there to the ridge is still hollow attic - the rows that will eventually close it are
+        /// higher up, further towards the ridge, not built yet at this height. So the notch to
+        /// fill runs from just past the row's own footprint to the ridge, shrinking from the eave
+        /// side as rows go up - wide near the wall-top, tapering to nothing near the ridge, like
+        /// a real gable. Unlike the perimeter walls, no explicit joint-staggering trick is needed
+        /// here: every course already has a different length than the one below it.
+        /// </summary>
+        private void RenderGableWalls(WorldChunk chunk, PlotFloorPlan dest)
+        {
+            int roofBaseY = dest.LocationY + dest.BaseHeight + dest.StoryCount * dest.StoryHeight;
+            int rowHeight = PlotFloorPlan.RoofRowHeight;
+            int renderedRowCount = dest.RoofRowCount - 1;
+            int halfWidth = dest.RoofRowCount;
+            KlotzColor wallColor = (dest.StoryCount % 2 == 0) ? KlotzColor.White : KlotzColor.Gray;
+
+            // In Z, sit flush with the house walls (HouseLocation), not the roof's own footprint
+            // (RoofLocation) - the roof overhangs the walls by design, but the gable wall itself
+            // shouldn't stick out into that overhang.
+            int xBase = dest.PlotLocation.x + dest.RoofLocation.x;
+            int zNear = dest.PlotLocation.y + dest.HouseLocation.y;
+            int zFar = dest.PlotLocation.y + dest.HouseLocation.y + dest.HouseLocation.height - 1;
+
+            for (int row = 0; row < renderedRowCount; row++)
+            {
+                int length = halfWidth - row - 2;
+                if (length <= 0)
+                    continue;
+
+                int y = roofBaseY + row * rowHeight;
+                int leftStart = xBase + row + 2;
+                int rightStart = xBase + halfWidth;
+
+                RenderGableBrickSegment(chunk, leftStart, zNear, y, length, wallColor);
+                RenderGableBrickSegment(chunk, leftStart, zFar, y, length, wallColor);
+                RenderGableBrickSegment(chunk, rightStart, zNear, y, length, wallColor);
+                RenderGableBrickSegment(chunk, rightStart, zFar, y, length, wallColor);
+            }
+        }
+
+        private void RenderGableBrickSegment(WorldChunk chunk, int xStart, int z, int y, int length, KlotzColor wallColor)
+        {
+            int pos = 0;
+            while (pos < length)
+            {
+                (int brickLength, KlotzType type) = PickBrickLength(length - pos);
+
+                chunk.PlaceKlotz(
+                    type,
+                    wallColor,
+                    NextRandVariant(),
+                    new RelKlotzCoords(xStart + pos, y, z),
+                    KlotzDirection.ToPosX);
+
+                pos += brickLength;
             }
         }
 

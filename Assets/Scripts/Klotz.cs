@@ -45,6 +45,8 @@ namespace Clotzbergh
         Slope45Single2x1, Slope45Single2x2, Slope45Single2x3, Slope45Single2x4, Slope45Single2x6, Slope45Single2x8,
         // Double Slopes (45 degrees): 3 units high, no studs on top, holes on the bottom
         Slope45Double2x2, Slope45Double2x3, Slope45Double2x4,
+        // Stairs: 4 studs wide, 18 units high, 6 steps (7 units deep)
+        Stairs4x7,
 
         // ---------------------------------------------------------------------
         SpecialCount // special
@@ -168,6 +170,7 @@ namespace Clotzbergh
                 KlotzType.Slope45Single2x4 => new(4, 3, 2),
                 KlotzType.Slope45Single2x6 => new(6, 3, 2),
                 KlotzType.Slope45Single2x8 => new(8, 3, 2),
+                KlotzType.Stairs4x7 => new(4, 18, 7),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
