@@ -144,7 +144,7 @@ Shader "PlasteShader"
                 v2g o;
                 o.pos = v.vertex;
                 o.normal = v.normal;
-                o.color = baseColor * (1.0 - variation * 0.2); // Vary color by up to 20%
+                o.color = baseColor * (1.0 - variation * 0.1); // Vary color by up to 10%
                 o.surface = surface;
                 return o;
             }
