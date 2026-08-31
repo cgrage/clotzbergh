@@ -173,6 +173,13 @@ namespace Clotzbergh.Server.StructureGeneration
         public const int WindowSillHeight = 2 * 3;
         public const int WindowFrameHeight = 3 * 3;
 
+        // Walls take up the bottom of each story - 6 brick courses plus one closing course of
+        // plates on top (see StructureGenerator.RenderWalls) - and the ceiling (2 plates thick)
+        // sits directly above that, still within that same story's height budget, not stolen from
+        // the story (or roof) above.
+        public const int WallHeight = 3 * 6 + 1;
+        public const int CeilingHeight = 2;
+
         // The roof is built from rows of Slope45Single klotzes stacked like real slope bricks:
         // each row's low outer edge rests on the flat/studded lane of the row below, so rows
         // advance by 1 cell in X but gain a full row's height in Y. RoofRowHeight comes from
@@ -213,7 +220,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 RoofLocation.height - 2 * HouseInset);
 
             BaseHeight = 1;
-            StoryHeight = 3 * 6;
+            StoryHeight = WallHeight + CeilingHeight;
 
             RoofRowCount = RoofLocation.width / 2;
             RoofHeight = RoofRowCount * RoofRowHeight;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Clotzbergh.Server.ChunkGeneration;
 using UnityEngine;
@@ -25,7 +26,9 @@ namespace Clotzbergh.Server.StructureGeneration
         {
             for (int i = 0; i < 1; i++)
             {
-                Vector3Int dimensions = new(24, 60, 24);
+                // X/Z capped just under WorldDef.ChunkSubDivsX/Z (32) - NextRandRelCoordsXZ
+                // places structures within a single chunk, so this is as big as they can get.
+                Vector3Int dimensions = new(30, 60, 30);
 
                 Vector2Int sizeXZ = new(dimensions.x, dimensions.z);
                 Vector2Int posXZ = NextRandRelCoordsXZ(sizeXZ);
@@ -71,6 +74,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 for (int storyIndex = 0; storyIndex < dest.StoryCount; storyIndex++)
                 {
                     RenderStory(chunk, dest, storyIndex);
+                    RenderCeiling(chunk, dest, storyIndex);
                 }
                 RenderRoof(chunk, dest);
                 RenderGableWalls(chunk, dest);
@@ -138,18 +142,91 @@ namespace Clotzbergh.Server.StructureGeneration
             // out in-game - remove once it's been eyeballed.
             if (storyIndex == 0)
             {
+                Vector2Int stairsPos = GetStairsPosition(dest);
                 KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
-                int stairsX = dest.HouseLocation.x + (dest.HouseLocation.width - stairsSize.X) / 2;
-                int stairsZ = dest.HouseLocation.y + (dest.HouseLocation.height - stairsSize.Z) / 2;
                 chunk.PlaceKlotz(
                     KlotzType.Stairs4x7,
                     KlotzColor.Gray,
                     NextRandVariant(),
                     new RelKlotzCoords(
-                        dest.PlotLocation.x + stairsX,
+                        dest.PlotLocation.x + stairsPos.x,
                         storyBaseY,
-                        dest.PlotLocation.y + stairsZ),
+                        dest.PlotLocation.y + stairsPos.y),
                     KlotzDirection.ToPosX);
+
+                // 2 stacked 1x2 plates on the nose, closing the gap up to the ceiling above.
+                // The nose itself sits 1 unit below the top of the last real step (see
+                // ArtSource/build_stairs.py), and the wall's orange plate cap adds another unit that the
+                // stairs' own height doesn't reach (see PlotFloorPlan.WallHeight).
+                int noseX = stairsPos.x + 1;
+                int noseZ = stairsPos.y + stairsSize.Z - 1;
+                int noseTopY = storyBaseY + stairsSize.Y - 1;
+                for (int dy = 0; dy < 2; dy++)
+                {
+                    chunk.PlaceKlotz(
+                        KlotzType.Plate1x2,
+                        KlotzColor.Gray,
+                        NextRandVariant(),
+                        new RelKlotzCoords(
+                            dest.PlotLocation.x + noseX,
+                            noseTopY + dy,
+                            dest.PlotLocation.y + noseZ),
+                        KlotzDirection.ToPosX);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The (X, Z) root position of the one Stairs4x7 every house currently gets - centered in
+        /// X, but pushed back towards 3/4 depth in Z instead of centered, to put some distance
+        /// between it and the door (which sits on the z=0 wall). Shared between placing it (see
+        /// <see cref="RenderStory"/>) and cutting its opening into every ceiling above it (see
+        /// <see cref="RenderCeiling"/>).
+        /// </summary>
+        private static Vector2Int GetStairsPosition(PlotFloorPlan dest)
+        {
+            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+            int stairsX = dest.HouseLocation.x + (dest.HouseLocation.width - stairsSize.X) / 2;
+            int stairsZ = dest.HouseLocation.y + (dest.HouseLocation.height - stairsSize.Z) * 3 / 4;
+            return new Vector2Int(stairsX, stairsZ);
+        }
+
+        /// <summary>
+        /// The 2-plate-thick ceiling above a story, with an opening over the stairs (see
+        /// <see cref="GetStairsPosition"/>) so there's room to climb through. Shifted 2 cells
+        /// towards the entrance (covering the first 6 steps plus 2 cells of standing room before
+        /// them) and deliberately stops short of the nose (the stairs' last cell) - no opening
+        /// needed there.
+        /// </summary>
+        private void RenderCeiling(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
+        {
+            int ceilingY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight + PlotFloorPlan.WallHeight;
+            KlotzColor color = KlotzColor.Black;
+
+            Vector2Int stairsPos = GetStairsPosition(dest);
+            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+            RectInt cutout = new(stairsPos.x, stairsPos.y - 2, stairsSize.X, stairsSize.Z + 1);
+
+            for (int dx = 0; dx < dest.HouseLocation.width; dx++)
+            {
+                for (int dz = 0; dz < dest.HouseLocation.height; dz++)
+                {
+                    if (cutout.Contains(new Vector2Int(dest.HouseLocation.x + dx, dest.HouseLocation.y + dz)))
+                        continue;
+
+                    for (int dy = 0; dy < PlotFloorPlan.CeilingHeight; dy++)
+                    {
+                        chunk.PlaceKlotz(
+                            KlotzType.Plate1x1,
+                            color,
+                            NextRandVariant(),
+                            new RelKlotzCoords(
+                                dest.PlotLocation.x + dest.HouseLocation.x + dx,
+                                ceilingY + dy,
+                                dest.PlotLocation.y + dest.HouseLocation.y + dz),
+                            KlotzDirection.ToPosX);
+                    }
+                }
             }
         }
 
@@ -173,40 +250,71 @@ namespace Clotzbergh.Server.StructureGeneration
             return BrickLengths[BrickLengths.Length - 1];
         }
 
+        // Available plate lengths for the finishing row that caps every wall, longest first.
+        private static readonly (int Length, KlotzType Type)[] PlateLengths = new[]
+        {
+            (4, KlotzType.Plate1x4),
+            (3, KlotzType.Plate1x3),
+            (2, KlotzType.Plate1x2),
+            (1, KlotzType.Plate1x1),
+        };
+
+        private static (int Length, KlotzType Type) PickPlateLength(int maxLength)
+        {
+            foreach (var candidate in PlateLengths)
+            {
+                if (candidate.Length <= maxLength)
+                    return candidate;
+            }
+
+            return PlateLengths[PlateLengths.Length - 1];
+        }
+
         /// <summary>
-        /// Brick-tiles the 4 perimeter wall runs, one course (one brick's height) at a time.
-        /// Real masonry corners alternate which wall's bricks wrap the corner between courses,
-        /// so it never sits on the exact same joint twice - here that's approximated by
-        /// alternating which axis (X-running or Z-running walls) "owns" the corner cells each
-        /// course; the other axis's runs are inset by 1 cell at each end that course.
+        /// Brick-tiles the 4 perimeter wall runs, one course (one brick's height) at a time, then
+        /// caps them with one more course of plates in orange. Real masonry corners alternate
+        /// which wall's pieces wrap the corner between courses, so it never sits on the exact same
+        /// joint twice - here that's approximated by alternating which axis (X-running or
+        /// Z-running walls) "owns" the corner cells each course (including the plate cap, which
+        /// continues the same alternation); the other axis's runs are inset by 1 cell that course.
         /// </summary>
         private void RenderWalls(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, int storyBaseY, KlotzColor wallColor)
         {
             int courseHeight = KlotzKB.Size(KlotzType.Brick1x1).Y;
-            int courseCount = dest.StoryHeight / courseHeight;
+            int brickCourseCount = PlotFloorPlan.WallHeight / courseHeight;
 
-            for (int course = 0; course < courseCount; course++)
+            for (int course = 0; course < brickCourseCount; course++)
             {
                 int localY = course * courseHeight; // story-relative, for the door/window thresholds
                 int worldY = storyBaseY + localY;
-                bool xRunsOwnCorners = course % 2 == 0;
 
-                foreach (WallRun run in floorPlan.WallRuns)
-                {
-                    bool isXRun = run.Direction == KlotzDirection.ToPosX || run.Direction == KlotzDirection.ToNegX;
-                    bool ownsCorners = isXRun == xRunsOwnCorners;
-                    int inset = ownsCorners ? 0 : 1;
+                RenderWallCourseRing(chunk, dest, floorPlan, localY, worldY, course, wallColor, PickBrickLength);
+            }
 
-                    RenderWallCourse(chunk, dest, floorPlan, run, localY, worldY, inset, run.Length - inset, wallColor);
-                }
+            // The plate cap: one more course, one unit tall, right above the last brick course.
+            int capLocalY = brickCourseCount * courseHeight;
+            RenderWallCourseRing(chunk, dest, floorPlan, capLocalY, storyBaseY + capLocalY, brickCourseCount, KlotzColor.Orange, PickPlateLength);
+        }
+
+        private void RenderWallCourseRing(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, int localY, int worldY, int course, KlotzColor color, Func<int, (int Length, KlotzType Type)> pickLength)
+        {
+            bool xRunsOwnCorners = course % 2 == 0;
+
+            foreach (WallRun run in floorPlan.WallRuns)
+            {
+                bool isXRun = run.Direction == KlotzDirection.ToPosX || run.Direction == KlotzDirection.ToNegX;
+                bool ownsCorners = isXRun == xRunsOwnCorners;
+                int inset = ownsCorners ? 0 : 1;
+
+                RenderWallCourse(chunk, dest, floorPlan, run, localY, worldY, inset, run.Length - inset, color, pickLength);
             }
         }
 
         /// <summary>
         /// Tiles one course of one wall run between [rangeStart, rangeEnd), splitting into
-        /// separate brick runs around any door/window opening that's open at this course's height.
+        /// separate runs around any door/window opening that's open at this course's height.
         /// </summary>
-        private void RenderWallCourse(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, WallRun run, int localY, int worldY, int rangeStart, int rangeEnd, KlotzColor wallColor)
+        private void RenderWallCourse(WorldChunk chunk, PlotFloorPlan dest, StoryFloorPlan floorPlan, WallRun run, int localY, int worldY, int rangeStart, int rangeEnd, KlotzColor color, Func<int, (int Length, KlotzType Type)> pickLength)
         {
             int segmentStart = -1;
 
@@ -220,7 +328,7 @@ namespace Clotzbergh.Server.StructureGeneration
                 }
                 else if (!solid && segmentStart >= 0)
                 {
-                    RenderBrickRun(chunk, dest, run, worldY, segmentStart, pos - segmentStart, wallColor);
+                    RenderWallPieceRun(chunk, dest, run, worldY, segmentStart, pos - segmentStart, color, pickLength);
                     segmentStart = -1;
                 }
             }
@@ -234,17 +342,17 @@ namespace Clotzbergh.Server.StructureGeneration
                 || (type == StoryFloorPlanCell.Window && (localY < PlotFloorPlan.WindowSillHeight || localY >= PlotFloorPlan.WindowSillHeight + PlotFloorPlan.WindowFrameHeight));
         }
 
-        private void RenderBrickRun(WorldChunk chunk, PlotFloorPlan dest, WallRun run, int y, int start, int length, KlotzColor wallColor)
+        private void RenderWallPieceRun(WorldChunk chunk, PlotFloorPlan dest, WallRun run, int y, int start, int length, KlotzColor color, Func<int, (int Length, KlotzType Type)> pickLength)
         {
             int pos = start;
             while (pos < start + length)
             {
-                (int brickLength, KlotzType type) = PickBrickLength(start + length - pos);
+                (int pieceLength, KlotzType type) = pickLength(start + length - pos);
                 Vector2Int cell = StepAlongRun(run, pos);
 
                 chunk.PlaceKlotz(
                     type,
-                    wallColor,
+                    color,
                     NextRandVariant(),
                     new RelKlotzCoords(
                         dest.PlotLocation.x + dest.HouseLocation.x + cell.x,
@@ -252,7 +360,7 @@ namespace Clotzbergh.Server.StructureGeneration
                         dest.PlotLocation.y + dest.HouseLocation.y + cell.y),
                     run.Direction);
 
-                pos += brickLength;
+                pos += pieceLength;
             }
         }
 
