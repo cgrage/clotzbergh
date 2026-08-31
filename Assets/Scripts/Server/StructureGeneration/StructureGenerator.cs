@@ -144,35 +144,40 @@ namespace Clotzbergh.Server.StructureGeneration
             {
                 Vector2Int stairsPos = GetStairsPosition(dest);
                 KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+                int stairsBaseY = storyBaseY + 1;
                 chunk.PlaceKlotz(
                     KlotzType.Stairs4x7,
                     KlotzColor.Gray,
                     NextRandVariant(),
                     new RelKlotzCoords(
                         dest.PlotLocation.x + stairsPos.x,
-                        storyBaseY,
+                        stairsBaseY,
                         dest.PlotLocation.y + stairsPos.y),
                     KlotzDirection.ToPosX);
 
-                // 2 stacked 1x2 plates on the nose, closing the gap up to the ceiling above.
-                // The nose itself sits 1 unit below the top of the last real step (see
-                // ArtSource/build_stairs.py), and the wall's orange plate cap adds another unit that the
-                // stairs' own height doesn't reach (see PlotFloorPlan.WallHeight).
-                int noseX = stairsPos.x + 1;
-                int noseZ = stairsPos.y + stairsSize.Z - 1;
-                int noseTopY = storyBaseY + stairsSize.Y - 1;
-                for (int dy = 0; dy < 2; dy++)
-                {
-                    chunk.PlaceKlotz(
-                        KlotzType.Plate1x2,
-                        KlotzColor.Gray,
-                        NextRandVariant(),
-                        new RelKlotzCoords(
-                            dest.PlotLocation.x + noseX,
-                            noseTopY + dy,
-                            dest.PlotLocation.y + noseZ),
-                        KlotzDirection.ToPosX);
-                }
+                // A 1x2 plate under the entrance closes the 1-unit gap left by raising the
+                // stairs, and one on the nose closes the gap up to the ceiling above - the nose
+                // itself sits 1 unit below the top of the last real step (see
+                // ArtSource/build_stairs.py).
+                int plateX = stairsPos.x + 1;
+                chunk.PlaceKlotz(
+                    KlotzType.Plate1x2,
+                    KlotzColor.Gray,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + plateX,
+                        storyBaseY,
+                        dest.PlotLocation.y + stairsPos.y),
+                    KlotzDirection.ToPosX);
+                chunk.PlaceKlotz(
+                    KlotzType.Plate1x2,
+                    KlotzColor.Gray,
+                    NextRandVariant(),
+                    new RelKlotzCoords(
+                        dest.PlotLocation.x + plateX,
+                        stairsBaseY + stairsSize.Y - 1,
+                        dest.PlotLocation.y + stairsPos.y + stairsSize.Z - 1),
+                    KlotzDirection.ToPosX);
             }
         }
 
