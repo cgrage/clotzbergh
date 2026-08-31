@@ -71,15 +71,43 @@ namespace Clotzbergh.Server.StructureGeneration
             foreach (var dest in _destinations)
             {
                 RenderBasePlate(chunk, dest);
+
+                Vector2Int?[] stairsPositions = ComputeStairsPositions(dest);
                 for (int storyIndex = 0; storyIndex < dest.StoryCount; storyIndex++)
                 {
-                    RenderStory(chunk, dest, storyIndex);
-                    RenderCeiling(chunk, dest, storyIndex);
+                    RenderStory(chunk, dest, storyIndex, stairsPositions[storyIndex]);
+                    RenderCeiling(chunk, dest, storyIndex, stairsPositions[storyIndex]);
                 }
                 RenderRoof(chunk, dest);
                 RenderGableWalls(chunk, dest);
                 RenderGarden(chunk, dest);
             }
+        }
+
+        /// <summary>
+        /// Where each story's own staircase up goes - index storyIndex holds the position of the
+        /// stairs that story places (<see cref="RenderStory"/>) and that its own ceiling needs an
+        /// opening for (<see cref="RenderCeiling"/>). Every story gets one, including the top one
+        /// - its stairs lead up into the attic under the roof. A story's incoming stairwell -
+        /// where the stairs from the story below arrive - is simply index storyIndex-1 of this
+        /// same array; once we start filling floors with furniture, that's the spot to leave clear.
+        /// </summary>
+        private Vector2Int?[] ComputeStairsPositions(PlotFloorPlan dest)
+        {
+            var positions = new Vector2Int?[dest.StoryCount];
+            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+            int stairsX = dest.HouseLocation.x + (dest.HouseLocation.width - stairsSize.X) / 2;
+
+            for (int storyIndex = 0; storyIndex < dest.StoryCount; storyIndex++)
+            {
+                // Varies per floor instead of always sitting at the same depth, so stacked
+                // stairs don't all land in exactly the same spot.
+                int depthQuarters = NextRandomElement(new[] { 1, 2, 3 });
+                int stairsZ = dest.HouseLocation.y + (dest.HouseLocation.height - stairsSize.Z) * depthQuarters / 4;
+                positions[storyIndex] = new Vector2Int(stairsX, stairsZ);
+            }
+
+            return positions;
         }
 
         private void RenderBasePlate(WorldChunk chunk, PlotFloorPlan dest)
@@ -104,7 +132,7 @@ namespace Clotzbergh.Server.StructureGeneration
             }
         }
 
-        private void RenderStory(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
+        private void RenderStory(WorldChunk chunk, PlotFloorPlan dest, int storyIndex, Vector2Int? stairsPosition)
         {
             int storyBaseY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight;
             KlotzColor wallColor = (storyIndex % 2 == 0) ? KlotzColor.White : KlotzColor.Gray;
@@ -138,11 +166,9 @@ namespace Clotzbergh.Server.StructureGeneration
                     window.Direction);
             }
 
-            // TEMPORARY: drop a Stairs4x7 in the middle of the ground floor to check it
-            // out in-game - remove once it's been eyeballed.
-            if (storyIndex == 0)
+            if (stairsPosition.HasValue)
             {
-                Vector2Int stairsPos = GetStairsPosition(dest);
+                Vector2Int stairsPos = stairsPosition.Value;
                 KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
                 int stairsBaseY = storyBaseY + 1;
                 chunk.PlaceKlotz(
@@ -182,41 +208,31 @@ namespace Clotzbergh.Server.StructureGeneration
         }
 
         /// <summary>
-        /// The (X, Z) root position of the one Stairs4x7 every house currently gets - centered in
-        /// X, but pushed back towards 3/4 depth in Z instead of centered, to put some distance
-        /// between it and the door (which sits on the z=0 wall). Shared between placing it (see
-        /// <see cref="RenderStory"/>) and cutting its opening into every ceiling above it (see
-        /// <see cref="RenderCeiling"/>).
+        /// The 2-plate-thick ceiling above a story, with an opening over this story's own stairs
+        /// (see <see cref="ComputeStairsPositions"/>) so there's room to climb through - or fully
+        /// solid if this story has none (the top story, with nothing above to climb to). The
+        /// opening is shifted 2 cells towards the entrance (covering the first 6 steps plus 2
+        /// cells of standing room before them) and deliberately stops short of the nose (the
+        /// stairs' last cell) - no opening needed there.
         /// </summary>
-        private static Vector2Int GetStairsPosition(PlotFloorPlan dest)
-        {
-            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
-            int stairsX = dest.HouseLocation.x + (dest.HouseLocation.width - stairsSize.X) / 2;
-            int stairsZ = dest.HouseLocation.y + (dest.HouseLocation.height - stairsSize.Z) * 3 / 4;
-            return new Vector2Int(stairsX, stairsZ);
-        }
-
-        /// <summary>
-        /// The 2-plate-thick ceiling above a story, with an opening over the stairs (see
-        /// <see cref="GetStairsPosition"/>) so there's room to climb through. Shifted 2 cells
-        /// towards the entrance (covering the first 6 steps plus 2 cells of standing room before
-        /// them) and deliberately stops short of the nose (the stairs' last cell) - no opening
-        /// needed there.
-        /// </summary>
-        private void RenderCeiling(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
+        private void RenderCeiling(WorldChunk chunk, PlotFloorPlan dest, int storyIndex, Vector2Int? stairsPosition)
         {
             int ceilingY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight + PlotFloorPlan.WallHeight;
             KlotzColor color = KlotzColor.DarkGray;
 
-            Vector2Int stairsPos = GetStairsPosition(dest);
-            KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
-            RectInt cutout = new(stairsPos.x, stairsPos.y - 2, stairsSize.X, stairsSize.Z + 1);
+            RectInt? cutout = null;
+            if (stairsPosition.HasValue)
+            {
+                Vector2Int stairsPos = stairsPosition.Value;
+                KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);
+                cutout = new RectInt(stairsPos.x, stairsPos.y - 2, stairsSize.X, stairsSize.Z + 1);
+            }
 
             for (int dx = 0; dx < dest.HouseLocation.width; dx++)
             {
                 for (int dz = 0; dz < dest.HouseLocation.height; dz++)
                 {
-                    if (cutout.Contains(new Vector2Int(dest.HouseLocation.x + dx, dest.HouseLocation.y + dz)))
+                    if (cutout.HasValue && cutout.Value.Contains(new Vector2Int(dest.HouseLocation.x + dx, dest.HouseLocation.y + dz)))
                         continue;
 
                     for (int dy = 0; dy < PlotFloorPlan.CeilingHeight; dy++)
