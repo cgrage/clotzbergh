@@ -201,7 +201,7 @@ namespace Clotzbergh.Server.StructureGeneration
         private void RenderCeiling(WorldChunk chunk, PlotFloorPlan dest, int storyIndex)
         {
             int ceilingY = dest.LocationY + dest.BaseHeight + storyIndex * dest.StoryHeight + PlotFloorPlan.WallHeight;
-            KlotzColor color = KlotzColor.Black;
+            KlotzColor color = KlotzColor.DarkGray;
 
             Vector2Int stairsPos = GetStairsPosition(dest);
             KlotzSize stairsSize = KlotzKB.Size(KlotzType.Stairs4x7);

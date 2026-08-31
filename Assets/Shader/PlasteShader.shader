@@ -58,7 +58,7 @@ Shader "PlasteShader"
             {
                 if (color == 0) return HexToFloat4(0xFFFFFF); // White
                 if (color == 1) return HexToFloat4(0x808080); // Gray
-                if (color == 2) return HexToFloat4(0x000000); // Black
+                if (color == 2) return HexToFloat4(0x101010); // Black
                 if (color == 3) return HexToFloat4(0xFF0000); // Red
                 if (color == 4) return HexToFloat4(0x0000FF); // Blue
                 if (color == 5) return HexToFloat4(0xFFFF00); // Yellow
@@ -69,6 +69,7 @@ Shader "PlasteShader"
                 if (color == 10) return HexToFloat4(0x996633); // Brown
                 if (color == 11) return HexToFloat4(0x251101); // Dark Brown
                 if (color == 12) return HexToFloat4(0x006400); // Dark Green
+                if (color == 13) return HexToFloat4(0x404040); // Dark Gray
 
                 return float4(0, 0, 0, 1); // Default
             }

@@ -32,7 +32,7 @@ namespace Clotzbergh
         Brick4x6,
         // CornerBrick1x2x2,
 
-        SpecialNonPrimitive, // special
+        FirstNonPrimitive,
 
         // ---------------------------------------------------------------------
         // Non-primitive types:
@@ -49,7 +49,8 @@ namespace Clotzbergh
         Stairs4x7,
 
         // ---------------------------------------------------------------------
-        SpecialCount // special
+        Count,
+        Maximum = 127
     }
 
     public enum KlotzDirection
@@ -76,6 +77,7 @@ namespace Clotzbergh
         Brown = 10,
         DarkBrown = 11,
         DarkGreen = 12,
+        DarkGray = 13,
         Count,
         Maximum = 63
     }
@@ -126,6 +128,10 @@ namespace Clotzbergh
 
     public static class KlotzKB
     {
+        // Compile error (CS0020, div by const 0) if these ever overflow SubKlotz's bit fields.
+        private const int AssertColorCountFitsMaximum = 1 / ((int)KlotzColor.Count <= (int)KlotzColor.Maximum ? 1 : 0);
+        private const int AssertTypeCountFitsMaximum = 1 / ((int)KlotzType.Count <= (int)KlotzType.Maximum ? 1 : 0);
+
         /// <summary>
         /// Return the size of the Klotz when placed in <c>ToPosX</c> direction.
         /// </summary>
@@ -194,7 +200,7 @@ namespace Clotzbergh
         /// </summary>
         public static bool IsPrimitive(KlotzType t)
         {
-            return t < KlotzType.SpecialNonPrimitive;
+            return t < KlotzType.FirstNonPrimitive;
         }
 
         public static bool PrimitiveHasTopStuds(KlotzType t)
