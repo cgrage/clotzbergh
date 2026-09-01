@@ -52,6 +52,7 @@ namespace Clotzbergh.Client
         /// Used during <c>Update()</c> do decide if we were connected at last <c>Update()</c>
         /// </summary>
         private bool _wasConnected = false;
+        private bool _doStudsAndHoles = true;
         private float _timeSinceLastClientStatus = 0f;
         private GameObject[] _allPlayers = new GameObject[0];
 
@@ -92,6 +93,8 @@ namespace Clotzbergh.Client
 
                 MeshGenerator.RegisterNonPrimitiveMesh(type, filter.sharedMesh, renderer.sharedMaterials);
             }
+
+            Shader.SetGlobalFloat("_DoStudsAndHoles", _doStudsAndHoles ? 1f : 0f);
 
             _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
             _connectionThread.Start();
@@ -149,7 +152,8 @@ namespace Clotzbergh.Client
 
             if (Keyboard.current.f11Key.wasPressedThisFrame)
             {
-                MeshGenerator.DoStudsAndHoles = !MeshGenerator.DoStudsAndHoles;
+                _doStudsAndHoles = !_doStudsAndHoles;
+                Shader.SetGlobalFloat("_DoStudsAndHoles", _doStudsAndHoles ? 1f : 0f);
             }
 
             if (Keyboard.current.f12Key.wasPressedThisFrame)

@@ -45,6 +45,7 @@ Shader "PlasteShader"
             float4 _MainLightColor;
             float4 _SpecColor;
             float _Glossiness;
+            float _DoStudsAndHoles;
 
             float4 HexToFloat4(uint hexValue)
             {
@@ -152,8 +153,9 @@ Shader "PlasteShader"
             [maxvertexcount(3 + 8 * 9)]
             void geom(triangle v2g input[3], inout TriangleStream<g2f> triStream)
             {
-                int addStuds = (input[0].surface == 1) ? 1 : 0;
-                int addHoles = (input[0].surface == 2) ? 1 : 0;
+                int doStudsAndHoles = (_DoStudsAndHoles > 0.5) ? 1 : 0;
+                int addStuds = (doStudsAndHoles && input[0].surface == 1) ? 1 : 0;
+                int addHoles = (doStudsAndHoles && input[0].surface == 2) ? 1 : 0;
 
                 // if (!addHoles)
                 {

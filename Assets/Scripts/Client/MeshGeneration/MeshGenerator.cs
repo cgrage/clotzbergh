@@ -22,8 +22,6 @@ namespace Clotzbergh.Client.MeshGeneration
 
         private static bool _warnedMissingMeshTypes = false;
 
-        public static bool DoStudsAndHoles { get; set; } = true;
-
         public static long MeshGenerationCount { get => Interlocked.Read(ref _meshGenerationCount); }
 
         /// <summary>
@@ -108,7 +106,7 @@ namespace Clotzbergh.Client.MeshGeneration
                         KlotzSurfaceFeature topSurface = KlotzSurfaceFeature.Default;
                         KlotzSurfaceFeature bottomSurface = KlotzSurfaceFeature.Default;
 
-                        if (lod == 0 && DoStudsAndHoles)
+                        if (lod == 0)
                         {
                             if (KlotzKB.PrimitiveHasTopStuds(type))
                                 topSurface = KlotzSurfaceFeature.HasStuds;
