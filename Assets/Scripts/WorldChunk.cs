@@ -12,15 +12,27 @@ namespace Clotzbergh
         private readonly SubKlotz[,,] _klotzData;
 
         private int _klotzCount;
+        private ulong _checksum;
 
         public WorldChunk()
         {
             _klotzCount = 0;
+            _checksum = 0;
             _klotzData = new SubKlotz[
                 WorldDef.ChunkSubDivsX,
                 WorldDef.ChunkSubDivsY,
                 WorldDef.ChunkSubDivsZ];
         }
+
+        /// <summary>
+        /// A checksum of the whole chunk's contents. Set maintains it incrementally (XOR out the
+        /// old cell's contribution, XOR in the new one) rather than recomputing it from scratch -
+        /// so patching a single klotz stays O(klotz size), not O(chunk volume). Deserialize gets
+        /// it straight off the wire instead of rebuilding it from the cells it just read - see
+        /// SetUnchecked. Two chunks with this checksum equal very likely (not guaranteed) hold
+        /// identical data.
+        /// </summary>
+        public ulong Checksum => _checksum;
 
         /// <summary>
         /// Fills layers of the chunk with klotzes from fromHeight to toHeight (y-axis).
@@ -82,7 +94,8 @@ namespace Clotzbergh
 
         public void Set(int x, int y, int z, SubKlotz t)
         {
-            bool wasRoot = _klotzData[x, y, z].IsRootAndNotAir;
+            SubKlotz old = _klotzData[x, y, z];
+            bool wasRoot = old.IsRootAndNotAir;
             _klotzData[x, y, z] = t;
             bool isRoot = t.IsRootAndNotAir;
 
@@ -90,11 +103,43 @@ namespace Clotzbergh
             {
                 _klotzCount += wasRoot ? -1 : 1;
             }
+
+            _checksum ^= HashCell(x, y, z, old.RawBits) ^ HashCell(x, y, z, t.RawBits);
         }
 
         public void Set(RelKlotzCoords coords, SubKlotz t) { Set(coords.X, coords.Y, coords.Z, t); }
 
-        protected void SetUncounted(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
+        /// <summary>
+        /// Sets a cell without maintaining _klotzCount or _checksum - for bulk-loading paths
+        /// (deserialize) that know both up front and set them directly instead.
+        /// </summary>
+        protected void SetUnchecked(int x, int y, int z, SubKlotz t) { _klotzData[x, y, z] = t; }
+
+        /// <summary>
+        /// A position+value hash for one cell's checksum contribution. Air (rawBits 0) always
+        /// hashes to 0 regardless of position, so a freshly-constructed (all-air) chunk's
+        /// checksum is correctly 0 without having to touch all ChunkSubDivsX*Y*Z cells, and the
+        /// running checksum only ever reflects non-air cells - mirroring _klotzCount.
+        /// </summary>
+        private static ulong HashCell(int x, int y, int z, uint rawBits)
+        {
+            if (rawBits == 0)
+                return 0;
+
+            ulong h = (uint)x;
+            h = h * 2654435761u ^ (uint)y;
+            h = h * 2654435761u ^ (uint)z;
+            h = h * 2654435761u ^ rawBits;
+
+            // Final avalanche mix (splitmix64's finalizer) so nearby cells/values don't produce
+            // similar-looking hashes.
+            h ^= h >> 33;
+            h *= 0xff51afd7ed558ccdUL;
+            h ^= h >> 33;
+            h *= 0xc4ceb9fe1a85ec53UL;
+            h ^= h >> 33;
+            return h;
+        }
 
         public Klotz[] ToKlotzArray()
         {
@@ -133,6 +178,8 @@ namespace Clotzbergh
             int fillLevel = (_klotzCount * 100) / WorldDef.SubKlotzPerChunkCount;
             bool asList = fillLevel < UseListIfFillLevelInPercent;
 
+            w.Write(_checksum);
+
             if (asList)
             {
                 w.Write((uint)1 << 31 | (uint)_klotzCount);
@@ -163,6 +210,8 @@ namespace Clotzbergh
         {
             WorldChunk chunk = new();
 
+            ulong checksum = r.ReadUInt64();
+
             uint bits = r.ReadUInt32();
             bool isList = (bits & (1 << 31)) != 0;
             int klotzCount = (int)(bits & ~(1 << 31));
@@ -188,7 +237,7 @@ namespace Clotzbergh
                     {
                         for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
                         {
-                            chunk.SetUncounted(x, y, z, SubKlotz.Deserialize(r));
+                            chunk.SetUnchecked(x, y, z, SubKlotz.Deserialize(r));
                         }
                     }
                 }
@@ -196,6 +245,7 @@ namespace Clotzbergh
                 chunk._klotzCount = klotzCount;
             }
 
+            chunk._checksum = checksum;
             return chunk;
         }
 
@@ -309,7 +359,29 @@ namespace Clotzbergh
         }
 
         /// <summary>
-        /// Debug function to check the integrity of the chunk's klotz count.
+        /// Recomputes the checksum from scratch (O(chunk volume) - only for debugging, Set's
+        /// incremental version is what's used normally).
+        /// </summary>
+        protected ulong RecomputeChecksum()
+        {
+            ulong checksum = 0;
+
+            for (int z = 0; z < WorldDef.ChunkSubDivsZ; z++)
+            {
+                for (int y = 0; y < WorldDef.ChunkSubDivsY; y++)
+                {
+                    for (int x = 0; x < WorldDef.ChunkSubDivsX; x++)
+                    {
+                        checksum ^= HashCell(x, y, z, Get(x, y, z).RawBits);
+                    }
+                }
+            }
+
+            return checksum;
+        }
+
+        /// <summary>
+        /// Debug function to check the integrity of the chunk's klotz count and checksum.
         /// Throws an exception if a mismatch is detected.
         /// </summary>
         public void DebugCheckIntegrity()
@@ -319,6 +391,13 @@ namespace Clotzbergh
             {
                 throw new Exception(
                     $"Klotz count mismatch detected! Expected {_klotzCount}, recounted {recount}");
+            }
+
+            ulong recomputedChecksum = RecomputeChecksum();
+            if (recomputedChecksum != _checksum)
+            {
+                throw new Exception(
+                    $"Checksum mismatch detected! Expected {_checksum:x}, recomputed {recomputedChecksum:x}");
             }
         }
     }

@@ -275,6 +275,15 @@ namespace Clotzbergh
 
         public static readonly SubKlotz Air = new(0);
 
+        /// <summary>
+        /// The packed raw representation - used by WorldChunk's incremental checksum, which needs
+        /// to tell any two different SubKlotz values apart without knowing their meaning.
+        /// </summary>
+        public readonly uint RawBits
+        {
+            get { return _rawBits; }
+        }
+
         public static SubKlotz Root(KlotzType type, KlotzColor color, KlotzVariant variant, KlotzDirection dir)
         {
             bool isOpaque = KlotzKB.IsSubKlotzOpaque(type, 0, 0, 0);
