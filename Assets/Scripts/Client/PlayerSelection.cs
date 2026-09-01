@@ -23,9 +23,8 @@ namespace Clotzbergh.Client
         private KlotzRegion _cutout = KlotzRegion.Empty;
         private long _selectionChangeCount = 0;
         private long _cutoutChangeCount = 0;
-        private bool _actIsHolding;
-        private float _actHoldTime;
-        private const float RequiredHoldTime = 0.1f; // The duration required to trigger the action
+        private float _timeSinceLastAct;
+        private const float ActRepeatInterval = 0.1f; // How fast the action repeats while held down
 
         public Material material;
 
@@ -180,27 +179,23 @@ namespace Clotzbergh.Client
             return false;
         }
 
+        /// <summary>
+        /// Takes the viewed klotz on button press, then repeats while the button stays held.
+        /// </summary>
         private void HandleMouseActions(PlayerView selection)
         {
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
-                _actIsHolding = true;
-                _actHoldTime = 0f;
+                _timeSinceLastAct = 0f;
+                selection?.viewedChunk?.TakeKlotz(selection.viewedKlotz.RootCoords);
             }
-
-            if (Mouse.current.leftButton.wasReleasedThisFrame)
+            else if (Mouse.current.leftButton.isPressed)
             {
-                _actIsHolding = false;
-                _actHoldTime = 0f;
-            }
-
-            if (_actIsHolding)
-            {
-                _actHoldTime += Time.deltaTime;
-                if (_actHoldTime >= RequiredHoldTime)
+                _timeSinceLastAct += Time.deltaTime;
+                if (_timeSinceLastAct >= ActRepeatInterval)
                 {
+                    _timeSinceLastAct = 0f;
                     selection?.viewedChunk?.TakeKlotz(selection.viewedKlotz.RootCoords);
-                    _actHoldTime = 0f;
                 }
             }
         }
