@@ -29,6 +29,7 @@ Documentation:
 Code:
 - ☐ Apply and verify some coding guidelines and style
   - ☐ Casing for names of public fields
+- ☐ Rename `TakeKlotz` (command, ops and handlers) to something more general. Carry all world modification actions, not just taking a single klotz.
 
 Game-play:
 - ☑ Add colors to klotzes (2024-Nov-03)
