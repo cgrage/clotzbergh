@@ -65,6 +65,29 @@ namespace Clotzbergh.Client
         /// still in flight, so chunk data arriving now does not reflect them yet.
         /// </summary>
         private ulong _acknowledgedTakeSequence = 0;
+
+        /// <summary>
+        /// Takes we predicted locally that the server has not confirmed processing yet. Chunk
+        /// data arriving while these are in flight does not contain them, so they are re-applied
+        /// on top of it (see <see cref="ClientChunk.OnWorldUpdate"/>). Only touched on the main
+        /// thread.
+        /// </summary>
+        private readonly List<PendingTake> _pendingTakes = new();
+
+        private readonly struct PendingTake
+        {
+            public readonly ulong Sequence;
+            public readonly ChunkCoords ChunkCoords;
+            public readonly RelKlotzCoords InnerChunkCoords;
+
+            public PendingTake(ulong sequence, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
+            {
+                Sequence = sequence;
+                ChunkCoords = chunkCoords;
+                InnerChunkCoords = innerChunkCoords;
+            }
+        }
+
         private float _timeSinceLastClientStatus = 0f;
         private GameObject[] _allPlayers = new GameObject[0];
 
@@ -281,7 +304,10 @@ namespace Clotzbergh.Client
                     ToMainThread(() =>
                     {
                         if (statusCmd.Update.LastProcessedTakeSequence > _acknowledgedTakeSequence)
+                        {
                             _acknowledgedTakeSequence = statusCmd.Update.LastProcessedTakeSequence;
+                            _pendingTakes.RemoveAll(take => take.Sequence <= _acknowledgedTakeSequence);
+                        }
 
                         UpdatePlayerPositions(statusCmd.Update);
                     });
@@ -295,7 +321,8 @@ namespace Clotzbergh.Client
                         _chunkStore.OnWorldChunkReceived(
                             chunkDataCmd.Coords,
                             chunkDataCmd.Version,
-                            chunkDataCmd.Chunk);
+                            chunkDataCmd.Chunk,
+                            GetPendingTakesFor(chunkDataCmd.Coords));
                     });
                     break;
             }
@@ -395,9 +422,30 @@ namespace Clotzbergh.Client
             _meshRequestQueue.Add(new MeshRequest(owner, lod, worldLocalVersion));
         }
 
+        /// <summary>
+        /// The still-unconfirmed takes in one chunk, oldest first, so they can be re-applied in
+        /// the order they were made. Returns null if there are none.
+        /// </summary>
+        private List<RelKlotzCoords> GetPendingTakesFor(ChunkCoords chunkCoords)
+        {
+            List<RelKlotzCoords> result = null;
+
+            foreach (PendingTake take in _pendingTakes)
+            {
+                if (take.Sequence <= _acknowledgedTakeSequence || take.ChunkCoords != chunkCoords)
+                    continue;
+
+                result ??= new List<RelKlotzCoords>();
+                result.Add(take.InnerChunkCoords);
+            }
+
+            return result;
+        }
+
         void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
         {
             ulong sequence = ++_takeKlotzSequence;
+            _pendingTakes.Add(new PendingTake(sequence, chunkCoords, innerChunkCoords));
 
             _connectionThreadActionQueue.Add((ws) =>
             {

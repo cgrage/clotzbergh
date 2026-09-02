@@ -106,7 +106,13 @@ namespace Clotzbergh.Client
             _isCleanedUp = true;
         }
 
-        public void OnWorldUpdate(ulong version, WorldChunk world)
+        /// <summary>
+        /// Adopts world data from the server. <paramref name="pendingTakes"/> are takes this
+        /// client predicted that the server has not confirmed processing yet - they are not in
+        /// this data, so they get re-applied on top of it, otherwise those klotzes would pop back
+        /// until their own update arrives.
+        /// </summary>
+        public void OnWorldUpdate(ulong version, WorldChunk world, IReadOnlyList<RelKlotzCoords> pendingTakes)
         {
             if (_isCleanedUp)
                 return;
@@ -114,6 +120,17 @@ namespace Clotzbergh.Client
             // needs to be newer than what we have
             if (version <= _currentWorldServerVersion)
                 return;
+
+            // Safe to modify directly rather than on a clone: nothing else holds this instance
+            // until it is published below.
+            if (pendingTakes != null)
+            {
+                foreach (RelKlotzCoords coords in pendingTakes)
+                {
+                    if (world.Get(coords).IsRootAndNotAir)
+                        world.RemoveKlotz(coords);
+                }
+            }
 
             // store the data
             _currentWorld = world;

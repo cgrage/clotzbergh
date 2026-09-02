@@ -91,9 +91,9 @@ namespace Clotzbergh.Client
             //
         }
 
-        public void OnWorldChunkReceived(ChunkCoords coords, ulong version, WorldChunk chunk)
+        public void OnWorldChunkReceived(ChunkCoords coords, ulong version, WorldChunk chunk, IReadOnlyList<RelKlotzCoords> pendingTakes)
         {
-            GetOrCreate(coords).OnWorldUpdate(version, chunk);
+            GetOrCreate(coords).OnWorldUpdate(version, chunk, pendingTakes);
         }
 
         /// <summary>
