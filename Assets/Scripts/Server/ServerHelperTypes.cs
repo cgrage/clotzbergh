@@ -49,6 +49,12 @@ namespace Clotzbergh.Server
         public ChunkCoords PlayerChunkCoords { get; set; }
         public ulong SeenClientListVersion { get; set; }
 
+        /// <summary>
+        /// Highest take sequence number received from this client so far - reported back to it in
+        /// <see cref="ServerStatusUpdate.LastProcessedTakeSequence"/>.
+        /// </summary>
+        public ulong LastProcessedTakeSequence { get; set; }
+
         private readonly Dictionary<ChunkCoords, PlayerChunkData> _chunkData = new();
         private List<PlayerChunkData> _sortedChunks = new();
 

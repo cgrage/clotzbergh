@@ -19,8 +19,16 @@ namespace Clotzbergh
         public Vector3[] PlayerPositions { get; set; }
         public PlayerInfo[] PlayerList { get; set; }
 
+        /// <summary>
+        /// The highest <see cref="IntercomProtocol.TakeKlotzCommand.Sequence"/> this client sent
+        /// that the server has processed. Chunk data the client receives from now on reflects
+        /// every take up to and including this one.
+        /// </summary>
+        public ulong LastProcessedTakeSequence { get; set; }
+
         public void Serialize(BinaryWriter w)
         {
+            w.Write(LastProcessedTakeSequence);
             w.Write(PlayerPositions.Length);
             foreach (var pos in PlayerPositions)
             {
@@ -45,6 +53,7 @@ namespace Clotzbergh
 
         public static ServerStatusUpdate Deserialize(BinaryReader r)
         {
+            ulong lastProcessedTakeSequence = r.ReadUInt64();
             int playerCount = r.ReadInt32();
             Vector3[] playerPositions = new Vector3[playerCount];
             PlayerInfo[] playerList = null;
@@ -73,6 +82,7 @@ namespace Clotzbergh
             {
                 PlayerPositions = playerPositions,
                 PlayerList = playerList,
+                LastProcessedTakeSequence = lastProcessedTakeSequence,
             };
         }
     }

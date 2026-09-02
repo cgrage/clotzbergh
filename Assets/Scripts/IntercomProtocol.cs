@@ -147,10 +147,19 @@ namespace Clotzbergh
             public ChunkCoords ChunkCoords;
             public RelKlotzCoords InnerChunkCoord;
 
-            public TakeKlotzCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord) : base(CommandCode)
+            /// <summary>
+            /// Per-client counter, increasing with every take. The server echoes the highest one
+            /// it has processed back in <see cref="ServerStatusUpdate.LastProcessedTakeSequence"/>,
+            /// which tells the client which of its predicted takes are already reflected in the
+            /// chunk data it receives.
+            /// </summary>
+            public ulong Sequence;
+
+            public TakeKlotzCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord, ulong sequence) : base(CommandCode)
             {
                 ChunkCoords = coords;
                 InnerChunkCoord = innerChunkCoord;
+                Sequence = sequence;
             }
 
             public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
@@ -163,6 +172,7 @@ namespace Clotzbergh
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
+                Sequence = r.ReadUInt64();
             }
 
             protected override void Serialize(BinaryWriter w)
@@ -173,6 +183,7 @@ namespace Clotzbergh
                 w.Write(InnerChunkCoord.X);
                 w.Write(InnerChunkCoord.Y);
                 w.Write(InnerChunkCoord.Z);
+                w.Write(Sequence);
             }
         }
     }

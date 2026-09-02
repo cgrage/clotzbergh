@@ -19,7 +19,7 @@ namespace Clotzbergh.Server
 
         WorldChunkUpdate GetNextChunkUpdate(ClientId id);
 
-        void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords);
+        void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, ulong sequence);
     }
 
     public class GameServer : MonoBehaviour, IServerSideOps
@@ -126,9 +126,9 @@ namespace Clotzbergh.Server
         /// <summary>
         /// Called by Thread Pool Worker
         /// </summary>
-        void IServerSideOps.PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
+        void IServerSideOps.PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, ulong sequence)
         {
-            _worldMap.PlayerTakeKlotz(id, chunkCoords, innerChunkCoords);
+            _worldMap.PlayerTakeKlotz(id, chunkCoords, innerChunkCoords, sequence);
         }
 
         private class ClientHandler : WebSocketBehavior
@@ -205,7 +205,7 @@ namespace Clotzbergh.Server
                 {
                     var takeCmd = cmd as IntercomProtocol.TakeKlotzCommand;
                     ops.PlayerTakeKlotz(_clientId,
-                        takeCmd.ChunkCoords, takeCmd.InnerChunkCoord);
+                        takeCmd.ChunkCoords, takeCmd.InnerChunkCoord, takeCmd.Sequence);
                 }
                 else
                 {

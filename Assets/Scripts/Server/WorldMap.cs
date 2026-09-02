@@ -190,7 +190,10 @@ namespace Clotzbergh.Server
         public ServerStatusUpdate GetNextServerStatus(ClientId id)
         {
             ClientWorldMapState state = GetClientState(id);
-            ServerStatusUpdate update = new();
+            ServerStatusUpdate update = new()
+            {
+                LastProcessedTakeSequence = state.LastProcessedTakeSequence,
+            };
 
             lock (_clientStates)
             {
@@ -216,7 +219,7 @@ namespace Clotzbergh.Server
             return update;
         }
 
-        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
+        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, ulong sequence)
         {
             // Debug.Log($"ServerMap: PlayerTakeKlotz ${id} ${chunkCoords} ${innerChunkCoords}");
             WorldChunkState worldState = GetWorldState(chunkCoords);
@@ -230,6 +233,14 @@ namespace Clotzbergh.Server
             {
                 worldState.Chunk.RemoveKlotz(innerChunkCoords);
                 worldState.Version++;
+            }
+
+            // Only once the change is actually in the chunk - a client that hears its take was
+            // processed must be able to rely on the chunk data reflecting it.
+            ClientWorldMapState clientState = GetClientState(id);
+            if (clientState != null && sequence > clientState.LastProcessedTakeSequence)
+            {
+                clientState.LastProcessedTakeSequence = sequence;
             }
 
             lock (_toSaveList)

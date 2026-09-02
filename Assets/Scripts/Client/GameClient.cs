@@ -53,6 +53,18 @@ namespace Clotzbergh.Client
         /// </summary>
         private bool _wasConnected = false;
         private bool _doStudsAndHoles = true;
+
+        /// <summary>
+        /// Counts the takes sent to the server. The server reports back how far it has got in
+        /// <see cref="ServerStatusUpdate.LastProcessedTakeSequence"/> - see _acknowledgedTakeSequence.
+        /// </summary>
+        private ulong _takeKlotzSequence = 0;
+
+        /// <summary>
+        /// The last take of ours the server has confirmed processing. Takes newer than this are
+        /// still in flight, so chunk data arriving now does not reflect them yet.
+        /// </summary>
+        private ulong _acknowledgedTakeSequence = 0;
         private float _timeSinceLastClientStatus = 0f;
         private GameObject[] _allPlayers = new GameObject[0];
 
@@ -268,6 +280,9 @@ namespace Clotzbergh.Client
                     var statusCmd = (IntercomProtocol.ServerStatusCommand)cmd;
                     ToMainThread(() =>
                     {
+                        if (statusCmd.Update.LastProcessedTakeSequence > _acknowledgedTakeSequence)
+                            _acknowledgedTakeSequence = statusCmd.Update.LastProcessedTakeSequence;
+
                         UpdatePlayerPositions(statusCmd.Update);
                     });
                     break;
@@ -382,10 +397,12 @@ namespace Clotzbergh.Client
 
         void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
         {
+            ulong sequence = ++_takeKlotzSequence;
+
             _connectionThreadActionQueue.Add((ws) =>
             {
                 // Debug.Log($"Client: TakeKlotz {chunkCoords}.{innerChunkCoords}");
-                IntercomProtocol.TakeKlotzCommand cmd = new(chunkCoords, innerChunkCoords);
+                IntercomProtocol.TakeKlotzCommand cmd = new(chunkCoords, innerChunkCoords, sequence);
                 ws.Send(cmd.ToBytes());
             });
         }
