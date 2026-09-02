@@ -35,6 +35,20 @@ namespace Clotzbergh
         public ulong Checksum => _checksum;
 
         /// <summary>
+        /// A full copy, safe to mutate independently of the original. A WorldChunk that has been
+        /// handed to another thread (e.g. a mesh-generation worker) must not be mutated - clone it
+        /// and swap the reference instead.
+        /// </summary>
+        public WorldChunk Clone()
+        {
+            WorldChunk copy = new();
+            Array.Copy(_klotzData, copy._klotzData, _klotzData.Length);
+            copy._klotzCount = _klotzCount;
+            copy._checksum = _checksum;
+            return copy;
+        }
+
+        /// <summary>
         /// Fills layers of the chunk with klotzes from fromHeight to toHeight (y-axis).
         /// </summary>
         public void LayerFill(int fromHeight = 0, int toHeight = WorldDef.ChunkSubDivsY)

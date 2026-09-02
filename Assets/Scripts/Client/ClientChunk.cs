@@ -317,7 +317,32 @@ namespace Clotzbergh.Client
 
         public void TakeKlotz(RelKlotzCoords innerChunkCoords)
         {
+            PredictTakeKlotz(innerChunkCoords);
             _asyncOps?.TakeKlotz(_coords, innerChunkCoords);
+        }
+
+        /// <summary>
+        /// Removes the klotz from our own copy of the world without waiting for the server to
+        /// confirm it. Only _worldLocalVersion is raised, not _currentWorldServerVersion, so the
+        /// server's own update is still accepted by OnWorldUpdate and overrides this if it differs.
+        /// </summary>
+        private void PredictTakeKlotz(RelKlotzCoords innerChunkCoords)
+        {
+            if (_currentWorld == null)
+                return;
+
+            WorldChunk predictedWorld = _currentWorld.Clone();
+            predictedWorld.RemoveKlotz(innerChunkCoords);
+            _currentWorld = predictedWorld;
+            IncWorldLocalVersion();
+
+            // same as OnWorldUpdate: neighbors may have faces exposed/hidden by this change too.
+            NeighborXM1?.IncWorldLocalVersion();
+            NeighborXP1?.IncWorldLocalVersion();
+            NeighborYM1?.IncWorldLocalVersion();
+            NeighborYP1?.IncWorldLocalVersion();
+            NeighborZM1?.IncWorldLocalVersion();
+            NeighborZP1?.IncWorldLocalVersion();
         }
     }
 }
