@@ -32,12 +32,27 @@ namespace Clotzbergh
         /// </summary>
         public static class Limits
         {
-            public static int MinCoordsX = -10;
-            public static int MaxCoordsX = 10;
-            public static int MinCoordsY = -2;
-            public static int MaxCoordsY = 2;
-            public static int MinCoordsZ = -10;
-            public static int MaxCoordsZ = 10;
+            public const int MinCoordsX = -10;
+            public const int MaxCoordsX = 10;
+            public const int MinCoordsY = -2;
+            public const int MaxCoordsY = 2;
+            public const int MinCoordsZ = -10;
+            public const int MaxCoordsZ = 10;
+        }
+
+        /// <summary>
+        /// Sizes of the cylindrical multi-klotz selections, in sub-klotzes. Radius applies to
+        /// X/Z, height to Y - and a sub-klotz is 2.5 times shorter in Y than in X/Z, so equal
+        /// numbers would not give equal distances.
+        /// </summary>
+        public static class SelectionCylinders
+        {
+            public const int SmallRadius = 1;
+            public const int SmallHeight = 3;
+            public const int MediumRadius = 2;
+            public const int MediumHeight = 6;
+            public const int LargeRadius = 3;
+            public const int LargeHeight = 9;
         }
 
         /// <summary>

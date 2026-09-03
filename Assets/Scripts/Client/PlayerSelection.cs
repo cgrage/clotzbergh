@@ -112,9 +112,15 @@ namespace Clotzbergh.Client
                 _cutout = _selectionMode switch
                 {
                     SelectionModes.Klotz => KlotzRegion.Empty,
-                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 3, 5),
-                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 5, 7),
-                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(_viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords), 8, 10),
+                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(
+                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
+                        WorldDef.SelectionCylinders.SmallRadius, WorldDef.SelectionCylinders.SmallHeight),
+                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(
+                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
+                        WorldDef.SelectionCylinders.MediumRadius, WorldDef.SelectionCylinders.MediumHeight),
+                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(
+                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
+                        WorldDef.SelectionCylinders.LargeRadius, WorldDef.SelectionCylinders.LargeHeight),
                     _ => KlotzRegion.Empty,
                 };
             }
