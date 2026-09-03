@@ -55,8 +55,13 @@ namespace Clotzbergh
         private readonly int _height;
         private readonly BoundsInt _roughBounds;
 
-        private int Bottom => _anchor.Y - _height / 2;
-        private int Top => _anchor.Y + _height / 2;
+        /// <summary>
+        /// The cylinder sits on top of its anchor rather than being centred on it - the anchor is
+        /// the lower corner of the klotz being aimed at, so a centred cylinder would cut away
+        /// mostly below what the player is looking at.
+        /// </summary>
+        private int Bottom => _anchor.Y;
+        private int Top => _anchor.Y + _height;
 
         public CylindricalKlotzRegion(AbsKlotzCoords anchor, int radius, int height)
         {
