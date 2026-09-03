@@ -109,18 +109,19 @@ namespace Clotzbergh.Client
                 _highlightBox.transform.localScale = _viewedKlotz.WorldSize;
                 _highlightBox.transform.rotation = _viewedKlotz.WorldRotation;
                 _highlightBox.SetActive(true);
+                (RelKlotzCoords relMin, RelKlotzCoords relMax) = _viewedKlotz.OccupiedRange;
+                AbsKlotzCoords klotzMin = relMin.ToAbs(_viewedChunk.Coords);
+                AbsKlotzCoords klotzMax = relMax.ToAbs(_viewedChunk.Coords);
+
                 _cutout = _selectionMode switch
                 {
                     SelectionModes.Klotz => KlotzRegion.Empty,
-                    SelectionModes.HorizontalCircleSmall => KlotzRegion.Cylindrical(
-                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
-                        WorldDef.SelectionCylinders.SmallRadius, WorldDef.SelectionCylinders.SmallHeight),
-                    SelectionModes.HorizontalCircleMedium => KlotzRegion.Cylindrical(
-                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
-                        WorldDef.SelectionCylinders.MediumRadius, WorldDef.SelectionCylinders.MediumHeight),
-                    SelectionModes.HorizontalCircleLarge => KlotzRegion.Cylindrical(
-                        _viewedKlotz.RootCoords.ToAbs(_viewedChunk.Coords),
-                        WorldDef.SelectionCylinders.LargeRadius, WorldDef.SelectionCylinders.LargeHeight),
+                    SelectionModes.HorizontalCircleSmall => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        WorldDef.SelectionSizes.SmallRadius, WorldDef.SelectionSizes.SmallHeight),
+                    SelectionModes.HorizontalCircleMedium => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        WorldDef.SelectionSizes.MediumRadius, WorldDef.SelectionSizes.MediumHeight),
+                    SelectionModes.HorizontalCircleLarge => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        WorldDef.SelectionSizes.LargeRadius, WorldDef.SelectionSizes.LargeHeight),
                     _ => KlotzRegion.Empty,
                 };
             }

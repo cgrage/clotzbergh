@@ -314,7 +314,7 @@ namespace Clotzbergh.Client
             Vector3 size = Vector3.Scale(KlotzKB.Size(type).ToVector(), WorldDef.SubKlotzSize);
             Quaternion rotation = SubKlotz.KlotzDirectionToQuaternion(dir);
 
-            return new(reader.RootPos, pos, size, rotation, type, true);
+            return new(reader.RootPos, pos, size, rotation, type, dir, true);
         }
 
         public KlotzWorldData GetKlotzFromTriangleIndex(int triangleIndex)

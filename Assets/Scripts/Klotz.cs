@@ -483,6 +483,34 @@ namespace Clotzbergh
             };
         }
 
+        /// <summary>
+        /// The lowest and highest cell a klotz occupies. Depending on its direction a klotz
+        /// extends from its root towards negative coordinates, so the root is not always the
+        /// lower corner.
+        /// </summary>
+        public static (RelKlotzCoords Min, RelKlotzCoords Max) TranslateToOccupiedRange(
+            RelKlotzCoords rootCoords, KlotzType type, KlotzDirection dir)
+        {
+            KlotzSize size = KlotzKB.Size(type);
+
+            // Every direction maps each axis onto one axis, so the extremes are the two opposite
+            // corners - no need to walk all the cells in between.
+            RelKlotzCoords far = TranslateSubIndexToCoords(
+                rootCoords, new KlotzIndex(size.X - 1, size.Y - 1, size.Z - 1), dir);
+
+            RelKlotzCoords min = new(
+                Math.Min(rootCoords.X, far.X),
+                Math.Min(rootCoords.Y, far.Y),
+                Math.Min(rootCoords.Z, far.Z));
+
+            RelKlotzCoords max = new(
+                Math.Max(rootCoords.X, far.X),
+                Math.Max(rootCoords.Y, far.Y),
+                Math.Max(rootCoords.Z, far.Z));
+
+            return (min, max);
+        }
+
         public static RelKlotzCoords TranslateCoordsWithSubIndexToRootCoord(RelKlotzCoords coords, KlotzIndex subIndex, KlotzDirection dir)
         {
             return dir switch
@@ -620,7 +648,15 @@ namespace Clotzbergh
         public Vector3 WorldSize { get; private set; }
         public Quaternion WorldRotation { get; private set; }
         public KlotzType Type { get; private set; }
+        public KlotzDirection Direction { get; private set; }
         public bool IsFreeToTake { get; private set; }
+
+        /// <summary>
+        /// The lowest and highest cell the klotz occupies. Which way it extends from its root
+        /// depends on its direction, so this is not simply RootCoords plus its size.
+        /// </summary>
+        public (RelKlotzCoords Min, RelKlotzCoords Max) OccupiedRange =>
+            SubKlotz.TranslateToOccupiedRange(RootCoords, Type, Direction);
 
         public KlotzWorldData(
             RelKlotzCoords rootCoords,
@@ -628,6 +664,7 @@ namespace Clotzbergh
             Vector3 worldSize,
             Quaternion worldRotation,
             KlotzType type,
+            KlotzDirection direction,
             bool isFreeToTake)
         {
             RootCoords = rootCoords;
@@ -635,6 +672,7 @@ namespace Clotzbergh
             WorldSize = worldSize;
             WorldRotation = worldRotation;
             Type = type;
+            Direction = direction;
             IsFreeToTake = isFreeToTake;
         }
 
@@ -648,6 +686,7 @@ namespace Clotzbergh
                 && WorldSize.Equals(other.WorldSize)
                 && WorldRotation.Equals(other.WorldRotation)
                 && Type == other.Type
+                && Direction == other.Direction
                 && IsFreeToTake == other.IsFreeToTake;
         }
 
@@ -666,6 +705,7 @@ namespace Clotzbergh
                 WorldSize,
                 WorldRotation,
                 Type,
+                Direction,
                 IsFreeToTake);
         }
     }

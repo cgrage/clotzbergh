@@ -63,8 +63,8 @@ Game-play:
   - ☐ Inventory: a taken klotz should end up with the player
     - ☐ Needs a reply to the requesting client (success plus klotz type); do not predict the
       item itself, or it may have to be taken away again
-  - ☐ Multi-klotz collection
-    - ☐ Cutout for multi-klotz selection
+  - ☑ Multi-klotz collection
+    - ☑ Cutout for multi-klotz selection
   - ☐ Placing klotzes
 
 Deployment:

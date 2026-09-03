@@ -11,9 +11,9 @@ namespace Clotzbergh
 
         protected KlotzRegion() { }
 
-        public static KlotzRegion Cylindrical(AbsKlotzCoords anchor, int radius, int height)
+        public static KlotzRegion AroundKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int height)
         {
-            return new CylindricalKlotzRegion(anchor, radius, height);
+            return new AroundKlotzRegion(klotzMin, klotzMax, radius, height);
         }
 
         public abstract bool Touches(ChunkCoords chunkCoords);
@@ -48,29 +48,35 @@ namespace Clotzbergh
         public override bool ContainsAbs(int x, int y, int z) { return false; }
     }
 
-    public class CylindricalKlotzRegion : KlotzRegion
+    /// <summary>
+    /// Everything within a radius of a klotz, horizontally. Since the klotz's footprint is not
+    /// generally square, this is not a circle but that footprint grown by the radius in X/Z -
+    /// a rectangle with rounded corners, which for a 1x1 klotz is a circle again.
+    /// </summary>
+    public class AroundKlotzRegion : KlotzRegion
     {
-        private readonly AbsKlotzCoords _anchor;
+        private readonly AbsKlotzCoords _klotzMin;
+        private readonly AbsKlotzCoords _klotzMax;
         private readonly int _radius;
         private readonly int _height;
         private readonly BoundsInt _roughBounds;
 
         /// <summary>
-        /// The cylinder sits on top of its anchor rather than being centred on it - the anchor is
-        /// the lower corner of the klotz being aimed at, so a centred cylinder would cut away
-        /// mostly below what the player is looking at.
+        /// The region sits on top of the klotz rather than being centred on it - centred, it
+        /// would cut away mostly below what the player is looking at.
         /// </summary>
-        private int Bottom => _anchor.Y;
-        private int Top => _anchor.Y + _height;
+        private int Bottom => _klotzMin.Y;
+        private int Top => _klotzMin.Y + _height;
 
-        public CylindricalKlotzRegion(AbsKlotzCoords anchor, int radius, int height)
+        public AroundKlotzRegion(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int height)
         {
-            _anchor = anchor;
+            _klotzMin = klotzMin;
+            _klotzMax = klotzMax;
             _radius = radius;
             _height = height;
             _roughBounds = new(
-                anchor.X - radius, Bottom, anchor.Z - radius,
-                radius * 2, height, radius * 2);
+                klotzMin.X - radius, Bottom, klotzMin.Z - radius,
+                klotzMax.X - klotzMin.X + radius * 2, height, klotzMax.Z - klotzMin.Z + radius * 2);
         }
 
         public override bool Touches(ChunkCoords chunkCoords)
@@ -89,11 +95,12 @@ namespace Clotzbergh
             if (y < Bottom || y > Top)
                 return false;
 
-            var hDist = new Vector2(x - _anchor.X, z - _anchor.Z).magnitude;
-            if (hDist > _radius)
-                return false;
+            // Distance to the footprint rectangle, which is 0 for anything inside it. Compared
+            // squared to stay in integers and skip the square root.
+            int dx = Mathf.Max(0, Mathf.Max(_klotzMin.X - x, x - _klotzMax.X));
+            int dz = Mathf.Max(0, Mathf.Max(_klotzMin.Z - z, z - _klotzMax.Z));
 
-            return true;
+            return dx * dx + dz * dz <= _radius * _radius;
         }
     }
 }
