@@ -133,6 +133,62 @@ Shader "PlasteShader"
                 }
             }
 
+            // Counterpart to AddStuds: a square indent, as deep as a stud is tall. Takes the same
+            // triangle layout - b and c span the quad's diagonal, a is the opposite corner - so
+            // each of the quad's two triangles contributes one half of the indent.
+            void AddHoles(v2g a, v2g b, v2g c, inout TriangleStream<g2f> triStream)
+            {
+                float holeDepth = 0.0765f; // matches studHeight
+                float wallThickness = 0.0675f; // 0.0015 * 45 = 0.0675
+
+                float3 center = (b.pos.xyz + c.pos.xyz) / 2;
+                float3 normal = a.normal;
+
+                // The face is square, so its half width follows from the half diagonal. Scaling
+                // the corners about the center by this keeps the indent square and centered.
+                float halfDiagonal = length(b.pos.xyz - center);
+                float halfWidth = halfDiagonal * 0.70710678f;
+                float scale = max(halfWidth - wallThickness, 0.0) / halfWidth;
+
+                float3 innerA = center + (a.pos.xyz - center) * scale;
+                float3 innerB = center + (b.pos.xyz - center) * scale;
+                float3 innerC = center + (c.pos.xyz - center) * scale;
+
+                float3 deepA = innerA - normal * holeDepth;
+                float3 deepB = innerB - normal * holeDepth;
+                float3 deepC = innerC - normal * holeDepth;
+
+                // The rim left standing around the opening, in the original face plane.
+                AddVertex(triStream, b.pos.xyz, normal, a.color, a.surface);
+                AddVertex(triStream, innerB, normal, a.color, a.surface);
+                AddVertex(triStream, a.pos.xyz, normal, a.color, a.surface);
+                AddVertex(triStream, innerA, normal, a.color, a.surface);
+                AddVertex(triStream, c.pos.xyz, normal, a.color, a.surface);
+                AddVertex(triStream, innerC, normal, a.color, a.surface);
+                triStream.RestartStrip();
+
+                // Side walls, facing inwards so they are visible from outside the cavity.
+                float3 wallNormalBA = normalize(center - (innerB + innerA) / 2);
+                AddVertex(triStream, innerB, wallNormalBA, a.color, a.surface);
+                AddVertex(triStream, deepB, wallNormalBA, a.color, a.surface);
+                AddVertex(triStream, innerA, wallNormalBA, a.color, a.surface);
+                AddVertex(triStream, deepA, wallNormalBA, a.color, a.surface);
+                triStream.RestartStrip();
+
+                float3 wallNormalAC = normalize(center - (innerA + innerC) / 2);
+                AddVertex(triStream, innerA, wallNormalAC, a.color, a.surface);
+                AddVertex(triStream, deepA, wallNormalAC, a.color, a.surface);
+                AddVertex(triStream, innerC, wallNormalAC, a.color, a.surface);
+                AddVertex(triStream, deepC, wallNormalAC, a.color, a.surface);
+                triStream.RestartStrip();
+
+                // Floor of the cavity.
+                AddVertex(triStream, deepA, normal, a.color, a.surface);
+                AddVertex(triStream, deepB, normal, a.color, a.surface);
+                AddVertex(triStream, deepC, normal, a.color, a.surface);
+                triStream.RestartStrip();
+            }
+
             v2g vert(appdata v)
             {
                 uint colorEnum = ((uint)v.uv.x) & 0x1F;
@@ -157,9 +213,10 @@ Shader "PlasteShader"
                 int addStuds = (doStudsAndHoles && input[0].surface == 1) ? 1 : 0;
                 int addHoles = (doStudsAndHoles && input[0].surface == 2) ? 1 : 0;
 
-                // if (!addHoles)
+                // A hole replaces the face with a rim around its opening, so the original triangle
+                // is only passed through when there is none.
+                if (!addHoles)
                 {
-                    // Pass through original triangle
                     for (int i = 0; i < 3; ++i)
                     {
                         AddVertex(triStream,
@@ -168,9 +225,10 @@ Shader "PlasteShader"
                             input[i].color,
                             input[i].surface);
                     }
+
+                    triStream.RestartStrip();
                 }
 
-                triStream.RestartStrip();
                 if (!addStuds && !addHoles)
                     return;
 
@@ -185,17 +243,17 @@ Shader "PlasteShader"
                 if (side1LengthSq >= side2LengthSq && side1LengthSq >= side3LengthSq)
                 {
                     if (addStuds) AddStuds(input[2], input[0], input[1], triStream);
-                    // else AddStuds(input[2], input[0], input[1], triStream);
+                    else AddHoles(input[2], input[0], input[1], triStream);
                 }
                 else if (side2LengthSq >= side1LengthSq && side2LengthSq >= side3LengthSq)
                 {
                     if (addStuds) AddStuds(input[0], input[1], input[2], triStream);
-                    // else AddStuds(input[0], input[1], input[2], triStream);
+                    else AddHoles(input[0], input[1], input[2], triStream);
                 }
                 else
                 {
                     if (addStuds) AddStuds(input[1], input[2], input[0], triStream);
-                    // else AddStuds(input[1], input[2], input[0], triStream);
+                    else AddHoles(input[1], input[2], input[0], triStream);
                 }
             }
 
