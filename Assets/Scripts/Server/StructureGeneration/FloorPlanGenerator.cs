@@ -101,7 +101,7 @@ namespace Clotzbergh.Server.StructureGeneration
 
             _plan.Doors = new DoorInfo[]
             {
-                new(new Vector2Int(3, 0), KlotzDirection.ToPosX),
+                new(new Vector2Int(PlotFloorPlan.FrontDoorX, 0), KlotzDirection.ToPosX),
             };
 
             _plan.Windows = new WindowInfo[]
@@ -170,6 +170,11 @@ namespace Clotzbergh.Server.StructureGeneration
     public readonly struct PlotFloorPlan
     {
         public const int DoorHeight = 5 * 3;
+
+        // Where the front door sits along the house's front wall, in house-local X. The walkway
+        // through the garden lines up with it (see the PlotPlan setup below).
+        public const int FrontDoorX = 3;
+
         public const int WindowSillHeight = 2 * 3;
         public const int WindowFrameHeight = 3 * 3;
 
@@ -241,15 +246,28 @@ namespace Clotzbergh.Server.StructureGeneration
                 new Vector3Int(PlotLocation.x, LocationY, PlotLocation.y),
                 new Vector3Int(PlotLocation.width, TotalHeight, PlotLocation.height));
 
+            // Runs from the front door straight out to the plot edge, as wide as the door itself.
+            RectInt walkway = new(
+                HouseLocation.x + FrontDoorX,
+                0,
+                KlotzKB.Size(KlotzType.DoorFrame1x4).X,
+                HouseLocation.y);
+
             PlotPlan = new PlotFloorPlanCell[PlotLocation.width][];
             for (int x = 0; x < PlotLocation.width; x++)
             {
                 PlotPlan[x] = new PlotFloorPlanCell[PlotLocation.height];
                 for (int z = 0; z < PlotLocation.height; z++)
                 {
-                    if (HouseLocation.Contains(new Vector2Int(x, z)))
+                    Vector2Int cell = new(x, z);
+
+                    if (HouseLocation.Contains(cell))
                     {
                         PlotPlan[x][z] = PlotFloorPlanCell.House;
+                    }
+                    else if (walkway.Contains(cell))
+                    {
+                        PlotPlan[x][z] = PlotFloorPlanCell.Walkway;
                     }
                     else
                     {
