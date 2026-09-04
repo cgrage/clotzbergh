@@ -260,9 +260,8 @@ namespace Clotzbergh
     /// Kind (=NonRoot)        ->  1 bit
     /// --------------------------------
     /// Sum                       16 bit
-    /// 
-    /// TODO: Rename to Kloxel?
-    /// 
+    ///
+    /// Alternative Name: "Kloxel"
     /// </summary>
     public readonly struct SubKlotz
     {
