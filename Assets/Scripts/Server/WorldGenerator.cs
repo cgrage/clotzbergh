@@ -193,10 +193,19 @@ namespace Clotzbergh.Server
             }
         }
 
+        /// <summary>
+        /// A color per cell, where no two cells sharing a face ever get the same one. A step
+        /// along any axis flips the parity of x+y+z, so letting that parity pick which half of
+        /// the palette to draw from separates neighbors no matter what the hash returns. Cells
+        /// meeting only at an edge or corner keep the same parity and may well collide.
+        /// </summary>
         public static KlotzColor UniqueColor(int x, int y, int z)
         {
-            int h = Hash3(x, y, z);
-            return (KlotzColor)(Math.Abs(h) % (int)KlotzColor.Count);
+            int parity = (x + y + z) & 1;
+            int half = (int)KlotzColor.Count / 2;
+            int h = Hash3(x, y, z) & 0x7fffffff;
+
+            return (KlotzColor)(2 * (h % half) + parity);
         }
     }
 }
