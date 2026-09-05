@@ -11,7 +11,8 @@
 | Movement | W-A-S-D or arrow keys |
 | Jump | Space-Bar |
 | Run | Left Shift |
-| Crouch | R |
+| Crouch | Left Ctrl or C |
+| Take Klotz | Left Mouse Button |
 | Selection Mode | Mouse Wheel |
 | Toggle Studs | F11 |
 | Toggle Debug Panel | F12 |

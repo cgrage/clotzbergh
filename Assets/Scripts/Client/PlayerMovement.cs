@@ -83,12 +83,14 @@ namespace Clotzbergh.Client
                 moveDirection.y -= gravity * Time.deltaTime;
             }
 
-            if ((keyboard?.rKey.isPressed ?? false) && canMove)
+            bool isCrouching = keyboard != null &&
+                (keyboard.leftCtrlKey.isPressed || keyboard.cKey.isPressed);
+
+            if (isCrouching && canMove)
             {
                 characterController.height = crouchHeight;
                 walkSpeed = crouchSpeed;
                 runSpeed = crouchSpeed;
-
             }
             else
             {
