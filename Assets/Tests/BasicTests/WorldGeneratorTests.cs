@@ -107,7 +107,7 @@ public class WorldGeneratorTests
         }
         stopwatch.Stop();
 
-        Debug.Log($"Created {chunks.Count} chunks in {stopwatch.ElapsedMilliseconds:.0} ms");
+        TestContext.WriteLine($"Created {chunks.Count} chunks in {stopwatch.ElapsedMilliseconds:.0} ms");
 
         foreach (WorldChunk chunk in chunks)
         {
@@ -127,7 +127,7 @@ public class WorldGeneratorTests
             }
 
             CheckChunkHasNoContradictions(chunk);
-            Debug.Log($"Klotz-Count: {klotzCount}, Opaque-Count {opaqueCount}, Air-Count: {airCount}");
+            TestContext.WriteLine($"Klotz-Count: {klotzCount}, Opaque-Count {opaqueCount}, Air-Count: {airCount}");
         }
     }
 

@@ -2,7 +2,6 @@ using System;
 using Clotzbergh.Server.ChunkGeneration;
 using Clotzbergh.Server.StructureGeneration;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Clotzbergh.Server
 {

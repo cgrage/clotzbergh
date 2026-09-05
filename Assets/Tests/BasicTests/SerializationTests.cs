@@ -74,10 +74,15 @@ public class SerializationTests
         {
             using BinaryReader r = new(rs);
             {
+                // Same field order as WorldChunk.Serialize writes them in.
+                uint formatId = r.ReadUInt32();
+                ulong checksum = r.ReadUInt64();
                 uint bits = r.ReadUInt32();
                 bool asList = (bits & (1 << 31)) != 0;
                 int klotzCount = (int)(bits & ~(1 << 31));
-                Debug.Log($"Introspect: klotzCount={klotzCount}, asList={asList}, size={data.Length}");
+                TestContext.WriteLine(
+                    $"Introspect: format={formatId:x8}, checksum={checksum:x16}, " +
+                    $"klotzCount={klotzCount}, asList={asList}, size={data.Length}");
 
                 rs.Position = 0; // reset
                 return WorldChunk.Deserialize(r);

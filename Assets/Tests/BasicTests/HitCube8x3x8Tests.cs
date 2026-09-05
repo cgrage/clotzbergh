@@ -89,10 +89,10 @@ public class HelperTypeTests
         HitCube8x3x8 k2hc = HitCube8x3x8.FromType(k2Type);
         HitCube8x3x8 k1hc = HitCube8x3x8.Draw(k1Type, relPos);
 
-        Debug.Log($"{k2Type} at {k2Pos}:");
-        Debug.Log($"{k2hc}");
-        Debug.Log($"{k1Type} from {relPos}:");
-        Debug.Log($"{k1hc}");
+        TestContext.WriteLine($"{k2Type} at {k2Pos}:");
+        TestContext.WriteLine($"{k2hc}");
+        TestContext.WriteLine($"{k1Type} from {relPos}:");
+        TestContext.WriteLine($"{k1hc}");
 
         bool doIntersect = DoIntersectReferenceImpl(
             k1Pos, k1Type, KlotzDirection.ToPosX,

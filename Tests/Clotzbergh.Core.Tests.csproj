@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Runs the BasicTests outside Unity, via "dotnet test Tests/Clotzbergh.Core.Tests.csproj".
+
+    It compiles the same source files the Unity assemblies do, so there is one copy of both the
+    tests and the code under test. Only the parts of Assets/Scripts that do not need a running
+    engine are included - the client and server hosting layers are not.
+
+    UnityEngine.CoreModule supplies Vector3Int, Mathf and BoundsInt, which are plain managed code
+    and work fine here. Anything backed by a native call does not: Mathf.PerlinNoise and
+    Debug.Log throw outside the engine. Both exist in the compiled sources but sit in methods the
+    tests never reach - the tests supply their own IHeightMap instead of the Perlin-based one.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Clotzbergh.Core.Tests</AssemblyName>
+    <RootNamespace>Clotzbergh.Tests</RootNamespace>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Assets\Scripts\*.cs" />
+    <!-- GameServer and WorldMap host the server: sockets, files and MonoBehaviour. -->
+    <Compile Include="..\Assets\Scripts\Server\*.cs"
+             Exclude="..\Assets\Scripts\Server\GameServer.cs;..\Assets\Scripts\Server\WorldMap.cs" />
+    <Compile Include="..\Assets\Scripts\Server\ChunkGeneration\*.cs" />
+    <Compile Include="..\Assets\Scripts\Server\StructureGeneration\*.cs" />
+    <Compile Include="..\Assets\Tests\BasicTests\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <!--
+    Located rather than hard-coded, so the project works across machines with different Unity
+    versions. Set UnityManagedDir explicitly if several versions are installed.
+  -->
+  <PropertyGroup>
+    <UnityHubEditorDir Condition="'$(UnityHubEditorDir)' == ''">C:\Program Files\Unity\Hub\Editor</UnityHubEditorDir>
+  </PropertyGroup>
+
+  <Target Name="ResolveUnityManagedDir" BeforeTargets="BeforeResolveReferences" Condition="'$(UnityManagedDir)' == ''">
+    <ItemGroup>
+      <UnityCoreModuleCandidate Include="$(UnityHubEditorDir)\*\Editor\Data\Managed\UnityEngine\UnityEngine.CoreModule.dll" />
+    </ItemGroup>
+
+    <Error Condition="'@(UnityCoreModuleCandidate)' == ''"
+           Text="No UnityEngine.CoreModule.dll found under $(UnityHubEditorDir). Pass -p:UnityManagedDir=&lt;path to Editor\Data\Managed\UnityEngine&gt;." />
+
+    <PropertyGroup>
+      <UnityManagedDir>%(UnityCoreModuleCandidate.RootDir)%(UnityCoreModuleCandidate.Directory)</UnityManagedDir>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="AddUnityReference" BeforeTargets="BeforeResolveReferences" DependsOnTargets="ResolveUnityManagedDir">
+    <ItemGroup>
+      <Reference Include="UnityEngine.CoreModule">
+        <HintPath>$(UnityManagedDir)UnityEngine.CoreModule.dll</HintPath>
+        <!-- Copied to the output, or the test host cannot load the assembly and finds no tests. -->
+        <Private>true</Private>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+</Project>

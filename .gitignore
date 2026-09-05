@@ -43,6 +43,11 @@ ExportedObj/
 *.svd
 *.pdb
 *.mdb
+
+# Hand-written, unlike the generated project files above
+!/Tests/*.csproj
+/Tests/bin/
+/Tests/obj/
 *.opendb
 *.VC.db
 

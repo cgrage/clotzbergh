@@ -74,7 +74,7 @@ public class KlotzTests
             bytes = memoryStream.ToArray();
         }
 
-        Debug.Log($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
+        TestContext.WriteLine($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
 
         using (MemoryStream memoryStream = new(bytes))
         {
@@ -113,7 +113,7 @@ public class KlotzTests
             bytes = memoryStream.ToArray();
         }
 
-        Debug.Log($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
+        TestContext.WriteLine($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
 
         using (MemoryStream memoryStream = new(bytes))
         {
@@ -170,7 +170,7 @@ public class KlotzTests
             bytes = memoryStream.ToArray();
         }
 
-        Debug.Log($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
+        TestContext.WriteLine($"Bytes: {string.Join(" ", bytes.Select(b => $"0x{b:X2} "))}");
 
         using (MemoryStream memoryStream = new(bytes))
         {

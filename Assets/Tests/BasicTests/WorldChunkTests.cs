@@ -88,12 +88,12 @@ public class WorldChunkTests
         Assert.AreEqual(99, ChunkCoords.Distance(coords, new ChunkCoords(1, 0, 0)));
 
         Assert.AreEqual(0, ChunkCoords.Distance(coords, new ChunkCoords(100, 0, 0)));
-        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 100, 0)));
-        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 0, 100)));
+        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 100, 0)), 1); // actually sqrt(2) * 100
+        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 0, 100)), 1); // actually sqrt(2) * 100
 
         Assert.AreEqual(200, ChunkCoords.Distance(coords, new ChunkCoords(-100, 0, 0)));
-        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, -100, 0)));
-        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 0, -100)));
+        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, -100, 0)), 1); // actually sqrt(2) * 100
+        Assert.AreEqual(141, ChunkCoords.Distance(coords, new ChunkCoords(0, 0, -100)), 1); // actually sqrt(2) * 100
     }
 
     [Test]
