@@ -22,6 +22,7 @@ namespace Clotzbergh.Server
         private readonly List<Thread> _saverThreads;
         private readonly BlockingCollection<LoaderThreadArgs> _generationRequestQueue;
         private readonly List<ChunkCoords> _toSaveList;
+        private bool _warnedFailedChunkLoad;
         private ulong _clientListVersion;
 
         private class LoaderThreadArgs
@@ -406,9 +407,16 @@ namespace Clotzbergh.Server
 
                 return WorldChunk.Deserialize(reader);
             }
-            catch
+            catch (Exception e)
             {
-                Debug.LogWarning($"Failed to load chunk {coords}.");
+                // Stored chunks are regenerated when unreadable, and a format change makes every
+                // one of them unreadable at once - so report the reason once instead of per file.
+                if (!_warnedFailedChunkLoad)
+                {
+                    _warnedFailedChunkLoad = true;
+                    Debug.LogWarning($"Failed to load chunk {coords}, regenerating instead: {e.Message}");
+                }
+
                 return null;
             }
         }

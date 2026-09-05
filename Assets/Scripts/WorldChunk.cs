@@ -14,6 +14,45 @@ namespace Clotzbergh
         private int _klotzCount;
         private ulong _checksum;
 
+        /// <summary>
+        /// Bump for changes to the serialized layout that <see cref="ComputeFormatId"/> cannot
+        /// see by itself, such as SubKlotz's bit packing or the order fields are written in.
+        /// </summary>
+        private const uint LayoutVersion = 1;
+
+        /// <summary>
+        /// Identifies what a serialized chunk's bytes mean. Derived from the klotz tables and
+        /// the chunk size rather than maintained by hand, so renumbering a klotz type or
+        /// resizing a chunk changes it on its own - those are exactly the changes that would
+        /// otherwise read back as valid data with a different meaning.
+        /// </summary>
+        public static readonly uint FormatId = ComputeFormatId();
+
+        private static uint ComputeFormatId()
+        {
+            uint hash = 2166136261; // FNV-1a
+
+            void Feed(string text)
+            {
+                foreach (char c in text)
+                {
+                    hash ^= c;
+                    hash *= 16777619;
+                }
+            }
+
+            Feed($"v{LayoutVersion};");
+            Feed($"{WorldDef.ChunkSubDivsX}x{WorldDef.ChunkSubDivsY}x{WorldDef.ChunkSubDivsZ};");
+
+            foreach (KlotzType type in (KlotzType[])Enum.GetValues(typeof(KlotzType)))
+                Feed($"{(int)type}:{type};");
+
+            foreach (KlotzColor color in (KlotzColor[])Enum.GetValues(typeof(KlotzColor)))
+                Feed($"{(int)color}:{color};");
+
+            return hash;
+        }
+
         public WorldChunk()
         {
             _klotzCount = 0;
@@ -192,6 +231,7 @@ namespace Clotzbergh
             int fillLevel = (_klotzCount * 100) / WorldDef.SubKlotzPerChunkCount;
             bool asList = fillLevel < UseListIfFillLevelInPercent;
 
+            w.Write(FormatId);
             w.Write(_checksum);
 
             if (asList)
@@ -223,6 +263,14 @@ namespace Clotzbergh
         public static WorldChunk Deserialize(BinaryReader r)
         {
             WorldChunk chunk = new();
+
+            uint formatId = r.ReadUInt32();
+            if (formatId != FormatId)
+            {
+                throw new InvalidDataException(
+                    $"Chunk format id {formatId:x8} does not match this build's {FormatId:x8}. " +
+                    "The data was written with a different klotz table or chunk size.");
+            }
 
             ulong checksum = r.ReadUInt64();
 
