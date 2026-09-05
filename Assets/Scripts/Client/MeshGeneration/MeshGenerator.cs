@@ -81,6 +81,9 @@ namespace Clotzbergh.Client.MeshGeneration
                         {
                             // isRoot is guaranteed true here: non-root cells of non-primitive
                             // klotzes are never exposed, so they were already filtered above.
+                            if (reader.IsCut)
+                                continue;
+
                             if (_nonPrimitiveMeshes.TryGetValue(type, out NonPrimitiveKlotzMesh template))
                             {
                                 builder.MoveTo(x, y, z);

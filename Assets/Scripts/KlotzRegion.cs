@@ -16,25 +16,21 @@ namespace Clotzbergh
             return new AroundKlotzRegion(klotzMin, klotzMax, radius, height);
         }
 
+        /// <summary>
+        /// Whether a chunk's mesh is affected by this region. Includes chunks holding klotzes
+        /// that only reach into the region, since those are cut away whole.
+        /// </summary>
         public abstract bool Touches(ChunkCoords chunkCoords);
 
-        public bool Contains(ChunkCoords chunkCoords, int x, int y, int z)
-        {
-            return ContainsAbs(
-                x + chunkCoords.X * WorldDef.ChunkSubDivsX,
-                y + chunkCoords.Y * WorldDef.ChunkSubDivsY,
-                z + chunkCoords.Z * WorldDef.ChunkSubDivsZ);
-        }
+        /// <summary>
+        /// Bounds no part of the region falls outside of.
+        /// </summary>
+        public abstract BoundsInt RoughBounds { get; }
 
-        public bool Contains(AbsKlotzCoords absKlotzCoords)
-        {
-            return ContainsAbs(
-                absKlotzCoords.X,
-                absKlotzCoords.Y,
-                absKlotzCoords.Z);
-        }
-
-        public abstract bool ContainsAbs(int x, int y, int z);
+        /// <summary>
+        /// Whether any cell of the inclusive range from min to max lies within the region.
+        /// </summary>
+        public abstract bool IntersectsAbs(AbsKlotzCoords min, AbsKlotzCoords max);
 
         public bool IsEmpty { get { return this is EmptyKlotzRegion; } }
     }
@@ -45,7 +41,9 @@ namespace Clotzbergh
 
         public override bool Touches(ChunkCoords chunkCoords) { return false; }
 
-        public override bool ContainsAbs(int x, int y, int z) { return false; }
+        public override BoundsInt RoughBounds => default;
+
+        public override bool IntersectsAbs(AbsKlotzCoords min, AbsKlotzCoords max) { return false; }
     }
 
     /// <summary>
@@ -60,6 +58,7 @@ namespace Clotzbergh
         private readonly int _radius;
         private readonly int _height;
         private readonly BoundsInt _roughBounds;
+        private readonly BoundsInt _reachBounds;
 
         /// <summary>
         /// The region sits on top of the klotz rather than being centred on it - centred, it
@@ -77,7 +76,18 @@ namespace Clotzbergh
             _roughBounds = new(
                 klotzMin.X - radius, Bottom, klotzMin.Z - radius,
                 klotzMax.X - klotzMin.X + radius * 2, height, klotzMax.Z - klotzMin.Z + radius * 2);
+
+            // Klotzes are cut away whole, so one reaching into the region from a neighbouring
+            // chunk changes that chunk's mesh too. Horizontal and vertical reach differ a lot -
+            // a single value would pull in chunks that cannot be affected at all.
+            int reachXZ = KlotzKB.MaxExtentXZ;
+            int reachY = KlotzKB.MaxExtentY;
+            _reachBounds = new(
+                _roughBounds.xMin - reachXZ, _roughBounds.yMin - reachY, _roughBounds.zMin - reachXZ,
+                _roughBounds.size.x + 2 * reachXZ, _roughBounds.size.y + 2 * reachY, _roughBounds.size.z + 2 * reachXZ);
         }
+
+        public override BoundsInt RoughBounds => _roughBounds;
 
         public override bool Touches(ChunkCoords chunkCoords)
         {
@@ -87,18 +97,18 @@ namespace Clotzbergh
                 chunkCoords.Z * WorldDef.ChunkSubDivsZ,
                 WorldDef.ChunkSubDivsX, WorldDef.ChunkSubDivsY, WorldDef.ChunkSubDivsZ);
 
-            return chunkBounds.Touches(_roughBounds);
+            return chunkBounds.Touches(_reachBounds);
         }
 
-        public override bool ContainsAbs(int x, int y, int z)
+        public override bool IntersectsAbs(AbsKlotzCoords min, AbsKlotzCoords max)
         {
-            if (y < Bottom || y > Top)
+            if (max.Y < Bottom || min.Y > Top)
                 return false;
 
-            // Distance to the footprint rectangle, which is 0 for anything inside it. Compared
+            // Distance between the two rectangles, which is 0 where they overlap. Compared
             // squared to stay in integers and skip the square root.
-            int dx = Mathf.Max(0, Mathf.Max(_klotzMin.X - x, x - _klotzMax.X));
-            int dz = Mathf.Max(0, Mathf.Max(_klotzMin.Z - z, z - _klotzMax.Z));
+            int dx = Mathf.Max(0, Mathf.Max(_klotzMin.X - max.X, min.X - _klotzMax.X));
+            int dz = Mathf.Max(0, Mathf.Max(_klotzMin.Z - max.Z, min.Z - _klotzMax.Z));
 
             return dx * dx + dz * dz <= _radius * _radius;
         }

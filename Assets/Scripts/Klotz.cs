@@ -38,7 +38,9 @@ namespace Clotzbergh
         // Non-primitive types:
 
         // DoorFrame: 15 units high, studs on top, holes on the bottom
-        DoorFrame1x4,
+        // Shares its value with FirstNonPrimitive, which is a marker rather than a type of its
+        // own - a value of its own would be a gap that KlotzKB.Size has no entry for.
+        DoorFrame1x4 = FirstNonPrimitive,
         // WindowFrame: 9 units high, studs on top, holes on the bottom
         WindowFrame1x4,
         // Single Slopes (45 degrees): 3 units high, studs on top, holes on the bottom
@@ -185,11 +187,50 @@ namespace Clotzbergh
                 KlotzType.Slope45Single2x4 => new(4, 3, 2),
                 KlotzType.Slope45Single2x6 => new(6, 3, 2),
                 KlotzType.Slope45Single2x8 => new(8, 3, 2),
+                KlotzType.Slope45Double2x2 => new(2, 3, 2),
+                KlotzType.Slope45Double2x3 => new(3, 3, 2),
+                KlotzType.Slope45Double2x4 => new(4, 3, 2),
                 KlotzType.Stairs4x7 => new(4, 18, 7),
 
                 KlotzType.Air => KlotzSize.Zero,
                 _ => throw new Exception($"Unknown size for type {t}")
             };
+        }
+
+        /// <summary>
+        /// How far apart two cells of one klotz can sit horizontally. X and Z share a value
+        /// because a rotated klotz swaps the two.
+        /// </summary>
+        public static readonly int MaxExtentXZ = ComputeMaxExtentXZ();
+
+        /// <summary>
+        /// How far apart two cells of one klotz can sit vertically.
+        /// </summary>
+        public static readonly int MaxExtentY = ComputeMaxExtentY();
+
+        private static int ComputeMaxExtentXZ()
+        {
+            int max = 0;
+
+            for (KlotzType t = 0; t < KlotzType.Count; t++)
+            {
+                KlotzSize size = Size(t);
+                max = Math.Max(max, Math.Max(size.X, size.Z));
+            }
+
+            return max;
+        }
+
+        private static int ComputeMaxExtentY()
+        {
+            int max = 0;
+
+            for (KlotzType t = 0; t < KlotzType.Count; t++)
+            {
+                max = Math.Max(max, Size(t).Y);
+            }
+
+            return max;
         }
 
         public static bool IsSubKlotzOpaque(KlotzType t, int subIdxX, int subIdxY, int subIdxZ)
