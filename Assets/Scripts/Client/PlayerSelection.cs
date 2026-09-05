@@ -6,16 +6,33 @@ namespace Clotzbergh.Client
 {
     public class PlayerSelection : MonoBehaviour
     {
-        public enum SelectionModes
+        public enum SelectionTool
         {
             None,
-            Klotz,
-            HorizontalCircleSmall,
-            HorizontalCircleMedium,
-            HorizontalCircleLarge,
+            SingleKlotz,
+            DigSmall,
+            DigMedium,
+            DigLarge,
+            LevelSmall,
+            LevelMedium,
+            LevelLarge,
         }
 
-        private SelectionModes _selectionMode = SelectionModes.None;
+        /// <summary>
+        /// How far a multi-klotz selection reaches beyond the klotz it is aimed at, in
+        /// sub-klotzes. Radius applies to X/Z, vertical reach to Y.
+        /// </summary>
+        public static class SelectionSizes
+        {
+            public const int SmallRadius = 1;
+            public const int SmallVerticalReach = 1;
+            public const int MediumRadius = 2;
+            public const int MediumVerticalReach = 2;
+            public const int LargeRadius = 3;
+            public const int LargeVerticalReach = 3;
+        }
+
+        private SelectionTool _selectionTool = SelectionTool.None;
         private Vector3 _viewedPosition = Vector3.zero;
         private ClientChunk _viewedChunk = null;
         private KlotzWorldData _viewedKlotz = null;
@@ -36,7 +53,7 @@ namespace Clotzbergh.Client
         public ClientChunk ViewedChunk { get => _viewedChunk; } // for debug UI
         public KlotzWorldData ViewedKlotz { get => _viewedKlotz; } // for debug UI
 
-        public SelectionModes SelectionMode { get => _selectionMode; }
+        public SelectionTool CurrentTool { get => _selectionTool; }
 
         private class PlayerView
         {
@@ -61,7 +78,7 @@ namespace Clotzbergh.Client
             if (_highlightBox == null)
                 return;
 
-            bool modeChanged = HandleModeChanges();
+            bool toolChanged = HandleToolChanges();
 
             var view = GetPlayerView();
             bool viewChanged;
@@ -81,7 +98,7 @@ namespace Clotzbergh.Client
                 _viewedPosition = Vector3.zero;
             }
 
-            if (viewChanged || modeChanged)
+            if (viewChanged || toolChanged)
             {
                 _selectionChangeCount++;
                 UpdateSelection();
@@ -97,7 +114,7 @@ namespace Clotzbergh.Client
         {
             bool cutoutWasEmpty = _cutout.IsEmpty;
 
-            if (_viewedKlotz == null || _selectionMode == SelectionModes.None)
+            if (_viewedKlotz == null || _selectionTool == SelectionTool.None)
             {
                 _highlightBox.SetActive(false);
                 _cutout = KlotzRegion.Empty;
@@ -113,15 +130,21 @@ namespace Clotzbergh.Client
                 AbsKlotzCoords klotzMin = relMin.ToAbs(_viewedChunk.Coords);
                 AbsKlotzCoords klotzMax = relMax.ToAbs(_viewedChunk.Coords);
 
-                _cutout = _selectionMode switch
+                _cutout = _selectionTool switch
                 {
-                    SelectionModes.Klotz => KlotzRegion.Empty,
-                    SelectionModes.HorizontalCircleSmall => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        WorldDef.SelectionSizes.SmallRadius, WorldDef.SelectionSizes.SmallHeight),
-                    SelectionModes.HorizontalCircleMedium => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        WorldDef.SelectionSizes.MediumRadius, WorldDef.SelectionSizes.MediumHeight),
-                    SelectionModes.HorizontalCircleLarge => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        WorldDef.SelectionSizes.LargeRadius, WorldDef.SelectionSizes.LargeHeight),
+                    SelectionTool.SingleKlotz => KlotzRegion.Empty,
+                    SelectionTool.DigSmall => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        SelectionSizes.SmallRadius, SelectionSizes.SmallVerticalReach),
+                    SelectionTool.DigMedium => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        SelectionSizes.MediumRadius, SelectionSizes.MediumVerticalReach),
+                    SelectionTool.DigLarge => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
+                        SelectionSizes.LargeRadius, SelectionSizes.LargeVerticalReach),
+                    SelectionTool.LevelSmall => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
+                        SelectionSizes.SmallRadius, SelectionSizes.SmallVerticalReach),
+                    SelectionTool.LevelMedium => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
+                        SelectionSizes.MediumRadius, SelectionSizes.MediumVerticalReach),
+                    SelectionTool.LevelLarge => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
+                        SelectionSizes.LargeRadius, SelectionSizes.LargeVerticalReach),
                     _ => KlotzRegion.Empty,
                 };
             }
@@ -161,24 +184,24 @@ namespace Clotzbergh.Client
             };
         }
 
-        private static SelectionModes NextSelectionMode(SelectionModes current, int direction)
+        private static SelectionTool NextSelectionTool(SelectionTool current, int direction)
         {
-            var modes = (SelectionModes[])Enum.GetValues(typeof(SelectionModes));
-            int newIndex = (Array.IndexOf(modes, current) + direction + modes.Length) % modes.Length;
-            return modes[newIndex];
+            var tools = (SelectionTool[])Enum.GetValues(typeof(SelectionTool));
+            int newIndex = (Array.IndexOf(tools, current) + direction + tools.Length) % tools.Length;
+            return tools[newIndex];
         }
 
         /// <summary>
-        /// Handles changes to the selection mode based on user input.
+        /// Handles changes to the selection tool based on user input.
         /// </summary>
-        /// <returns>true if the selection mode was changed, false otherwise</returns>
-        private bool HandleModeChanges()
+        /// <returns>true if the selection tool was changed, false otherwise</returns>
+        private bool HandleToolChanges()
         {
-            // IF mouse wheel is used, change selection mode
+            // IF mouse wheel is used, change selection tool
             if (Mouse.current.scroll.value.y != 0)
             {
                 int direction = Mouse.current.scroll.value.y > 0 ? -1 : 1;
-                _selectionMode = NextSelectionMode(_selectionMode, direction);
+                _selectionTool = NextSelectionTool(_selectionTool, direction);
 
                 return true;
             }

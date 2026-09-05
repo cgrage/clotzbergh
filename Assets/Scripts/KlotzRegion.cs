@@ -11,9 +11,25 @@ namespace Clotzbergh
 
         protected KlotzRegion() { }
 
-        public static KlotzRegion AroundKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int height)
+        /// <summary>
+        /// The klotz grown by the radius horizontally and by the vertical reach in both
+        /// directions, so it reaches as far below what the player is aiming at as above.
+        /// </summary>
+        public static KlotzRegion AroundKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int verticalReach)
         {
-            return new AroundKlotzRegion(klotzMin, klotzMax, radius, height);
+            return new NearKlotzRegion(klotzMin, klotzMax, radius,
+                klotzMin.Y - verticalReach, klotzMax.Y + verticalReach);
+        }
+
+        /// <summary>
+        /// The same footprint, but starting just above the klotz - everything standing higher
+        /// than its top face within the radius, and nothing at or below it. Levelling a patch
+        /// of ground to the height of the klotz aimed at, which itself stays.
+        /// </summary>
+        public static KlotzRegion AboveKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int verticalReach)
+        {
+            return new NearKlotzRegion(klotzMin, klotzMax, radius,
+                klotzMax.Y + 1, klotzMax.Y + verticalReach);
         }
 
         /// <summary>
@@ -47,35 +63,34 @@ namespace Clotzbergh
     }
 
     /// <summary>
-    /// Everything within a radius of a klotz, horizontally. Since the klotz's footprint is not
-    /// generally square, this is not a circle but that footprint grown by the radius in X/Z -
-    /// a rectangle with rounded corners, which for a 1x1 klotz is a circle again.
+    /// A klotz's footprint grown by a radius horizontally, over an explicit range of heights.
+    /// Since the footprint is not generally square, the horizontal shape is not a circle but a
+    /// rectangle with rounded corners, which for a 1x1 klotz is a circle again. Where the
+    /// vertical range sits relative to the klotz is what separates the tools - see the factory
+    /// methods on <see cref="KlotzRegion"/>.
     /// </summary>
-    public class AroundKlotzRegion : KlotzRegion
+    public class NearKlotzRegion : KlotzRegion
     {
         private readonly AbsKlotzCoords _klotzMin;
         private readonly AbsKlotzCoords _klotzMax;
         private readonly int _radius;
-        private readonly int _height;
+        private readonly int _bottom;
+        private readonly int _top;
         private readonly BoundsInt _roughBounds;
         private readonly BoundsInt _reachBounds;
 
-        /// <summary>
-        /// The region sits on top of the klotz rather than being centred on it - centred, it
-        /// would cut away mostly below what the player is looking at.
-        /// </summary>
-        private int Bottom => _klotzMin.Y;
-        private int Top => _klotzMin.Y + _height;
-
-        public AroundKlotzRegion(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int height)
+        public NearKlotzRegion(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int bottom, int top)
         {
             _klotzMin = klotzMin;
             _klotzMax = klotzMax;
             _radius = radius;
-            _height = height;
+            _bottom = bottom;
+            _top = top;
             _roughBounds = new(
-                klotzMin.X - radius, Bottom, klotzMin.Z - radius,
-                klotzMax.X - klotzMin.X + radius * 2, height, klotzMax.Z - klotzMin.Z + radius * 2);
+                klotzMin.X - radius, bottom, klotzMin.Z - radius,
+                klotzMax.X - klotzMin.X + radius * 2,
+                top - bottom,
+                klotzMax.Z - klotzMin.Z + radius * 2);
 
             // Klotzes are cut away whole, so one reaching into the region from a neighbouring
             // chunk changes that chunk's mesh too. Horizontal and vertical reach differ a lot -
@@ -102,7 +117,7 @@ namespace Clotzbergh
 
         public override bool IntersectsAbs(AbsKlotzCoords min, AbsKlotzCoords max)
         {
-            if (max.Y < Bottom || min.Y > Top)
+            if (max.Y < _bottom || min.Y > _top)
                 return false;
 
             // Distance between the two rectangles, which is 0 where they overlap. Compared

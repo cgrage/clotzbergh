@@ -15,8 +15,8 @@ namespace Clotzbergh.Client
             if (!TryGetComponent<TextMeshProUGUI>(out var textMeshPro))
                 return;
 
-            string selectionMode = PlayerSelection.SelectionMode.ToString();
-            textMeshPro.text = $"Selection Mode: {selectionMode}";
+            string selectionTool = PlayerSelection.CurrentTool.ToString();
+            textMeshPro.text = $"Selection Tool: {selectionTool}";
         }
     }
 }

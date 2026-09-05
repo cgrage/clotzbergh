@@ -41,21 +41,6 @@ namespace Clotzbergh
         }
 
         /// <summary>
-        /// Sizes of the multi-klotz selections, in sub-klotzes. Radius applies to X/Z, height to
-        /// Y - and a sub-klotz is 2.5 times shorter in Y than in X/Z, so equal numbers would not
-        /// give equal distances.
-        /// </summary>
-        public static class SelectionSizes
-        {
-            public const int SmallRadius = 1;
-            public const int SmallHeight = 3;
-            public const int MediumRadius = 2;
-            public const int MediumHeight = 6;
-            public const int LargeRadius = 3;
-            public const int LargeHeight = 9;
-        }
-
-        /// <summary>
         /// Where all the sizing is based on
         /// </summary>
         private static class Fundamentals
