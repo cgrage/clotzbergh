@@ -179,7 +179,8 @@ namespace Clotzbergh.Server
             if (worldState == null || worldState.Version == 0)
                 return null;
 
-            // TODO: Problem: chunk can change at any moment in time / async
+            // Safe to hand out without copying: a chunk is never written to in place, it is
+            // replaced by an updated copy (see PlayerApplyTool).
             return new()
             {
                 Coords = next.Value,
@@ -226,47 +227,71 @@ namespace Clotzbergh.Server
         /// stays the server's decision. It can span several chunks, each of which is complete on
         /// its own because no klotz straddles a chunk border.
         /// </summary>
-        public void PlayerApplyTool(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, ulong sequence)
+        /// <summary>
+        /// The range the klotz at the given address occupies, or false if there is no klotz
+        /// there. Rejects anything but a root cell, so a client cannot point into the middle of
+        /// one and have its type read out of the wrong bits. Callers hold the _worldState lock.
+        /// </summary>
+        private bool TryGetOccupiedRange(KlotzAddress address, out AbsKlotzCoords min, out AbsKlotzCoords max)
         {
-            WorldChunkState aimedState = GetWorldState(chunkCoords);
-            if (aimedState == null || aimedState.Chunk == null)
-            {
-                // this should not happen..
-                return;
-            }
+            min = default;
+            max = default;
 
+            if (!_worldState.TryGetValue(address.Chunk, out WorldChunkState state) || state.Chunk == null)
+                return false;
+
+            SubKlotz klotz = state.Chunk.Get(address.Inner);
+            if (!klotz.IsRootAndNotAir)
+                return false;
+
+            (RelKlotzCoords relMin, RelKlotzCoords relMax) = SubKlotz.TranslateToOccupiedRange(
+                address.Inner, klotz.Type, klotz.Direction);
+
+            min = relMin.ToAbs(address.Chunk);
+            max = relMax.ToAbs(address.Chunk);
+            return true;
+        }
+
+        public void PlayerApplyTool(ClientId id, KlotzAddress target, KlotzAddress anchor, SelectionTool tool, ulong sequence)
+        {
             List<ChunkCoords> changed = new();
 
             lock (_worldState)
             {
-                SubKlotz aimed = aimedState.Chunk.Get(innerChunkCoords);
-                if (aimed.IsRoot && aimed.IsAir)
-                    return;
-
-                (RelKlotzCoords relMin, RelKlotzCoords relMax) = SubKlotz.TranslateToOccupiedRange(
-                    innerChunkCoords, aimed.Type, aimed.Direction);
-
-                KlotzRegion region = SelectionTools.RegionFor(
-                    tool, relMin.ToAbs(chunkCoords), relMax.ToAbs(chunkCoords));
-
-                if (region.IsEmpty)
-                    return;
-
-                foreach (var entry in _worldState)
+                // The anchor's height is read off the server's own world rather than taken from
+                // the client, which only gets to say which klotz it belongs to.
+                if (TryGetOccupiedRange(target, out AbsKlotzCoords targetMin, out AbsKlotzCoords targetMax) &&
+                    TryGetOccupiedRange(anchor, out _, out AbsKlotzCoords anchorMax))
                 {
-                    if (entry.Value.Chunk == null || !region.Touches(entry.Key))
-                        continue;
+                    KlotzRegion region = SelectionTools.RegionFor(tool, targetMin, targetMax, anchorMax.Y);
 
-                    if (entry.Value.Chunk.RemoveKlotzesIn(region, entry.Key).Count == 0)
-                        continue;
+                    foreach (var entry in _worldState)
+                    {
+                        if (entry.Value.Chunk == null || !region.Touches(entry.Key))
+                            continue;
 
-                    entry.Value.Version++;
-                    changed.Add(entry.Key);
+                        List<RelKlotzCoords> hits = entry.Value.Chunk.FindKlotzesIn(region, entry.Key);
+                        if (hits.Count == 0)
+                            continue;
+
+                        // Changed on a copy that then replaces the old one, so a client update
+                        // already serializing the previous instance keeps seeing a chunk that
+                        // holds together instead of one being rewritten underneath it.
+                        WorldChunk updated = entry.Value.Chunk.Clone();
+                        foreach (RelKlotzCoords root in hits)
+                            updated.RemoveKlotz(root);
+
+                        entry.Value.Chunk = updated;
+                        entry.Value.Version++;
+                        changed.Add(entry.Key);
+                    }
                 }
             }
 
-            // Only once the changes are actually in the chunks - a client that hears its tool use
-            // was processed must be able to rely on the chunk data reflecting it.
+            // Acknowledged whatever came of it, and only once the chunks actually hold the
+            // change. A rejected tool use is a result too: the client drops its prediction on
+            // hearing the sequence was processed, and staying silent here would leave it showing
+            // a change that is never coming.
             ClientWorldMapState clientState = GetClientState(id);
             if (clientState != null && sequence > clientState.LastProcessedToolSequence)
             {

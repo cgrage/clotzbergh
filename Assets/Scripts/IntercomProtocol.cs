@@ -141,15 +141,21 @@ namespace Clotzbergh
         }
 
         /// <summary>
-        /// The player applied a tool to the klotz at the given position. Carries the tool rather
-        /// than the klotzes it hits, so the server works out the affected region itself.
+        /// The player applied a tool to the klotz at Target. Carries the tool rather than the
+        /// klotzes it hits, so the server works out the affected region itself.
+        ///
+        /// Anchor is the klotz the level tools clear down to - the one first aimed at when the
+        /// button went down, so a drag levels to one plane. It is a position rather than a
+        /// height for the same reason the tool is not a region: the server looks it up in its
+        /// own world and takes nothing on the client's word. Equal to Target for every other
+        /// tool, and while not dragging.
         /// </summary>
         public class ApplyToolCommand : Command
         {
             const CodeValue CommandCode = CodeValue.ApplyTool;
 
-            public ChunkCoords ChunkCoords;
-            public RelKlotzCoords InnerChunkCoord;
+            public KlotzAddress Target;
+            public KlotzAddress Anchor;
             public SelectionTool Tool;
 
             /// <summary>
@@ -160,39 +166,46 @@ namespace Clotzbergh
             /// </summary>
             public ulong Sequence;
 
-            public ApplyToolCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord, SelectionTool tool, ulong sequence)
+            public ApplyToolCommand(KlotzAddress target, KlotzAddress anchor, SelectionTool tool, ulong sequence)
                 : base(CommandCode)
             {
-                ChunkCoords = coords;
-                InnerChunkCoord = innerChunkCoord;
+                Target = target;
+                Anchor = anchor;
                 Tool = tool;
                 Sequence = sequence;
             }
 
             public ApplyToolCommand(BinaryReader r) : base(CommandCode)
             {
-                ChunkCoords = new ChunkCoords(
-                    r.ReadInt32(),
-                    r.ReadInt32(),
-                    r.ReadInt32());
-                InnerChunkCoord = new RelKlotzCoords(
-                    r.ReadInt32(),
-                    r.ReadInt32(),
-                    r.ReadInt32());
+                Target = ReadAddress(r);
+                Anchor = ReadAddress(r);
                 Tool = (SelectionTool)r.ReadByte();
                 Sequence = r.ReadUInt64();
             }
 
             protected override void Serialize(BinaryWriter w)
             {
-                w.Write(ChunkCoords.X);
-                w.Write(ChunkCoords.Y);
-                w.Write(ChunkCoords.Z);
-                w.Write(InnerChunkCoord.X);
-                w.Write(InnerChunkCoord.Y);
-                w.Write(InnerChunkCoord.Z);
+                WriteAddress(w, Target);
+                WriteAddress(w, Anchor);
                 w.Write((byte)Tool);
                 w.Write(Sequence);
+            }
+
+            private static KlotzAddress ReadAddress(BinaryReader r)
+            {
+                ChunkCoords chunk = new(r.ReadInt32(), r.ReadInt32(), r.ReadInt32());
+                RelKlotzCoords inner = new(r.ReadInt32(), r.ReadInt32(), r.ReadInt32());
+                return new KlotzAddress(chunk, inner);
+            }
+
+            private static void WriteAddress(BinaryWriter w, KlotzAddress address)
+            {
+                w.Write(address.Chunk.X);
+                w.Write(address.Chunk.Y);
+                w.Write(address.Chunk.Z);
+                w.Write(address.Inner.X);
+                w.Write(address.Inner.Y);
+                w.Write(address.Inner.Z);
             }
         }
     }

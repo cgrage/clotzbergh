@@ -101,7 +101,7 @@ namespace Clotzbergh.Client
         /// borders, so every loaded chunk it touches predicts its own share - which is complete
         /// per chunk, as no klotz straddles a border.
         /// </summary>
-        public void ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region)
+        public void ApplyTool(KlotzAddress target, KlotzAddress anchor, SelectionTool tool, KlotzRegion region)
         {
             if (region.IsEmpty)
                 return;
@@ -112,7 +112,7 @@ namespace Clotzbergh.Client
                     chunk.PredictRemoval(region);
             }
 
-            AsyncTerrainOps?.ApplyTool(chunkCoords, innerChunkCoords, tool, region);
+            AsyncTerrainOps?.ApplyTool(target, anchor, tool, region);
         }
 
         /// <summary>

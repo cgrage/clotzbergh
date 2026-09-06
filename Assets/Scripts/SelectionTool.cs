@@ -40,11 +40,29 @@ namespace Clotzbergh
         private const int LevelLargeHeight = 15;
 
         /// <summary>
+        /// How fast a tool repeats while the button stays held. The region tools clear a lot of
+        /// world per use, so they go slower than picking off single klotzes.
+        /// </summary>
+        private const float SingleKlotzRepeatInterval = 0.175f;
+        private const float RegionRepeatInterval = 0.25f;
+
+        public static float RepeatIntervalFor(SelectionTool tool)
+        {
+            return tool == SelectionTool.SingleKlotz
+                ? SingleKlotzRepeatInterval
+                : RegionRepeatInterval;
+        }
+
+        /// <summary>
         /// The region a tool covers when aimed at the klotz occupying the given range. Both the
         /// selection preview and the action itself go through here, so what is shown and what
         /// is removed cannot drift apart.
+        ///
+        /// anchorTopY is the height the level tools clear down to. It is the target klotz's own
+        /// top while just aiming, and stays at the klotz first aimed at while dragging, so the
+        /// result is one flat plane rather than a track following the ground.
         /// </summary>
-        public static KlotzRegion RegionFor(SelectionTool tool, AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax)
+        public static KlotzRegion RegionFor(SelectionTool tool, AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int anchorTopY)
         {
             return tool switch
             {
@@ -53,9 +71,9 @@ namespace Clotzbergh
                 SelectionTool.DigSmall => KlotzRegion.AroundKlotz(klotzMin, klotzMax, DigSmallRadius),
                 SelectionTool.DigMedium => KlotzRegion.AroundKlotz(klotzMin, klotzMax, DigMediumRadius),
                 SelectionTool.DigLarge => KlotzRegion.AroundKlotz(klotzMin, klotzMax, DigLargeRadius),
-                SelectionTool.LevelSmall => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelSmallRadius, LevelSmallHeight),
-                SelectionTool.LevelMedium => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelMediumRadius, LevelMediumHeight),
-                SelectionTool.LevelLarge => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelLargeRadius, LevelLargeHeight),
+                SelectionTool.LevelSmall => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelSmallRadius, anchorTopY, LevelSmallHeight),
+                SelectionTool.LevelMedium => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelMediumRadius, anchorTopY, LevelMediumHeight),
+                SelectionTool.LevelLarge => KlotzRegion.AboveKlotz(klotzMin, klotzMax, LevelLargeRadius, anchorTopY, LevelLargeHeight),
                 _ => KlotzRegion.Empty,
             };
         }

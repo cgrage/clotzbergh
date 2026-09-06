@@ -352,7 +352,21 @@ namespace Clotzbergh
         /// </summary>
         public List<RelKlotzCoords> RemoveKlotzesIn(KlotzRegion region, ChunkCoords myCoords)
         {
-            List<RelKlotzCoords> removed = new();
+            List<RelKlotzCoords> found = FindKlotzesIn(region, myCoords);
+
+            foreach (RelKlotzCoords root in found)
+                RemoveKlotz(root);
+
+            return found;
+        }
+
+        /// <summary>
+        /// The roots of every klotz of this chunk the region touches, without changing anything -
+        /// so a caller can find out whether it is affected at all before paying for a copy.
+        /// </summary>
+        public List<RelKlotzCoords> FindKlotzesIn(KlotzRegion region, ChunkCoords myCoords)
+        {
+            List<RelKlotzCoords> found = new();
             BoundsInt bounds = region.RoughBounds;
 
             int originX = myCoords.X * WorldDef.ChunkSubDivsX;
@@ -389,13 +403,12 @@ namespace Clotzbergh
                         if (!region.IntersectsAbs(min.ToAbs(myCoords), max.ToAbs(myCoords)))
                             continue;
 
-                        RemoveKlotz(root);
-                        removed.Add(root);
+                        found.Add(root);
                     }
                 }
             }
 
-            return removed;
+            return found;
         }
 
         public void RemoveKlotz(RelKlotzCoords klotzCoords)

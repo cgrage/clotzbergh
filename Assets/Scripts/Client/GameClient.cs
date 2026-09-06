@@ -17,7 +17,7 @@ namespace Clotzbergh.Client
         /// Sends the tool use to the server. The region is not sent - the server derives it from
         /// the tool - but is kept locally to replay the prediction onto incoming chunk data.
         /// </summary>
-        void ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region);
+        void ApplyTool(KlotzAddress target, KlotzAddress anchor, SelectionTool tool, KlotzRegion region);
     }
 
     public class Statistics
@@ -447,14 +447,14 @@ namespace Clotzbergh.Client
             return result;
         }
 
-        void IClientSideOps.ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region)
+        void IClientSideOps.ApplyTool(KlotzAddress target, KlotzAddress anchor, SelectionTool tool, KlotzRegion region)
         {
             ulong sequence = ++_applyToolSequence;
             _pendingToolUses.Add(new PendingToolUse(sequence, region));
 
             _connectionThreadActionQueue.Add((ws) =>
             {
-                IntercomProtocol.ApplyToolCommand cmd = new(chunkCoords, innerChunkCoords, tool, sequence);
+                IntercomProtocol.ApplyToolCommand cmd = new(target, anchor, tool, sequence);
                 ws.Send(cmd.ToBytes());
             });
         }

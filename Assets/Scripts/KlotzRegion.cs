@@ -26,14 +26,15 @@ namespace Clotzbergh
         }
 
         /// <summary>
-        /// The same footprint, but starting just above the klotz - everything standing higher
-        /// than its top face within the radius, and nothing at or below it. Levelling a patch
-        /// of ground to the height of the klotz aimed at, which itself stays.
+        /// The klotz's footprint grown by the radius, covering everything standing higher than
+        /// anchorTopY and nothing at or below it - levelling a patch of ground to that height.
+        /// The height comes separately from the footprint so it can stay put while the player
+        /// drags across uneven ground.
         /// </summary>
-        public static KlotzRegion AboveKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int verticalReach)
+        public static KlotzRegion AboveKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int anchorTopY, int verticalReach)
         {
             return new NearKlotzRegion(klotzMin, klotzMax, radius,
-                klotzMax.Y + 1, klotzMax.Y + verticalReach, ballShaped: false);
+                anchorTopY + 1, anchorTopY + verticalReach, ballShaped: false);
         }
 
         /// <summary>

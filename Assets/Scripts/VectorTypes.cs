@@ -104,6 +104,26 @@ namespace Clotzbergh
         }
     }
 
+    /// <summary>
+    /// Where a klotz sits: which chunk, and where inside it. Keeps the two halves together so a
+    /// call taking more than one of them cannot get them crossed.
+    /// </summary>
+    public readonly struct KlotzAddress
+    {
+        public readonly ChunkCoords Chunk;
+        public readonly RelKlotzCoords Inner;
+
+        public KlotzAddress(ChunkCoords chunk, RelKlotzCoords inner)
+        {
+            Chunk = chunk;
+            Inner = inner;
+        }
+
+        public readonly AbsKlotzCoords ToAbs() => Inner.ToAbs(Chunk);
+
+        public override readonly string ToString() => $"{Chunk}.{Inner}";
+    }
+
     public readonly struct AbsKlotzCoords : IEquatable<AbsKlotzCoords>
     {
         private readonly Vector3Int value;

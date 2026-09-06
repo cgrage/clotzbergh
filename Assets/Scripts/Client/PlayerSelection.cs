@@ -21,7 +21,14 @@ namespace Clotzbergh.Client
         private long _selectionChangeCount = 0;
         private long _cutoutChangeCount = 0;
         private float _timeSinceLastAct;
-        private const float ActRepeatInterval = 0.1f; // How fast the action repeats while held down
+
+        /// <summary>
+        /// The klotz the level tools clear down to, held from the press until the button is
+        /// released. Without it a drag across a slope would follow the ground rather than
+        /// flatten it. Null whenever nothing is held.
+        /// </summary>
+        private KlotzAddress? _toolAnchor = null;
+        private int _toolAnchorTopY = 0;
 
         public long SelectionChangeCount { get => _selectionChangeCount; }
         public long CutoutChangeCount { get => _cutoutChangeCount; }
@@ -117,7 +124,7 @@ namespace Clotzbergh.Client
                 // cutting it away would leave the player aiming at a hole.
                 _cutout = _selectionTool == SelectionTool.SingleKlotz
                     ? KlotzRegion.Empty
-                    : SelectionTools.RegionFor(_selectionTool, klotzMin, klotzMax);
+                    : SelectionTools.RegionFor(_selectionTool, klotzMin, klotzMax, AnchorTopYOr(klotzMax.Y));
             }
 
             if (!cutoutWasEmpty || !_cutout.IsEmpty)
@@ -188,17 +195,45 @@ namespace Clotzbergh.Client
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 _timeSinceLastAct = 0f;
+                SetToolAnchor(selection);
                 ApplyCurrentTool(selection);
             }
             else if (Mouse.current.leftButton.isPressed)
             {
                 _timeSinceLastAct += Time.deltaTime;
-                if (_timeSinceLastAct >= ActRepeatInterval)
+                if (_timeSinceLastAct >= SelectionTools.RepeatIntervalFor(_selectionTool))
                 {
                     _timeSinceLastAct = 0f;
                     ApplyCurrentTool(selection);
                 }
             }
+            else
+            {
+                _toolAnchor = null;
+            }
+        }
+
+        /// <summary>
+        /// The held anchor's height while the button is down, otherwise the fallback - which is
+        /// the aimed klotz's own top. The server derives the same value from the anchor address;
+        /// this copy only drives the preview and the prediction.
+        /// </summary>
+        private int AnchorTopYOr(int fallbackTopY)
+        {
+            return _toolAnchor.HasValue ? _toolAnchorTopY : fallbackTopY;
+        }
+
+        private void SetToolAnchor(PlayerView selection)
+        {
+            if (selection?.viewedChunk == null || selection.viewedKlotz == null)
+            {
+                _toolAnchor = null;
+                return;
+            }
+
+            ChunkCoords chunkCoords = selection.viewedChunk.Coords;
+            _toolAnchor = new KlotzAddress(chunkCoords, selection.viewedKlotz.RootCoords);
+            _toolAnchorTopY = selection.viewedKlotz.OccupiedRange.Max.ToAbs(chunkCoords).Y;
         }
 
         /// <summary>
@@ -213,11 +248,16 @@ namespace Clotzbergh.Client
 
             ChunkCoords chunkCoords = selection.viewedChunk.Coords;
             (RelKlotzCoords relMin, RelKlotzCoords relMax) = selection.viewedKlotz.OccupiedRange;
+            AbsKlotzCoords klotzMin = relMin.ToAbs(chunkCoords);
+            AbsKlotzCoords klotzMax = relMax.ToAbs(chunkCoords);
+
+            KlotzAddress target = new(chunkCoords, selection.viewedKlotz.RootCoords);
+            KlotzAddress anchor = _toolAnchor ?? target;
 
             KlotzRegion region = SelectionTools.RegionFor(
-                _selectionTool, relMin.ToAbs(chunkCoords), relMax.ToAbs(chunkCoords));
+                _selectionTool, klotzMin, klotzMax, AnchorTopYOr(klotzMax.Y));
 
-            ChunkStore.ApplyTool(chunkCoords, selection.viewedKlotz.RootCoords, _selectionTool, region);
+            ChunkStore.ApplyTool(target, anchor, _selectionTool, region);
         }
 
         private void SetSelectionBoxColor(Color color)

@@ -30,7 +30,7 @@ Documentation:
 Code:
 - ☐ Apply and verify some coding guidelines and style
   - ☐ Casing for names of public fields
-- ☐ Rename `TakeKlotz` (command, ops and handlers) to something more general. Carry all world modification actions, not just taking a single klotz.
+- ☑ Rename `TakeKlotz` (command, ops and handlers) to something more general. Carry all world modification actions, not just taking a single klotz. Now `ApplyTool` (2026-Sep-06)
 
 Game-play:
 - ☑ Add colors to klotzes (2024-Nov-03)
@@ -66,6 +66,13 @@ Game-play:
       item itself, or it may have to be taken away again
   - ☑ Multi-klotz collection
     - ☑ Cutout for multi-klotz selection
+    - ☑ Dig tools in three sizes, clearing a ball around the klotz (2026-Sep-06)
+    - ☑ Level tools in three sizes, clearing everything above the klotz (2026-Sep-06)
+    - ☑ Level keeps its height while the button is held, so a drag flattens one plane (2026-Sep-06)
+  - ☐ Server does not check that a tool is used within the player's reach. It knows the player
+    position and the client only aims out to 8 units, so both the target and the anchor of an
+    `ApplyTool` could be validated against that. Without it any loaded klotz can be removed
+    from anywhere.
   - ☐ Placing klotzes
 
 Deployment:
