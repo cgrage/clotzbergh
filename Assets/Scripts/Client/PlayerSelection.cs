@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
 
 namespace Clotzbergh.Client
@@ -37,13 +39,15 @@ namespace Clotzbergh.Client
         private ClientChunk _viewedChunk = null;
         private KlotzWorldData _viewedKlotz = null;
         private GameObject _highlightBox = null;
+        private Mesh _highlightMesh = null;
+        private Material _highlightMaterial = null;
+        private Vector3 _highlightMeshSize = Vector3.zero;
+        private const float HighlightLineWidth = 0.03f;
         private KlotzRegion _cutout = KlotzRegion.Empty;
         private long _selectionChangeCount = 0;
         private long _cutoutChangeCount = 0;
         private float _timeSinceLastAct;
         private const float ActRepeatInterval = 0.1f; // How fast the action repeats while held down
-
-        public Material material;
 
         public long SelectionChangeCount { get => _selectionChangeCount; }
         public long CutoutChangeCount { get => _cutoutChangeCount; }
@@ -122,8 +126,8 @@ namespace Clotzbergh.Client
             else
             {
                 SetSelectionBoxColor(_viewedKlotz.IsFreeToTake ? Color.green : Color.red);
+                UpdateHighlightMesh(_viewedKlotz.WorldSize);
                 _highlightBox.transform.position = _viewedKlotz.WorldPosition;
-                _highlightBox.transform.localScale = _viewedKlotz.WorldSize;
                 _highlightBox.transform.rotation = _viewedKlotz.WorldRotation;
                 _highlightBox.SetActive(true);
                 (RelKlotzCoords relMin, RelKlotzCoords relMax) = _viewedKlotz.OccupiedRange;
@@ -232,47 +236,90 @@ namespace Clotzbergh.Client
 
         private void SetSelectionBoxColor(Color color)
         {
-            LineRenderer lr = _highlightBox.GetComponent<LineRenderer>();
-            lr.startColor = color;
-            lr.endColor = color;
+            _highlightMaterial.color = color;
         }
 
+        /// <summary>
+        /// The wireframe around the klotz being aimed at. Real geometry rather than a
+        /// LineRenderer, whose camera-facing ribbon twists where the edges meet at the corners.
+        /// </summary>
         private GameObject CreateHighlightCube()
         {
             GameObject box = new("Highlight Box");
             box.SetActive(false);
 
-            // Define the vertices of the cuboid
-            Vector3[] vertices = {
-                new (0, 0, 0), new (1, 0, 0), new (1, 0, 1), new (0, 0, 1), // Bottom vertices
-                new (0, 1, 0), new (1, 1, 0), new (1, 1, 1), new (0, 1, 1), // Top vertices
-            };
+            _highlightMesh = new Mesh { name = "Highlight Wireframe" };
+            _highlightMaterial = new Material(Shader.Find("Unlit/Color"));
 
-            // Define the edges of the cuboid
-            int[] positions = {
-                0, 1, 2, 3, 0, // Bottom
-                4, 5, 6, 7, 4, // Top
-                5, 1, 2, 6, 7, 3 // Sticky
-            };
+            box.AddComponent<MeshFilter>().sharedMesh = _highlightMesh;
 
-            // Create a single LineRenderer for all edges
-            LineRenderer lr = box.AddComponent<LineRenderer>();
-            lr.material = material;
-            lr.startColor = Color.black;
-            lr.endColor = Color.black;
-            lr.startWidth = 0.03f;
-            lr.endWidth = 0.03f;
-            lr.positionCount = positions.Length;
-            lr.useWorldSpace = false; // Ensure local space rendering
-            lr.numCapVertices = 2; // Add anti-aliasing to the lines
-
-            // Set positions for all edges
-            for (int i = 0; i < positions.Length; i++)
-            {
-                lr.SetPosition(i, vertices[positions[i]]);
-            }
+            MeshRenderer meshRenderer = box.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterial = _highlightMaterial;
+            meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
 
             return box;
+        }
+
+        /// <summary>
+        /// Rebuilds the wireframe as twelve bars spanning a box of the given size. Built to size
+        /// instead of scaling the transform, which would make the bars thicker along whichever
+        /// axis the klotz is longer.
+        /// </summary>
+        private void UpdateHighlightMesh(Vector3 size)
+        {
+            if (_highlightMeshSize == size)
+                return;
+
+            _highlightMeshSize = size;
+            float w = HighlightLineWidth / 2;
+
+            List<Vector3> vertices = new();
+            List<int> triangles = new();
+
+            // Bars run past the corners by half a width, so the corners come out solid.
+            for (int i = 0; i < 2; i++)
+            {
+                for (int j = 0; j < 2; j++)
+                {
+                    float x = i * size.x, y = i * size.y;
+                    float z = j * size.z;
+
+                    AddBox(vertices, triangles,
+                        new(-w, y - w, z - w), new(size.x + w, y + w, z + w));
+                    AddBox(vertices, triangles,
+                        new(x - w, -w, z - w), new(x + w, size.y + w, z + w));
+                    AddBox(vertices, triangles,
+                        new(x - w, j * size.y - w, -w), new(x + w, j * size.y + w, size.z + w));
+                }
+            }
+
+            _highlightMesh.Clear();
+            _highlightMesh.SetVertices(vertices);
+            _highlightMesh.SetTriangles(triangles, 0);
+            _highlightMesh.RecalculateBounds();
+        }
+
+        /// <summary>
+        /// Faces wound the same way as <see cref="MeshGeneration.VoxelMeshBuilder"/> does it, so
+        /// that (b-a) x (c-a) points out of the box and none of them get culled away.
+        /// </summary>
+        private static void AddBox(List<Vector3> vertices, List<int> triangles, Vector3 min, Vector3 max)
+        {
+            void Face(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int v0 = vertices.Count;
+                vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
+                triangles.Add(v0); triangles.Add(v0 + 1); triangles.Add(v0 + 2);
+                triangles.Add(v0); triangles.Add(v0 + 2); triangles.Add(v0 + 3);
+            }
+
+            Face(new(min.x, max.y, min.z), new(min.x, max.y, max.z), new(max.x, max.y, max.z), new(max.x, max.y, min.z));
+            Face(new(max.x, min.y, min.z), new(max.x, min.y, max.z), new(min.x, min.y, max.z), new(min.x, min.y, min.z));
+            Face(new(min.x, min.y, max.z), new(min.x, max.y, max.z), new(min.x, max.y, min.z), new(min.x, min.y, min.z));
+            Face(new(max.x, min.y, min.z), new(max.x, max.y, min.z), new(max.x, max.y, max.z), new(max.x, min.y, max.z));
+            Face(new(min.x, max.y, min.z), new(max.x, max.y, min.z), new(max.x, min.y, min.z), new(min.x, min.y, min.z));
+            Face(new(min.x, min.y, max.z), new(max.x, min.y, max.z), new(max.x, max.y, max.z), new(min.x, max.y, max.z));
         }
     }
 }
