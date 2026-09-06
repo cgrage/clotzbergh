@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -340,6 +341,61 @@ namespace Clotzbergh
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Removes every klotz of this chunk that the region touches, whole - a klotz reaching
+        /// into the region goes entirely, matching how the selection preview cuts it away. Only
+        /// this chunk is affected, which covers a region spanning several because no klotz ever
+        /// straddles a chunk border. Returns the roots removed, for the client to replay onto
+        /// chunk data arriving from the server.
+        /// </summary>
+        public List<RelKlotzCoords> RemoveKlotzesIn(KlotzRegion region, ChunkCoords myCoords)
+        {
+            List<RelKlotzCoords> removed = new();
+            BoundsInt bounds = region.RoughBounds;
+
+            int originX = myCoords.X * WorldDef.ChunkSubDivsX;
+            int originY = myCoords.Y * WorldDef.ChunkSubDivsY;
+            int originZ = myCoords.Z * WorldDef.ChunkSubDivsZ;
+
+            int xFrom = Math.Max(0, bounds.xMin - originX);
+            int xTo = Math.Min(WorldDef.ChunkSubDivsX - 1, bounds.xMax - originX);
+            int yFrom = Math.Max(0, bounds.yMin - originY);
+            int yTo = Math.Min(WorldDef.ChunkSubDivsY - 1, bounds.yMax - originY);
+            int zFrom = Math.Max(0, bounds.zMin - originZ);
+            int zTo = Math.Min(WorldDef.ChunkSubDivsZ - 1, bounds.zMax - originZ);
+
+            HashSet<RelKlotzCoords> seen = new();
+
+            for (int z = zFrom; z <= zTo; z++)
+            {
+                for (int y = yFrom; y <= yTo; y++)
+                {
+                    for (int x = xFrom; x <= xTo; x++)
+                    {
+                        SubKlotz cell = Get(x, y, z);
+                        if (cell.IsRoot && cell.IsAir)
+                            continue;
+
+                        RelKlotzCoords root = cell.RootPos(new(x, y, z));
+                        if (!seen.Add(root))
+                            continue;
+
+                        SubKlotz rootCell = Get(root);
+                        (RelKlotzCoords min, RelKlotzCoords max) = SubKlotz.TranslateToOccupiedRange(
+                            root, rootCell.Type, rootCell.Direction);
+
+                        if (!region.IntersectsAbs(min.ToAbs(myCoords), max.ToAbs(myCoords)))
+                            continue;
+
+                        RemoveKlotz(root);
+                        removed.Add(root);
+                    }
+                }
+            }
+
+            return removed;
         }
 
         public void RemoveKlotz(RelKlotzCoords klotzCoords)

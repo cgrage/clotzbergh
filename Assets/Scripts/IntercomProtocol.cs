@@ -13,7 +13,7 @@ namespace Clotzbergh
                 ClientStatus = 1,
                 ServerStatus,
                 ChunkData,
-                TakeKlotz,
+                ApplyTool,
             }
 
             public CodeValue Code { get; private set; }
@@ -50,7 +50,7 @@ namespace Clotzbergh
                     CodeValue.ClientStatus => new ClientStatusCommand(reader),
                     CodeValue.ServerStatus => new ServerStatusCommand(reader),
                     CodeValue.ChunkData => new ChunkDataCommand(reader),
-                    CodeValue.TakeKlotz => new TakeKlotzCommand(reader),
+                    CodeValue.ApplyTool => new ApplyToolCommand(reader),
                     _ => throw new IOException("Invalid command"),
                 };
             }
@@ -140,29 +140,36 @@ namespace Clotzbergh
             }
         }
 
-        public class TakeKlotzCommand : Command
+        /// <summary>
+        /// The player applied a tool to the klotz at the given position. Carries the tool rather
+        /// than the klotzes it hits, so the server works out the affected region itself.
+        /// </summary>
+        public class ApplyToolCommand : Command
         {
-            const CodeValue CommandCode = CodeValue.TakeKlotz;
+            const CodeValue CommandCode = CodeValue.ApplyTool;
 
             public ChunkCoords ChunkCoords;
             public RelKlotzCoords InnerChunkCoord;
+            public SelectionTool Tool;
 
             /// <summary>
-            /// Per-client counter, increasing with every take. The server echoes the highest one
-            /// it has processed back in <see cref="ServerStatusUpdate.LastProcessedTakeSequence"/>,
-            /// which tells the client which of its predicted takes are already reflected in the
-            /// chunk data it receives.
+            /// Per-client counter, increasing with every use. The server echoes the highest one
+            /// it has processed back in <see cref="ServerStatusUpdate.LastProcessedToolSequence"/>,
+            /// which tells the client which of its predicted changes are already reflected in
+            /// the chunk data it receives.
             /// </summary>
             public ulong Sequence;
 
-            public TakeKlotzCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord, ulong sequence) : base(CommandCode)
+            public ApplyToolCommand(ChunkCoords coords, RelKlotzCoords innerChunkCoord, SelectionTool tool, ulong sequence)
+                : base(CommandCode)
             {
                 ChunkCoords = coords;
                 InnerChunkCoord = innerChunkCoord;
+                Tool = tool;
                 Sequence = sequence;
             }
 
-            public TakeKlotzCommand(BinaryReader r) : base(CommandCode)
+            public ApplyToolCommand(BinaryReader r) : base(CommandCode)
             {
                 ChunkCoords = new ChunkCoords(
                     r.ReadInt32(),
@@ -172,6 +179,7 @@ namespace Clotzbergh
                     r.ReadInt32(),
                     r.ReadInt32(),
                     r.ReadInt32());
+                Tool = (SelectionTool)r.ReadByte();
                 Sequence = r.ReadUInt64();
             }
 
@@ -183,6 +191,7 @@ namespace Clotzbergh
                 w.Write(InnerChunkCoord.X);
                 w.Write(InnerChunkCoord.Y);
                 w.Write(InnerChunkCoord.Z);
+                w.Write((byte)Tool);
                 w.Write(Sequence);
             }
         }

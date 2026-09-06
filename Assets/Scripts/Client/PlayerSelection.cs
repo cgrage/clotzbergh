@@ -8,32 +8,6 @@ namespace Clotzbergh.Client
 {
     public class PlayerSelection : MonoBehaviour
     {
-        public enum SelectionTool
-        {
-            None,
-            SingleKlotz,
-            DigSmall,
-            DigMedium,
-            DigLarge,
-            LevelSmall,
-            LevelMedium,
-            LevelLarge,
-        }
-
-        /// <summary>
-        /// How far a multi-klotz selection reaches beyond the klotz it is aimed at, in
-        /// sub-klotzes. Radius applies to X/Z, vertical reach to Y.
-        /// </summary>
-        public static class SelectionSizes
-        {
-            public const int SmallRadius = 1;
-            public const int SmallVerticalReach = 1;
-            public const int MediumRadius = 2;
-            public const int MediumVerticalReach = 2;
-            public const int LargeRadius = 3;
-            public const int LargeVerticalReach = 3;
-        }
-
         private SelectionTool _selectionTool = SelectionTool.None;
         private Vector3 _viewedPosition = Vector3.zero;
         private ClientChunk _viewedChunk = null;
@@ -58,6 +32,11 @@ namespace Clotzbergh.Client
         public KlotzWorldData ViewedKlotz { get => _viewedKlotz; } // for debug UI
 
         public SelectionTool CurrentTool { get => _selectionTool; }
+
+        /// <summary>
+        /// Set by GameClient, since applying a tool can reach across several chunks.
+        /// </summary>
+        public ClientChunkStore ChunkStore { get; set; }
 
         private class PlayerView
         {
@@ -134,23 +113,11 @@ namespace Clotzbergh.Client
                 AbsKlotzCoords klotzMin = relMin.ToAbs(_viewedChunk.Coords);
                 AbsKlotzCoords klotzMax = relMax.ToAbs(_viewedChunk.Coords);
 
-                _cutout = _selectionTool switch
-                {
-                    SelectionTool.SingleKlotz => KlotzRegion.Empty,
-                    SelectionTool.DigSmall => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        SelectionSizes.SmallRadius, SelectionSizes.SmallVerticalReach),
-                    SelectionTool.DigMedium => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        SelectionSizes.MediumRadius, SelectionSizes.MediumVerticalReach),
-                    SelectionTool.DigLarge => KlotzRegion.AroundKlotz(klotzMin, klotzMax,
-                        SelectionSizes.LargeRadius, SelectionSizes.LargeVerticalReach),
-                    SelectionTool.LevelSmall => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
-                        SelectionSizes.SmallRadius, SelectionSizes.SmallVerticalReach),
-                    SelectionTool.LevelMedium => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
-                        SelectionSizes.MediumRadius, SelectionSizes.MediumVerticalReach),
-                    SelectionTool.LevelLarge => KlotzRegion.AboveKlotz(klotzMin, klotzMax,
-                        SelectionSizes.LargeRadius, SelectionSizes.LargeVerticalReach),
-                    _ => KlotzRegion.Empty,
-                };
+                // SingleKlotz gets no cutout: the highlight box already marks the one klotz, and
+                // cutting it away would leave the player aiming at a hole.
+                _cutout = _selectionTool == SelectionTool.SingleKlotz
+                    ? KlotzRegion.Empty
+                    : SelectionTools.RegionFor(_selectionTool, klotzMin, klotzMax);
             }
 
             if (!cutoutWasEmpty || !_cutout.IsEmpty)
@@ -221,7 +188,7 @@ namespace Clotzbergh.Client
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 _timeSinceLastAct = 0f;
-                selection?.viewedChunk?.TakeKlotz(selection.viewedKlotz.RootCoords);
+                ApplyCurrentTool(selection);
             }
             else if (Mouse.current.leftButton.isPressed)
             {
@@ -229,9 +196,28 @@ namespace Clotzbergh.Client
                 if (_timeSinceLastAct >= ActRepeatInterval)
                 {
                     _timeSinceLastAct = 0f;
-                    selection?.viewedChunk?.TakeKlotz(selection.viewedKlotz.RootCoords);
+                    ApplyCurrentTool(selection);
                 }
             }
+        }
+
+        /// <summary>
+        /// The region is worked out here rather than reused from the cutout, which is only the
+        /// preview - it stays empty for SingleKlotz, where the highlight box already shows what
+        /// is about to go.
+        /// </summary>
+        private void ApplyCurrentTool(PlayerView selection)
+        {
+            if (ChunkStore == null || selection?.viewedChunk == null || selection.viewedKlotz == null)
+                return;
+
+            ChunkCoords chunkCoords = selection.viewedChunk.Coords;
+            (RelKlotzCoords relMin, RelKlotzCoords relMax) = selection.viewedKlotz.OccupiedRange;
+
+            KlotzRegion region = SelectionTools.RegionFor(
+                _selectionTool, relMin.ToAbs(chunkCoords), relMax.ToAbs(chunkCoords));
+
+            ChunkStore.ApplyTool(chunkCoords, selection.viewedKlotz.RootCoords, _selectionTool, region);
         }
 
         private void SetSelectionBoxColor(Color color)

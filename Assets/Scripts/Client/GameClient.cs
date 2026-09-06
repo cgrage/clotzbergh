@@ -12,7 +12,12 @@ namespace Clotzbergh.Client
     public interface IClientSideOps
     {
         void RequestMeshCalc(ClientChunk owner, WorldChunk world, int lod, ulong worldLocalVersion);
-        void TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords);
+
+        /// <summary>
+        /// Sends the tool use to the server. The region is not sent - the server derives it from
+        /// the tool - but is kept locally to replay the prediction onto incoming chunk data.
+        /// </summary>
+        void ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region);
     }
 
     public class Statistics
@@ -55,36 +60,35 @@ namespace Clotzbergh.Client
         private bool _doStudsAndHoles = true;
 
         /// <summary>
-        /// Counts the takes sent to the server. The server reports back how far it has got in
-        /// <see cref="ServerStatusUpdate.LastProcessedTakeSequence"/> - see _acknowledgedTakeSequence.
+        /// Counts the tool uses sent to the server. The server reports back how far it has got
+        /// in <see cref="ServerStatusUpdate.LastProcessedToolSequence"/> - see
+        /// _acknowledgedToolSequence.
         /// </summary>
-        private ulong _takeKlotzSequence = 0;
+        private ulong _applyToolSequence = 0;
 
         /// <summary>
-        /// The last take of ours the server has confirmed processing. Takes newer than this are
-        /// still in flight, so chunk data arriving now does not reflect them yet.
+        /// The last tool use of ours the server has confirmed processing. Anything newer is
+        /// still in flight, so chunk data arriving now does not reflect it yet.
         /// </summary>
-        private ulong _acknowledgedTakeSequence = 0;
+        private ulong _acknowledgedToolSequence = 0;
 
         /// <summary>
-        /// Takes we predicted locally that the server has not confirmed processing yet. Chunk
-        /// data arriving while these are in flight does not contain them, so they are re-applied
-        /// on top of it (see <see cref="ClientChunk.OnWorldUpdate"/>). Only touched on the main
+        /// Regions we already removed locally that the server has not confirmed yet. Chunk data
+        /// arriving while these are in flight does not contain them, so they are re-applied on
+        /// top of it (see <see cref="ClientChunk.OnWorldUpdate"/>). Only touched on the main
         /// thread.
         /// </summary>
-        private readonly List<PendingTake> _pendingTakes = new();
+        private readonly List<PendingToolUse> _pendingToolUses = new();
 
-        private readonly struct PendingTake
+        private readonly struct PendingToolUse
         {
             public readonly ulong Sequence;
-            public readonly ChunkCoords ChunkCoords;
-            public readonly RelKlotzCoords InnerChunkCoords;
+            public readonly KlotzRegion Region;
 
-            public PendingTake(ulong sequence, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
+            public PendingToolUse(ulong sequence, KlotzRegion region)
             {
                 Sequence = sequence;
-                ChunkCoords = chunkCoords;
-                InnerChunkCoords = innerChunkCoords;
+                Region = region;
             }
         }
 
@@ -109,6 +113,7 @@ namespace Clotzbergh.Client
             _chunkStore.AsyncTerrainOps = this;
             _chunkStore.KlotzMat = Material;
             _chunkStore.Selection = Selection;
+            Selection.ChunkStore = _chunkStore;
 
             foreach (GameObject prefab in Resources.LoadAll<GameObject>(NonPrimitiveKlotzResourcesPath))
             {
@@ -303,10 +308,10 @@ namespace Clotzbergh.Client
                     var statusCmd = (IntercomProtocol.ServerStatusCommand)cmd;
                     ToMainThread(() =>
                     {
-                        if (statusCmd.Update.LastProcessedTakeSequence > _acknowledgedTakeSequence)
+                        if (statusCmd.Update.LastProcessedToolSequence > _acknowledgedToolSequence)
                         {
-                            _acknowledgedTakeSequence = statusCmd.Update.LastProcessedTakeSequence;
-                            _pendingTakes.RemoveAll(take => take.Sequence <= _acknowledgedTakeSequence);
+                            _acknowledgedToolSequence = statusCmd.Update.LastProcessedToolSequence;
+                            _pendingToolUses.RemoveAll(use => use.Sequence <= _acknowledgedToolSequence);
                         }
 
                         UpdatePlayerPositions(statusCmd.Update);
@@ -322,7 +327,7 @@ namespace Clotzbergh.Client
                             chunkDataCmd.Coords,
                             chunkDataCmd.Version,
                             chunkDataCmd.Chunk,
-                            GetPendingTakesFor(chunkDataCmd.Coords));
+                            GetPendingRegionsFor(chunkDataCmd.Coords));
                     });
                     break;
             }
@@ -423,34 +428,33 @@ namespace Clotzbergh.Client
         }
 
         /// <summary>
-        /// The still-unconfirmed takes in one chunk, oldest first, so they can be re-applied in
-        /// the order they were made. Returns null if there are none.
+        /// The still-unconfirmed regions reaching into one chunk, oldest first, so they can be
+        /// re-applied in the order they were made. Returns null if there are none.
         /// </summary>
-        private List<RelKlotzCoords> GetPendingTakesFor(ChunkCoords chunkCoords)
+        private List<KlotzRegion> GetPendingRegionsFor(ChunkCoords chunkCoords)
         {
-            List<RelKlotzCoords> result = null;
+            List<KlotzRegion> result = null;
 
-            foreach (PendingTake take in _pendingTakes)
+            foreach (PendingToolUse use in _pendingToolUses)
             {
-                if (take.Sequence <= _acknowledgedTakeSequence || take.ChunkCoords != chunkCoords)
+                if (use.Sequence <= _acknowledgedToolSequence || !use.Region.Touches(chunkCoords))
                     continue;
 
-                result ??= new List<RelKlotzCoords>();
-                result.Add(take.InnerChunkCoords);
+                result ??= new List<KlotzRegion>();
+                result.Add(use.Region);
             }
 
             return result;
         }
 
-        void IClientSideOps.TakeKlotz(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords)
+        void IClientSideOps.ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region)
         {
-            ulong sequence = ++_takeKlotzSequence;
-            _pendingTakes.Add(new PendingTake(sequence, chunkCoords, innerChunkCoords));
+            ulong sequence = ++_applyToolSequence;
+            _pendingToolUses.Add(new PendingToolUse(sequence, region));
 
             _connectionThreadActionQueue.Add((ws) =>
             {
-                // Debug.Log($"Client: TakeKlotz {chunkCoords}.{innerChunkCoords}");
-                IntercomProtocol.TakeKlotzCommand cmd = new(chunkCoords, innerChunkCoords, sequence);
+                IntercomProtocol.ApplyToolCommand cmd = new(chunkCoords, innerChunkCoords, tool, sequence);
                 ws.Send(cmd.ToBytes());
             });
         }

@@ -91,9 +91,28 @@ namespace Clotzbergh.Client
             //
         }
 
-        public void OnWorldChunkReceived(ChunkCoords coords, ulong version, WorldChunk chunk, IReadOnlyList<RelKlotzCoords> pendingTakes)
+        public void OnWorldChunkReceived(ChunkCoords coords, ulong version, WorldChunk chunk, IReadOnlyList<KlotzRegion> pendingRegions)
         {
-            GetOrCreate(coords).OnWorldUpdate(version, chunk, pendingTakes);
+            GetOrCreate(coords).OnWorldUpdate(version, chunk, pendingRegions);
+        }
+
+        /// <summary>
+        /// Applies a tool to the world and tells the server. The region may reach across chunk
+        /// borders, so every loaded chunk it touches predicts its own share - which is complete
+        /// per chunk, as no klotz straddles a border.
+        /// </summary>
+        public void ApplyTool(ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, KlotzRegion region)
+        {
+            if (region.IsEmpty)
+                return;
+
+            foreach (ClientChunk chunk in _dict.Values)
+            {
+                if (region.Touches(chunk.Coords))
+                    chunk.PredictRemoval(region);
+            }
+
+            AsyncTerrainOps?.ApplyTool(chunkCoords, innerChunkCoords, tool, region);
         }
 
         /// <summary>

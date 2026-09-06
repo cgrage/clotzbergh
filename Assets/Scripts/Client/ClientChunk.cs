@@ -112,7 +112,7 @@ namespace Clotzbergh.Client
         /// this data, so they get re-applied on top of it, otherwise those klotzes would pop back
         /// until their own update arrives.
         /// </summary>
-        public void OnWorldUpdate(ulong version, WorldChunk world, IReadOnlyList<RelKlotzCoords> pendingTakes)
+        public void OnWorldUpdate(ulong version, WorldChunk world, IReadOnlyList<KlotzRegion> pendingRegions)
         {
             if (_isCleanedUp)
                 return;
@@ -123,12 +123,11 @@ namespace Clotzbergh.Client
 
             // Safe to modify directly rather than on a clone: nothing else holds this instance
             // until it is published below.
-            if (pendingTakes != null)
+            if (pendingRegions != null)
             {
-                foreach (RelKlotzCoords coords in pendingTakes)
+                foreach (KlotzRegion region in pendingRegions)
                 {
-                    if (world.Get(coords).IsRootAndNotAir)
-                        world.RemoveKlotz(coords);
+                    world.RemoveKlotzesIn(region, _coords);
                 }
             }
 
@@ -332,24 +331,21 @@ namespace Clotzbergh.Client
             return GetKlotzAt(subKlotzCoords);
         }
 
-        public void TakeKlotz(RelKlotzCoords innerChunkCoords)
-        {
-            PredictTakeKlotz(innerChunkCoords);
-            _asyncOps?.TakeKlotz(_coords, innerChunkCoords);
-        }
-
         /// <summary>
-        /// Removes the klotz from our own copy of the world without waiting for the server to
-        /// confirm it. Only _worldLocalVersion is raised, not _currentWorldServerVersion, so the
-        /// server's own update is still accepted by OnWorldUpdate and overrides this if it differs.
+        /// Removes the region's klotzes from our own copy of the world without waiting for the
+        /// server to confirm it. Only _worldLocalVersion is raised, not _currentWorldServerVersion,
+        /// so the server's own update is still accepted by OnWorldUpdate and overrides this if it
+        /// differs.
         /// </summary>
-        private void PredictTakeKlotz(RelKlotzCoords innerChunkCoords)
+        public void PredictRemoval(KlotzRegion region)
         {
             if (_currentWorld == null)
                 return;
 
             WorldChunk predictedWorld = _currentWorld.Clone();
-            predictedWorld.RemoveKlotz(innerChunkCoords);
+            if (predictedWorld.RemoveKlotzesIn(region, _coords).Count == 0)
+                return;
+
             _currentWorld = predictedWorld;
             IncWorldLocalVersion();
 

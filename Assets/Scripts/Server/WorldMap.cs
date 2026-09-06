@@ -193,7 +193,7 @@ namespace Clotzbergh.Server
             ClientWorldMapState state = GetClientState(id);
             ServerStatusUpdate update = new()
             {
-                LastProcessedTakeSequence = state.LastProcessedTakeSequence,
+                LastProcessedToolSequence = state.LastProcessedToolSequence,
             };
 
             lock (_clientStates)
@@ -220,34 +220,66 @@ namespace Clotzbergh.Server
             return update;
         }
 
-        public void PlayerTakeKlotz(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, ulong sequence)
+        /// <summary>
+        /// Applies a tool the player used on the klotz at the given position. The region is
+        /// derived here from the tool rather than taken from the client, so what a tool reaches
+        /// stays the server's decision. It can span several chunks, each of which is complete on
+        /// its own because no klotz straddles a chunk border.
+        /// </summary>
+        public void PlayerApplyTool(ClientId id, ChunkCoords chunkCoords, RelKlotzCoords innerChunkCoords, SelectionTool tool, ulong sequence)
         {
-            // Debug.Log($"ServerMap: PlayerTakeKlotz ${id} ${chunkCoords} ${innerChunkCoords}");
-            WorldChunkState worldState = GetWorldState(chunkCoords);
-            if (worldState == null)
+            WorldChunkState aimedState = GetWorldState(chunkCoords);
+            if (aimedState == null || aimedState.Chunk == null)
             {
                 // this should not happen..
                 return;
             }
 
+            List<ChunkCoords> changed = new();
+
             lock (_worldState)
             {
-                worldState.Chunk.RemoveKlotz(innerChunkCoords);
-                worldState.Version++;
+                SubKlotz aimed = aimedState.Chunk.Get(innerChunkCoords);
+                if (aimed.IsRoot && aimed.IsAir)
+                    return;
+
+                (RelKlotzCoords relMin, RelKlotzCoords relMax) = SubKlotz.TranslateToOccupiedRange(
+                    innerChunkCoords, aimed.Type, aimed.Direction);
+
+                KlotzRegion region = SelectionTools.RegionFor(
+                    tool, relMin.ToAbs(chunkCoords), relMax.ToAbs(chunkCoords));
+
+                if (region.IsEmpty)
+                    return;
+
+                foreach (var entry in _worldState)
+                {
+                    if (entry.Value.Chunk == null || !region.Touches(entry.Key))
+                        continue;
+
+                    if (entry.Value.Chunk.RemoveKlotzesIn(region, entry.Key).Count == 0)
+                        continue;
+
+                    entry.Value.Version++;
+                    changed.Add(entry.Key);
+                }
             }
 
-            // Only once the change is actually in the chunk - a client that hears its take was
-            // processed must be able to rely on the chunk data reflecting it.
+            // Only once the changes are actually in the chunks - a client that hears its tool use
+            // was processed must be able to rely on the chunk data reflecting it.
             ClientWorldMapState clientState = GetClientState(id);
-            if (clientState != null && sequence > clientState.LastProcessedTakeSequence)
+            if (clientState != null && sequence > clientState.LastProcessedToolSequence)
             {
-                clientState.LastProcessedTakeSequence = sequence;
+                clientState.LastProcessedToolSequence = sequence;
             }
 
             lock (_toSaveList)
             {
-                if (!_toSaveList.Contains(chunkCoords))
-                    _toSaveList.Add(chunkCoords);
+                foreach (ChunkCoords coords in changed)
+                {
+                    if (!_toSaveList.Contains(coords))
+                        _toSaveList.Add(coords);
+                }
             }
         }
 

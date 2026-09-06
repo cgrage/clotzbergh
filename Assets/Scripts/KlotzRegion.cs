@@ -12,13 +12,17 @@ namespace Clotzbergh
         protected KlotzRegion() { }
 
         /// <summary>
-        /// The klotz grown by the radius horizontally and by the vertical reach in both
-        /// directions, so it reaches as far below what the player is aiming at as above.
+        /// A ball of the given radius around the klotz. The radius is horizontal, and since a
+        /// sub-klotz is 2.5 times shorter in Y than in X/Z, the ball covers 2.5 times as many
+        /// cells vertically - which is what makes it round in the world rather than in cells.
         /// </summary>
-        public static KlotzRegion AroundKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int verticalReach)
+        public static KlotzRegion AroundKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius)
         {
+            // Rounded up, so the bounds never cut into the shape the containment test allows.
+            int verticalReach = (radius * 5 + 1) / 2;
+
             return new NearKlotzRegion(klotzMin, klotzMax, radius,
-                klotzMin.Y - verticalReach, klotzMax.Y + verticalReach);
+                klotzMin.Y - verticalReach, klotzMax.Y + verticalReach, ballShaped: true);
         }
 
         /// <summary>
@@ -29,7 +33,7 @@ namespace Clotzbergh
         public static KlotzRegion AboveKlotz(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int verticalReach)
         {
             return new NearKlotzRegion(klotzMin, klotzMax, radius,
-                klotzMax.Y + 1, klotzMax.Y + verticalReach);
+                klotzMax.Y + 1, klotzMax.Y + verticalReach, ballShaped: false);
         }
 
         /// <summary>
@@ -76,16 +80,18 @@ namespace Clotzbergh
         private readonly int _radius;
         private readonly int _bottom;
         private readonly int _top;
+        private readonly bool _ballShaped;
         private readonly BoundsInt _roughBounds;
         private readonly BoundsInt _reachBounds;
 
-        public NearKlotzRegion(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int bottom, int top)
+        public NearKlotzRegion(AbsKlotzCoords klotzMin, AbsKlotzCoords klotzMax, int radius, int bottom, int top, bool ballShaped)
         {
             _klotzMin = klotzMin;
             _klotzMax = klotzMax;
             _radius = radius;
             _bottom = bottom;
             _top = top;
+            _ballShaped = ballShaped;
             _roughBounds = new(
                 klotzMin.X - radius, bottom, klotzMin.Z - radius,
                 klotzMax.X - klotzMin.X + radius * 2,
@@ -120,12 +126,21 @@ namespace Clotzbergh
             if (max.Y < _bottom || min.Y > _top)
                 return false;
 
-            // Distance between the two rectangles, which is 0 where they overlap. Compared
+            // Distance between the two boxes per axis, which is 0 where they overlap. Compared
             // squared to stay in integers and skip the square root.
             int dx = Mathf.Max(0, Mathf.Max(_klotzMin.X - max.X, min.X - _klotzMax.X));
             int dz = Mathf.Max(0, Mathf.Max(_klotzMin.Z - max.Z, min.Z - _klotzMax.Z));
 
-            return dx * dx + dz * dz <= _radius * _radius;
+            if (!_ballShaped)
+                return dx * dx + dz * dz <= _radius * _radius;
+
+            int dy = Mathf.Max(0, Mathf.Max(_klotzMin.Y - max.Y, min.Y - _klotzMax.Y));
+
+            // Y joins the same distance rather than being clamped on its own - that is what
+            // rounds the shape off instead of leaving a cylinder. Counted in horizontal cell
+            // widths, one cell of Y is 0.4 of one in X/Z, and everything is scaled by 5 to keep
+            // the arithmetic in integers.
+            return 25 * (dx * dx + dz * dz) + 4 * (dy * dy) <= 25 * _radius * _radius;
         }
     }
 }
