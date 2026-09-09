@@ -34,11 +34,18 @@ namespace Clotzbergh
         {
             public const int MinCoordsX = -10;
             public const int MaxCoordsX = 10;
-            public const int MinCoordsY = -2;
-            public const int MaxCoordsY = 2;
+            public const int MinCoordsY = -1;
+            public const int MaxCoordsY = 3;
             public const int MinCoordsZ = -10;
             public const int MaxCoordsZ = 10;
         }
+
+        /// <summary>
+        /// The one height water sits at, in sub-klotzes. There is no water simulation here - in
+        /// a klotz world water is simply this line, with everything below it submerged. The
+        /// surface itself is drawn half a sub-klotz lower, through the middle of the cells.
+        /// </summary>
+        public const int WaterLevel = 0;
 
         /// <summary>
         /// Where all the sizing is based on

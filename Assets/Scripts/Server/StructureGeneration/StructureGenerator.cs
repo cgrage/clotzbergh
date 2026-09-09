@@ -20,6 +20,12 @@ namespace Clotzbergh.Server.StructureGeneration
     {
         private readonly List<PlotFloorPlan> _destinations = new();
 
+        /// <summary>
+        /// How far above the water line the ground has to be for a house to go up there.
+        /// Anything lower would stand in the surf or under water outright.
+        /// </summary>
+        private const int MinGroundLevelAboveWater = 5;
+
         public override IGenerationModifier GenModifier => this;
 
         public void OnBeforeGeneration(FieldResolver r)
@@ -33,6 +39,9 @@ namespace Clotzbergh.Server.StructureGeneration
                 Vector2Int sizeXZ = new(dimensions.x, dimensions.z);
                 Vector2Int posXZ = NextRandRelCoordsXZ(sizeXZ);
                 int y = r.GroundStartAtRelPos(posXZ.x + sizeXZ.x / 2, posXZ.y + sizeXZ.y / 2);
+                if (y < WorldDef.WaterLevel + MinGroundLevelAboveWater)
+                    continue;
+
                 int yRel = y - r.Coords.Y * WorldDef.ChunkSubDivsY;
 
                 // yRel may be negative and out of bounds

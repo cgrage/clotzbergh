@@ -32,10 +32,12 @@ namespace Clotzbergh.Server
         public const int DefaultOctaves = 4;
 
         private readonly Vector2[] _octaveOffsets;
+        private readonly float _baseHeight;
 
-        public DefaultHeightMap(int seed, int octaves = DefaultOctaves)
+        public DefaultHeightMap(int seed, float baseHeight, int octaves = DefaultOctaves)
         {
             Random rnd = new(seed);
+            _baseHeight = baseHeight;
 
             _octaveOffsets = new Vector2[octaves];
             for (int i = 0; i < octaves; i++)
@@ -65,7 +67,7 @@ namespace Clotzbergh.Server
                 frequency *= NoiseLacunarity;
             }
 
-            return noiseHeight * NoiseHeightScale;
+            return noiseHeight * NoiseHeightScale + _baseHeight;
         }
     }
 }

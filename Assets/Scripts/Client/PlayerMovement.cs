@@ -27,9 +27,22 @@ namespace Clotzbergh.Client
 
         private bool canMove = true;
 
+        /// <summary>
+        /// Where the player drops in, until spawning looks at the actual ground. Set above the
+        /// terrain's peaks rather than near its average: starting inside a hill leaves the
+        /// controller wedged, while starting too high only costs a fall.
+        /// </summary>
+        private static readonly Vector3 SpawnPosition = new(0f, 40f, 0f);
+
         void Start()
         {
             characterController = GetComponent<CharacterController>();
+
+            // The controller owns the transform once enabled and would discard the write.
+            characterController.enabled = false;
+            transform.position = SpawnPosition;
+            characterController.enabled = true;
+
             _normalWalkSpeed = walkSpeed;
             _normalRunSpeed = runSpeed;
             Cursor.lockState = CursorLockMode.Locked;

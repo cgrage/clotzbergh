@@ -55,6 +55,14 @@ namespace Clotzbergh.Server
 
     public class WorldGenerator
     {
+        /// <summary>
+        /// The height terrain is generated around. Derived from the world floor rather than
+        /// fixed, so it keeps two chunks of room underneath for valleys to run down into - move
+        /// the limits and the terrain moves with them instead of being cut off from below.
+        /// </summary>
+        private static readonly float TerrainBaseHeight =
+            (WorldDef.Limits.MinCoordsY + 2) * WorldDef.ChunkSize.y;
+
         protected IHeightMap HeightMap { get; }
         protected ColorFunction ColorFunc { get; }
         protected GeneratorFactory<ChunkGenerator> ChunkGeneratorFactory { get; }
@@ -67,8 +75,8 @@ namespace Clotzbergh.Server
         {
             HeightMap = genParams.Roughness switch
             {
-                WorldRoughnessType.Flat => new FlatHeightMap(-10f),
-                WorldRoughnessType.Hilly => new DefaultHeightMap(genParams.Seed),
+                WorldRoughnessType.Flat => new FlatHeightMap(TerrainBaseHeight - 10f),
+                WorldRoughnessType.Hilly => new DefaultHeightMap(genParams.Seed, TerrainBaseHeight),
                 _ => throw new ArgumentOutOfRangeException(),
             };
 
@@ -161,12 +169,13 @@ namespace Clotzbergh.Server
         /// </summary>
         public static KlotzColor ColorFromHeight(int absX, int absY, int absZ)
         {
-            if (absY < -80) return KlotzColor.Azure;
-            if (absY < -70) return KlotzColor.Yellow;
-            if (absY < -20) return KlotzColor.DarkGreen;
-            if (absY < 30) return KlotzColor.DarkBrown;
-            if (absY < 70) return KlotzColor.Gray;
-            return KlotzColor.White;
+            // Measured from the water line, so the bands keep their meaning if it ever moves.
+            // Sand covers everything submerged plus a strip of beach above it.
+            if (absY < WorldDef.WaterLevel + 10) return KlotzColor.Yellow;     // -80 ..   9
+            if (absY < WorldDef.WaterLevel + 60) return KlotzColor.DarkGreen;  //  10 ..  59
+            if (absY < WorldDef.WaterLevel + 110) return KlotzColor.DarkBrown; //  60 .. 109
+            if (absY < WorldDef.WaterLevel + 150) return KlotzColor.Gray;      // 110 .. 149
+            return KlotzColor.White;                                           // 150 .. 319
         }
 
         /// <summary>
