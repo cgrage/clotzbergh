@@ -42,8 +42,7 @@ namespace Clotzbergh
 
         /// <summary>
         /// The one height water sits at, in sub-klotzes. There is no water simulation here - in
-        /// a klotz world water is simply this line, with everything below it submerged. The
-        /// surface itself is drawn half a sub-klotz lower, through the middle of the cells.
+        /// a klotz world water is simply this line, with everything below it submerged.
         /// </summary>
         public const int WaterLevel = 0;
 

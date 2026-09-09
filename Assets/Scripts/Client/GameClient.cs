@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using WebSocketSharp;
 using Clotzbergh.Client.MeshGeneration;
 
@@ -136,6 +137,8 @@ namespace Clotzbergh.Client
 
             Shader.SetGlobalFloat("_DoStudsAndHoles", _doStudsAndHoles ? 1f : 0f);
 
+            CreateWaterPlane();
+
             _connectionThread = new Thread(ConnectionThreadMain) { Name = "ConnectionThread" };
             _connectionThread.Start();
 
@@ -145,6 +148,42 @@ namespace Clotzbergh.Client
                 _meshThreads.Add(thread);
                 thread.Start();
             }
+        }
+
+        /// <summary>
+        /// Water is one flat surface across the whole world, not a simulation - so it is a single
+        /// quad rather than anything per chunk. It gets no collider: one would swallow the aiming
+        /// raycast, and the player is meant to walk straight through for now.
+        /// </summary>
+        private void CreateWaterPlane()
+        {
+            float y = (WorldDef.WaterLevel - 0.1f) * WorldDef.SubKlotzSize.y;
+            float xMin = WorldDef.Limits.MinCoordsX * WorldDef.ChunkSize.x;
+            float xMax = (WorldDef.Limits.MaxCoordsX + 1) * WorldDef.ChunkSize.x;
+            float zMin = WorldDef.Limits.MinCoordsZ * WorldDef.ChunkSize.z;
+            float zMax = (WorldDef.Limits.MaxCoordsZ + 1) * WorldDef.ChunkSize.z;
+
+            Mesh mesh = new() { name = "Water Surface" };
+            mesh.SetVertices(new List<Vector3>
+            {
+                new(xMin, y, zMin), new(xMin, y, zMax), new(xMax, y, zMax), new(xMax, y, zMin),
+            });
+            mesh.SetTriangles(new List<int> { 0, 1, 2, 0, 2, 3 }, 0);
+            mesh.SetNormals(new List<Vector3> { Vector3.up, Vector3.up, Vector3.up, Vector3.up });
+            mesh.RecalculateBounds();
+
+            GameObject water = new("Water") { transform = { parent = transform } };
+            water.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            MeshRenderer meshRenderer = water.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterial = new Material(Shader.Find("Transparent/Diffuse"))
+            {
+                color = new Color(0.10f, 0.40f, 0.60f, 0.65f),
+            };
+
+            // A see-through surface casting a shadow would darken the sea bed under it.
+            meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
         }
 
         void Update()
